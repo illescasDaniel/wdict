@@ -23,6 +23,18 @@ npm test --prefix frontend
 go test -tags gtk3 ./...
 ```
 
+## Linux AppImage
+
+On Linux, install the build prerequisites above, plus `pkg-config`, `file`, `find`, librsvg and GObject Introspection development files. Run:
+
+```sh
+./scripts/build-appimage.sh
+```
+
+The script installs frontend dependencies locally, builds the app and invokes the pinned Wails v3.0.0 generator. It downloads linuxdeploy and writes `dist/wdict-<architecture>.AppImage`; the linuxdeploy download tracks its continuous release, so builds are not fully reproducible. Run the image after making it executable (`chmod +x dist/*.AppImage`). FUSE may be required; alternatively run with `--appimage-extract-and-run`.
+
+Build on an appropriately old supported Linux distribution for wider compatibility: system library versions from the build host affect which other distributions can run the image. The bundled GTK/WebKit stack and its licenses should be reviewed before distribution. Offline dictionary data remains in the user's data directory, outside the AppImage.
+
 ## Data and sources
 
 The app offers the pinned [20261018 English Wiktionary StarDict release](https://github.com/xxyzz/wiktionary_stardict/releases/tag/20261018), compiled by [xxyzz](https://xxyzz.github.io/wiktionary_stardict/) from [Wiktionary](https://en.wiktionary.org/). Its package metadata identifies the snapshot as [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/); credit belongs to Wiktionary contributors and xxyzz. wdict extracts definitions and changes their formatting. The download is approximately 142 MB, is user initiated, and is verified against the publisher's SHA-256 checksum before installation.

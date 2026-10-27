@@ -2,6 +2,8 @@
 
 ## Open
 
+- [ ] Test the AppImage interactively and on older target distributions; review bundled dependency licenses before distribution.
+
 - [ ] Verify end-to-end interactive startup and cold-disk performance.
 - [ ] In a later task, test the app on macOS and Windows before claiming support.
 - [ ] After v1, consider inflected-form lookup and spelling suggestions.
@@ -10,6 +12,8 @@
 - [ ] Review and trust the project hooks, then test the MCP and hook checklist.
 
 ## Done
+
+- [x] Added a Linux AppImage build script, icon and desktop entry; built and smoke-launched an x86_64 image on CachyOS on 2026-10-27.
 
 - [x] User confirmed the improved offline installation and lookup work in native use on 2026-10-27; initial window dimensions now scale to the primary display while retaining the requested proportions.
 

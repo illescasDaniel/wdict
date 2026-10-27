@@ -37,3 +37,5 @@ Selected the xxyzz 20261018 English-English Wiktionary StarDict release as the i
 ## 2026-10-27 — Practical attribution
 
 User prefers a quick, pragmatic review and source/license attribution in the README and app, rather than prolonged rights research. Source: `src:7277bd055edce9e9b478`.
+
+- 2026-10-27: Use the pinned Wails v3.0.0 AppImage generator for GTK 3 packaging because it bundles and relocates WebKit helpers. Its linuxdeploy continuous download is not pinned; cross-distribution verification and license review remain before release.

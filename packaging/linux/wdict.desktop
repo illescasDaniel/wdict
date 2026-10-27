@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=wdict
+Comment=Look up words and phrases
+Exec=wdict
+Icon=wdict
+Categories=Office;Dictionary;
+Terminal=false
