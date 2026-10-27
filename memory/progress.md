@@ -2,6 +2,9 @@
 
 ## Open
 
+- [ ] Capture a usable app screenshot and verify native rendering after the SvelteKit upgrade.
+- [ ] Generate and test macOS and Windows binaries before the first release.
+
 - [ ] Test the AppImage interactively and on older target distributions; review bundled dependency licenses before distribution.
 
 - [ ] Verify end-to-end interactive startup and cold-disk performance.
@@ -12,6 +15,8 @@
 - [ ] Review and trust the project hooks, then test the MCP and hook checklist.
 
 ## Done
+
+- [x] Upgraded SvelteKit dependencies to resolve npm audit findings, added MIT license and 0.1.0 metadata, and configured Linux AppImage CI on 2026-10-27. Local tests and AppImage build passed.
 
 - [x] Added pinned Task Go tool and contributor setup, build, test and AppImage commands on 2026-10-27.
 

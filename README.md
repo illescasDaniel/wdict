@@ -1,10 +1,14 @@
 # wdict
 
-A Linux-first desktop dictionary built with Go, Wails v3 and SvelteKit. Search English words and phrases online, reuse saved results, or download a Wiktionary dictionary in the app for offline use. Queries are sent to the online provider only after an offline and cache miss or an expired cache entry.
+A Linux-first desktop dictionary built with Go, Wails v3 and SvelteKit. Current version: **0.1.0**. Search English words and phrases online, reuse saved results, or download a Wiktionary dictionary in the app for offline use. Queries are sent to the online provider only after an offline and cache miss or an expired cache entry.
+
+## Status
+
+Linux builds are available through CI as AppImage artifacts. macOS and Windows binaries are planned after those platforms have been built and tested; no release has been published yet.
 
 ## Build and run on Linux
 
-Install Go 1.26.4 or newer, Node.js compatible with Vite 7, and the development packages for GTK 3 and WebKit2GTK 4.1. These are system build prerequisites; the project uses Go modules and project-local npm dependencies, not globally installed Wails or JavaScript tools.
+Install Go 1.26.4 or newer, Node.js 22.17 or newer (Node 24 recommended), and the development packages for GTK 3 and WebKit2GTK 4.1. These are system build prerequisites; the project uses Go modules and project-local npm dependencies, not globally installed Wails or JavaScript tools.
 
 The project pins [Task](https://taskfile.dev/) as a Go tool, so no global Task installation is required. From the repository root, run:
 
@@ -35,6 +39,10 @@ go tool task appimage
 The script installs frontend dependencies locally, builds the app and invokes the pinned Wails v3.0.0 generator. It downloads linuxdeploy and writes `dist/wdict-<architecture>.AppImage`; the linuxdeploy download tracks its continuous release, so builds are not fully reproducible. Run the image after making it executable (`chmod +x dist/*.AppImage`). FUSE may be required; alternatively run with `--appimage-extract-and-run`.
 
 Build on an appropriately old supported Linux distribution for wider compatibility: system library versions from the build host affect which other distributions can run the image. The bundled GTK/WebKit stack and its licenses should be reviewed before distribution. Offline dictionary data remains in the user's data directory, outside the AppImage.
+
+## Author and license
+
+Created by Daniel Illescas Romero ([illescas.daniel@protonmail.com](mailto:illescas.daniel@protonmail.com)). The project source is licensed under the [MIT License](LICENSE). Dictionary content and bundled third-party components have their own licenses.
 
 ## Data and sources
 

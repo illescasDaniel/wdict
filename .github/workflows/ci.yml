@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libgirepository1.0-dev file libfuse2
+      - name: Install frontend dependencies
+        run: go tool task setup
+      - name: Build frontend and app
+        run: go tool task build
+      - name: Check and test
+        run: go tool task test
+      - name: Audit frontend dependencies
+        run: npm audit --prefix frontend
+      - name: Build AppImage
+        run: go tool task appimage
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: wdict-linux-appimage
+          path: dist/*.AppImage
+          if-no-files-found: error

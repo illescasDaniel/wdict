@@ -43,3 +43,7 @@ User prefers a quick, pragmatic review and source/license attribution in the REA
 ## 2026-10-27 — Contributor task runner
 
 Use Task as a pinned Go tool to expose setup, build, test and AppImage commands without a global Task installation. Its shared Go module dependencies may also update application dependencies.
+
+## 2026-10-27 — Publication direction
+
+Use version 0.1.0 and MIT for the project source, retaining separate third-party and dictionary content notices. Build Linux AppImages in CI; defer macOS and Windows binaries and the first release until platform testing.

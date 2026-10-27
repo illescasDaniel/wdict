@@ -17,3 +17,7 @@ frontend/build/
 
 # Packaging output
 /dist/
+
+# Machine-specific agent launchers
+.codex/config.toml
+.codex/hooks.json

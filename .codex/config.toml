@@ -1,6 +1,0 @@
-[mcp_servers.agemem]
-command = "/home/daniel/Projects/Code/Python/agemem/.venv/bin/agemem"
-args = ["--project", "/home/daniel/Projects/Code/Python/wdict", "mcp"]
-
-[mcp_servers.agemem.env]
-AGEMEM_CONFIG = "/home/daniel/Projects/Code/Python/wdict/.agemem-test-config.yaml"

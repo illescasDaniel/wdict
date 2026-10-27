@@ -165,6 +165,9 @@ func (c *DiskCache) Put(_ context.Context, r core.CacheRecord) error {
 		limit = 1000
 	}
 	files, _ := filepath.Glob(filepath.Join(c.Dir, "*.json"))
+	if len(files) <= limit {
+		return nil
+	}
 	type candidate struct {
 		path string
 		rec  core.CacheRecord
