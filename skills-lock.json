@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "sdd-feature": {
+      "source": "illescasDaniel/sdd-feature-skill",
+      "sourceType": "github",
+      "skillPath": "skills/sdd-feature/SKILL.md",
+      "computedHash": "18931422b9f8b5ba0a921d1d7fe64a1e491fba3a93dd03682b58a9d953e3f2f4"
+    }
+  }
+}

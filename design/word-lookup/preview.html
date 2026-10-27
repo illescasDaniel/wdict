@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Word lookup — system design</title>
+<style>
+	:root {
+		--bg: #ffffff; --fg: #1f2328; --muted: #59636e; --line: #d1d9e0; --code: #f6f8fa;
+		--note-bg: #fff8c5; --note-line: #d4a72c; --err-bg: #ffebe9; --err-line: #cf222e;
+	}
+	@media (prefers-color-scheme: dark) {
+		:root {
+			--bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --line: #3d444d; --code: #151b23;
+			--note-bg: #2e2a1a; --note-line: #9e6a03; --err-bg: #2d1416; --err-line: #f85149;
+		}
+	}
+	body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, sans-serif; }
+	main { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
+	.note { border: 1px solid var(--note-line); background: var(--note-bg); border-radius: 6px; padding: 8px 12px; }
+	.legend span { display: inline-block; margin-right: 12px; }
+	.legend i { display: inline-block; width: 12px; height: 12px; border: 1px solid; border-radius: 2px;
+		vertical-align: -1px; margin-right: 4px; }
+	h1, h2 { border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+	a { color: inherit; }
+	code { background: var(--code); border-radius: 4px; padding: 1px 4px; font-size: 0.9em; }
+	pre { background: var(--code); border-radius: 6px; padding: 12px; overflow-x: auto; }
+	pre code { background: none; padding: 0; }
+	pre.mermaid { background: none; text-align: center; }
+	pre.mermaid-error { background: var(--err-bg); border: 1px solid var(--err-line); white-space: pre-wrap; }
+	table { border-collapse: collapse; display: block; overflow-x: auto; }
+	th, td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+</style>
+</head>
+<body>
+<main>
+	<p class="note"><strong>Review only.</strong> Generated from <code>DESIGN.md</code>, which is the source of
+	truth. Components:
+	<span class="legend"><span><i style="background:#dcfce7;border-color:#15803d"></i>added</span><span><i
+	style="background:#fef9c3;border-color:#a16207"></i>changed</span><span><i
+	style="background:#fee2e2;border-color:#b91c1c;border-style:dashed"></i>removed</span></span></p>
+	<article id="doc"></article>
+</main>
+<script>const SOURCE = "# Word lookup \u2014 system design\n\n- **Wireframe:** [word-lookup.html](../../wireframes/word-lookup.html)\n- **Initial design approved:** 2026-10-26, with later changes in chat\n- **Design decisions:** agreed 2026-10-27; revised flows below are for spec review\n- **Spec:** [SPEC.md](../../specs/word-lookup/SPEC.md)\n\n## Summary\n\nA Linux-first Wails desktop app uses a SvelteKit frontend and Go services to look up English words and phrases online. User action enables online lookup, making query transmission explicit. Definitions, part of speech and source attribution appear in a compact window. A two-level cache avoids repeat network requests and serves prior entries offline. Spanish and downloaded offline dictionaries are desirable but not required for v1; inflections and suggestions are deferred. A provider boundary keeps those additions possible without requiring them now.\n\n## Main flow\n\n```mermaid\nsequenceDiagram\n    actor User\n    participant UI as SvelteKit window\n    participant Use as Go lookup use case\n    participant Cache as Memory and disk cache\n    participant Provider as English dictionary provider\n    User->>UI: Enter word or phrase and select Look up\n    UI->>Use: Lookup query and language en\n    alt F1: query empty or invalid\n        Use-->>UI: invalid_query\n        UI-->>User: Enter a valid word or phrase\n    else query valid\n        Use->>Cache: Read memory then disk\n        alt fresh cache hit\n            Cache-->>Use: cached entry and fetched date\n            Use-->>UI: found cached entry\n        else miss or expired\n        Use->>Provider: Lookup English query over HTTPS\n        alt F2: no entry\n            Provider-->>Use: not_found\n            Use-->>UI: not_found\n            UI-->>User: No entry found\n        else F3: timeout, connection error or provider failure\n            Provider-->>Use: unavailable\n            Use-->>UI: source_unavailable\n            UI-->>User: Source unavailable and retry\n        else F4: malformed or unusable response\n            Provider-->>Use: invalid_response\n            Use-->>UI: source_unavailable\n            UI-->>User: Source unavailable and retry\n        else entry found\n            Provider-->>Use: entries\n            Use-->>UI: found with definitions and source\n            UI-->>User: Display entry\n        end\n        end\n        opt F5: provider failed and stale entry exists\n            Use-->>UI: stale cached entry and fetched date\n        end\n        opt F6: cache read fails or is corrupt\n            Cache-->>Use: cache unavailable or invalid\n            Use->>Provider: Continue with online lookup if needed\n        end\n        opt F7: disk write fails after successful response\n            Cache-->>Use: write failed\n            Use-->>UI: Return result and retain in memory\n        end\n    end\n```\n\nA newer search supersedes an older response. The UI stays responsive while network work runs. The provider is documented at [Free Dictionary API](https://github.com/meetDeveloper/freeDictionaryAPI); its source and terms, phrase coverage and operational reliability must be verified before release.\n\n## Components\n\n```mermaid\nflowchart LR\n    classDef added fill:#dcfce7,stroke:#15803d,color:#14532d\n    Window[\"SvelteKit UI\"]:::added --> Bridge[\"Wails service adapter\"]:::added\n    Bridge --> Use[\"Go lookup use case\"]:::added\n    Use --> Port[\"Dictionary provider interface\"]:::added\n    Adapter[\"English HTTPS provider adapter\"]:::added --> Port\n    Adapter --> API[\"Free Dictionary API\"]\n    Use --> CachePort[\"Cache interface\"]:::added\n    Memory[\"In-memory cache\"]:::added --> CachePort\n    Disk[\"Versioned disk cache\"]:::added --> CachePort\n```\n\nThe frontend holds presentation state, the use case validates and coordinates, and an adapter translates the external response into domain entries. Go owns network access; the frontend renders definition text as text. SvelteKit static output is embedded/served by Wails and does not require a Node server in production. Exact routes and static adapter integration are implementation details to verify after approval. The use case coordinates memory, disk and the provider through interfaces. Offline dictionaries may be added later through a separate source adapter.\n\n## Contracts\n\n`Lookup(query, language)` returns `found(entries)`, `invalid_query` (F1), `not_found` (F2), or `source_unavailable` (F3/F4). The first release accepts `en` only. Example entry: `{headword: \"hello\", language: \"en\", meanings: [{part_of_speech: \"noun\", definitions: [\"A greeting.\"]}], source_url: \"https://en.wiktionary.org/wiki/hello\"}`; wording is illustrative. Source URL and applicable attribution come from the provider response, not a fabricated attribution.\n\nThe adapter sends `GET https://api.dictionaryapi.dev/api/v2/entries/en/{encoded-query}`. The provider documents its v2 response as an array with `word`, `meanings`, `partOfSpeech`, and `definitions[].definition`; HTTP 404 maps to not found, 2xx valid entries to found, all other statuses and transport errors to unavailable. Invalid or absent required response fields map to unavailable. Lookups may update a versioned local cache, but do not modify source dictionary data. There is no app-owned HTTP API. Cache policy and limits are specified in the linked spec.\n\n## Data model\n\n```mermaid\nerDiagram\n    CACHE_ENTRY {\n        string provider_id PK\n        string language PK\n        string normalized_query PK\n        string entry_payload\n        datetime fetched_at\n        datetime last_used_at\n    }\n```\n\nDisk records include a schema version and may be discarded and rebuilt. There is no prior app data to migrate. Writes are atomic or transactional. The cache is distinct from a full offline dictionary.\n\n## Contract seam\n\n| State | Trigger or outcome |\n|---|---|\n| Ready | App open; user sees online lookup notice |\n| Searching | Valid request pending |\n| Result | `found` with definition, source and cache date when cached |\n| Stale result | Provider fails with an expired entry available (F5) |\n| Cache read or write failure | Continue lookup or show successful result (F6/F7) |\n| Invalid | `invalid_query` (F1) |\n| No entry | `not_found` (F2) |\n| Source unavailable | `source_unavailable` (F3/F4), retry available |\n\n## Open questions\n\n- Validate provider's current terms and attribution, and real phrase coverage before release. If it cannot meet requirements, revisit the source and spec.\n- Measure latency and verify the Wails/SvelteKit packaged build on the target Linux environment.\n";</script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+(async function () {
+	const doc = document.getElementById("doc");
+	if (typeof marked === "undefined" || typeof mermaid === "undefined") {
+		doc.innerHTML = '<p class="note">Could not load the renderers (offline?). Showing the raw Markdown.</p>';
+		const pre = document.createElement("pre");
+		pre.textContent = SOURCE;
+		doc.appendChild(pre);
+		return;
+	}
+	const renderer = new marked.Renderer();
+	const plainCode = renderer.code.bind(renderer);
+	renderer.code = function (code, lang) {
+		const token = typeof code === "object" ? code : { text: code, lang: lang };
+		if ((token.lang || "").trim() !== "mermaid") return plainCode.apply(null, arguments);
+		const pre = document.createElement("pre");
+		pre.className = "mermaid";
+		pre.textContent = token.text;
+		return pre.outerHTML;
+	};
+	doc.innerHTML = marked.parse(SOURCE, { renderer: renderer });
+
+	const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+	mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: dark ? "dark" : "default" });
+	const valid = [];
+	for (const pre of doc.querySelectorAll("pre.mermaid")) {
+		try {
+			await mermaid.parse(pre.textContent);
+			valid.push(pre);
+		} catch (error) {
+			pre.className = "mermaid-error";
+			pre.textContent = "Mermaid syntax error:\n" + (error && error.message ? error.message : error)
+				+ "\n\n" + pre.textContent;
+		}
+	}
+	if (valid.length) await mermaid.run({ nodes: valid });
+	document.body.dataset.rendered = String(valid.length);
+})();
+</script>
+</body>
+</html>
