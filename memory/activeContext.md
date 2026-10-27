@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Prepare version 0.1.0 for GitHub: npm advisories fixed, MIT license added, and Linux AppImage CI configured.
+Prepare version 0.1.0 for GitHub: npm advisories fixed, MIT license added, and Linux AppImage CI passed with an uploaded artifact.
 
 ## Blockers
 
@@ -10,4 +10,4 @@ Desktop screenshot capture returned a black image, so the README screenshot and 
 
 ## Next steps
 
-Verify the GitHub CI AppImage artifact; capture a working desktop screenshot and verify native lookup. Test on older Linux distributions and review bundled licenses. Build and test macOS and Windows binaries before creating a release. Measure interactive startup and cold-disk performance.
+Capture a working desktop screenshot and verify native lookup. Test on older Linux distributions and review bundled licenses. Build and test macOS and Windows binaries before creating a release. Measure interactive startup and cold-disk performance.

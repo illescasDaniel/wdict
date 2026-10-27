@@ -16,7 +16,7 @@
 
 ## Done
 
-- [x] Upgraded SvelteKit dependencies to resolve npm audit findings, added MIT license and 0.1.0 metadata, and configured Linux AppImage CI on 2026-10-27. Local tests and AppImage build passed.
+- [x] Upgraded SvelteKit dependencies to resolve npm audit findings, added MIT license and 0.1.0 metadata, and configured Linux AppImage CI on 2026-10-27. Local tests and AppImage build passed; GitHub CI run 40527973403 built and uploaded the AppImage.
 
 - [x] Added pinned Task Go tool and contributor setup, build, test and AppImage commands on 2026-10-27.
 
