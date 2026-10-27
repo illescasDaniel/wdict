@@ -10,6 +10,20 @@ import (
 
 type startupProvider struct{}
 
+func TestGivenDisplaySizeWhenChoosingInitialWindowThenReferenceProportionsFit(t *testing.T) {
+	for _, tc := range []struct{ width, height, wantWidth, wantHeight int }{
+		{2560, 1600, 1467, 1029},
+		{1280, 800, 734, 515},
+		{1920, 1080, 990, 695},
+		{0, 0, 1040, 730},
+	} {
+		width, height := initialWindowSize(tc.width, tc.height)
+		if width != tc.wantWidth || height != tc.wantHeight {
+			t.Errorf("%dx%d: got %dx%d, want %dx%d", tc.width, tc.height, width, height, tc.wantWidth, tc.wantHeight)
+		}
+	}
+}
+
 func (startupProvider) Find(context.Context, string, core.Language) ([]core.Entry, bool, error) {
 	return []core.Entry{{Headword: "hello"}}, true, nil
 }

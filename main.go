@@ -12,6 +12,7 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 	"wdict/internal/adapters"
 	"wdict/internal/core"
 )
@@ -64,6 +65,17 @@ func diskCache(dir func() (string, error)) core.Cache {
 	}
 	return &adapters.DiskCache{Dir: filepath.Join(root, "wdict", "responses")}
 }
+
+// initialWindowSize keeps the reference proportions while fitting the available display.
+func initialWindowSize(width, height int) (int, int) {
+	if width <= 0 || height <= 0 {
+		return 1040, 730
+	}
+	const refWidth, refHeight = 1467, 1029
+	scale := min(float64(width)/2560, float64(height)/1600)
+	return int(float64(refWidth)*scale + 0.5), int(float64(refHeight)*scale + 0.5)
+}
+
 func main() {
 	installer := &adapters.Installer{Dir: filepath.Join(xdg.DataHome, "wdict", "dictionaries")}
 	go func() {
@@ -77,7 +89,14 @@ func main() {
 		log.Fatal(err)
 	}
 	app := application.New(application.Options{Name: "wdict", Description: "Look up words and phrases", Services: []application.Service{application.NewService(appService)}, Assets: application.AssetOptions{Handler: application.BundledAssetFileServer(root)}})
-	app.Window.NewWithOptions(application.WebviewWindowOptions{Title: "wdict", URL: "/", Width: 760, Height: 760, MinWidth: 320, MinHeight: 400})
+	window := app.Window.NewWithOptions(application.WebviewWindowOptions{Title: "wdict", URL: "/", Width: 1040, Height: 730, MinWidth: 320, MinHeight: 400})
+	app.Event.OnApplicationEvent(events.Common.ApplicationStarted, func(*application.ApplicationEvent) {
+		if screen := app.Screen.GetPrimary(); screen != nil {
+			width, height := initialWindowSize(screen.WorkArea.Width, screen.WorkArea.Height)
+			window.SetSize(width, height)
+			window.Center()
+		}
+	})
 	if err = app.Run(); err != nil {
 		log.Fatal(err)
 	}

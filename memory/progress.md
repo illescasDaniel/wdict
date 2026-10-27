@@ -11,6 +11,8 @@
 
 ## Done
 
+- [x] User confirmed the improved offline installation and lookup work in native use on 2026-10-27; initial window dimensions now scale to the primary display while retaining the requested proportions.
+
 - [x] Independent regrade passed after fixing punctuation-only and large offline result cases on 2026-10-27. Practical attribution approach requested by user (`src:7277bd055edce9e9b478`).
 
 - [x] Improved first offline lookup with direct StarDict index scans and bounded in-memory result caching; representative real-dictionary equivalence tests passed, and three warm-cache backend runs took 134–151 ms on 2026-10-27. Added practical source and license attribution to the README; links already exist in the app.
