@@ -2,7 +2,7 @@
 
 ## Current focus
 
-Linux AppImage packaging has been added using the Wails v3.0.0 generator. A local x86_64 image was built on CachyOS and launched with extracted runtime; frontend assets were served.
+Contributor tasks are available through the pinned Task Go tool; setup, build and tests passed on Linux. Linux AppImage packaging was built and smoke-launched on CachyOS.
 
 ## Blockers
 

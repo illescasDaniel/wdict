@@ -13,6 +13,8 @@
 
 ## Done
 
+- [x] Added pinned Task Go tool and contributor setup, build, test and AppImage commands on 2026-10-27.
+
 - [x] Added a Linux AppImage build script, icon and desktop entry; built and smoke-launched an x86_64 image on CachyOS on 2026-10-27.
 
 - [x] User confirmed the improved offline installation and lookup work in native use on 2026-10-27; initial window dimensions now scale to the primary display while retaining the requested proportions.

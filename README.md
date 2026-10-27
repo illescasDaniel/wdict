@@ -4,23 +4,24 @@ A Linux-first desktop dictionary built with Go, Wails v3 and SvelteKit. Search E
 
 ## Build and run on Linux
 
-Install Go 1.26 or newer, Node.js compatible with Vite 7, and the development packages for GTK 3 and WebKit2GTK 4.1. These are system build prerequisites; the project uses Go modules and project-local npm dependencies, not globally installed Wails or JavaScript tools.
+Install Go 1.26.4 or newer, Node.js compatible with Vite 7, and the development packages for GTK 3 and WebKit2GTK 4.1. These are system build prerequisites; the project uses Go modules and project-local npm dependencies, not globally installed Wails or JavaScript tools.
+
+The project pins [Task](https://taskfile.dev/) as a Go tool, so no global Task installation is required. From the repository root, run:
 
 ```sh
-npm ci --prefix frontend
-npm run build --prefix frontend
-go build -tags gtk3 -o ./wdict .
+go tool task setup
+go tool task build
 ./wdict
 ```
+
+The first `go tool task` invocation downloads and compiles the pinned tool. Run `go tool task --list` to see all available commands.
 
 The `gtk3` tag is needed on systems with GTK 3/WebKit2GTK 4.1 instead of Wails v3's default GTK 4/WebKitGTK 6. The binary embeds the static frontend, so rebuild the frontend before rebuilding Go after UI changes. macOS and Windows builds have not yet been verified.
 
 For checks:
 
 ```sh
-npm run check --prefix frontend
-npm test --prefix frontend
-go test -tags gtk3 ./...
+go tool task test
 ```
 
 ## Linux AppImage
@@ -28,7 +29,7 @@ go test -tags gtk3 ./...
 On Linux, install the build prerequisites above, plus `pkg-config`, `file`, `find`, librsvg and GObject Introspection development files. Run:
 
 ```sh
-./scripts/build-appimage.sh
+go tool task appimage
 ```
 
 The script installs frontend dependencies locally, builds the app and invokes the pinned Wails v3.0.0 generator. It downloads linuxdeploy and writes `dist/wdict-<architecture>.AppImage`; the linuxdeploy download tracks its continuous release, so builds are not fully reproducible. Run the image after making it executable (`chmod +x dist/*.AppImage`). FUSE may be required; alternatively run with `--appimage-extract-and-run`.
