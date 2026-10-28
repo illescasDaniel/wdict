@@ -2,6 +2,8 @@
 
 ## Open
 
+- [ ] Verify automatic appearance interactively in the native window.
+
 
 - [ ] Resolve npm audit GHSA-gcqx-w48m-w2h4 in deepmerge; no upstream fix available as of 2026-10-28. Low findings remain visible; user approved failing the audit at moderate and above.
 
@@ -18,6 +20,10 @@
 - [ ] Review and trust the project hooks, then test the MCP and hook checklist.
 
 ## Done
+
+- [x] Added Given/When/Then comments and formatted appearance changes; frontend checks and 15 tests passed on 2026-10-28.
+
+- [x] Approved and implemented the automatic appearance design with tests on 2026-10-28 (`src:f0c8c5907b9be0a2eada`).
 
 - [x] Published v0.2.0 with a Linux AppImage and updated the user’s Go-installed executable; version metadata confirms v0.2.0 (`src:69a073eeb1caadca4326`).
 

@@ -338,3 +338,107 @@ describe("lookup and offline dictionary UI", () => {
     finish({ Status: "found", Entries: [entry], Origin: "online" });
   });
 });
+
+describe("appearance", () => {
+  let media, listener;
+  beforeEach(() => {
+    localStorage.clear();
+    media = {
+      matches: false,
+      addEventListener: vi.fn((_, fn) => {
+        listener = fn;
+      }),
+      removeEventListener: vi.fn(),
+    };
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => media),
+    );
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
+  it("given_no_valid_preference_when_system_changes_then_system_tracks_device", async () => {
+    // given
+    localStorage.setItem("wdict-appearance", "invalid");
+    // when
+    render(Page);
+    // then
+    expect(
+      screen
+        .getByRole("radio", { name: "System" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+    expect(document.documentElement.dataset.theme).toBe("light");
+    listener({ matches: true });
+    expect(document.documentElement.dataset.theme).toBe("dark");
+  });
+  it("given_explicit_selection_when_system_changes_and_app_reopens_then_selection_is_restored", async () => {
+    // given
+    render(Page);
+    // when
+    await fireEvent.click(screen.getByRole("radio", { name: "Dark" }));
+    listener({ matches: false });
+    // then
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    cleanup();
+    render(Page);
+    expect(
+      screen.getByRole("radio", { name: "Dark" }).getAttribute("aria-checked"),
+    ).toBe("true");
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    await fireEvent.click(screen.getByRole("radio", { name: "Light" }));
+    expect(document.documentElement.dataset.theme).toBe("light");
+    await fireEvent.click(screen.getByRole("radio", { name: "System" }));
+    listener({ matches: true });
+    expect(document.documentElement.dataset.theme).toBe("dark");
+  });
+  it("given_unreadable_storage_when_app_opens_then_system_is_selected", () => {
+    // given
+    const read = vi
+      .spyOn(Storage.prototype, "getItem")
+      .mockImplementation(() => {
+        throw Error("denied");
+      });
+    // when
+    render(Page);
+    // then
+    expect(
+      screen
+        .getByRole("radio", { name: "System" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+    read.mockRestore();
+  });
+  it("given_storage_failure_when_mode_changes_then_session_remains_usable", async () => {
+    // given
+    const save = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw Error("denied");
+      });
+    render(Page);
+    // when
+    await fireEvent.click(screen.getByRole("radio", { name: "Dark" }));
+    // then
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    save.mockRestore();
+  });
+  it("given_footer_when_keyboard_selects_mode_and_navigates_then_selection_remains", async () => {
+    // given
+    const user = userEvent.setup();
+    render(Page);
+    // when
+    screen.getByRole("radio", { name: "System" }).focus();
+    await user.keyboard("{ArrowLeft}");
+    await user.click(
+      screen.getByRole("button", { name: "Offline dictionaries" }),
+    );
+    // then
+    expect(
+      screen.getByRole("radio", { name: "Dark" }).getAttribute("aria-checked"),
+    ).toBe("true");
+    expect(document.documentElement.dataset.theme).toBe("dark");
+  });
+});

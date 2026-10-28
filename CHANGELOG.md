@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.0] - 2026-10-28
+
+- Add System, Light and Dark appearance options in the footer; System follows the device setting.
+- Remember the selected appearance between launches.
+
 ## [0.2.0] - 2026-10-28
 
 - Keep online dictionary results fresh for 365 days, with stale fallback when the provider is unavailable.

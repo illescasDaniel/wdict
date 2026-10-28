@@ -1,6 +1,43 @@
 <script>
   import { onMount } from "svelte";
   import { call } from "../lib-api.js";
+  import {
+    readAppearance,
+    saveAppearance,
+    resolveAppearance,
+  } from "../appearance.js";
+  let appearance = "system";
+  let systemDark = false;
+  function applyAppearance() {
+    document.documentElement.dataset.theme = resolveAppearance(
+      appearance,
+      systemDark,
+    );
+  }
+  function modeKey(event) {
+    const values = ["system", "light", "dark"];
+    if (
+      !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)
+    )
+      return;
+    event.preventDefault();
+    const step = event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1;
+    const next =
+      values[
+        (values.indexOf(appearance) + step + values.length) % values.length
+      ];
+    selectAppearance(next);
+    event.currentTarget.parentElement
+      .querySelector(`[aria-label="${next[0].toUpperCase() + next.slice(1)}"]`)
+      .focus();
+  }
+  function selectAppearance(value) {
+    appearance = value;
+    applyAppearance();
+    try {
+      saveAppearance(window.localStorage, value);
+    } catch {}
+  }
   let queryInput;
   let query = "",
     page = "lookup",
@@ -23,20 +60,40 @@
       const nextProgress = await call("Progress");
       if (id !== refreshSeq) return;
       dictionary = nextDictionary;
-      if (!downloadActive || nextProgress?.State === "downloading" || nextProgress?.State === "installing")
+      if (
+        !downloadActive ||
+        nextProgress?.State === "downloading" ||
+        nextProgress?.State === "installing"
+      )
         progress = nextProgress;
     } catch (e) {
       error = "Unable to load dictionary information.";
     }
   }
   onMount(() => {
+    try {
+      appearance = readAppearance(window.localStorage);
+    } catch {
+      appearance = "system";
+    }
+    const media = window.matchMedia?.("(prefers-color-scheme: dark)");
+    systemDark = media?.matches ?? false;
+    const onAppearanceChange = (event) => {
+      systemDark = event.matches;
+      applyAppearance();
+    };
+    media?.addEventListener("change", onAppearanceChange);
+    applyAppearance();
     queryInput?.focus();
     refresh();
     let timer = setInterval(() => {
       if (progress?.State === "downloading" || progress?.State === "installing")
         refresh();
     }, 500);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      media?.removeEventListener("change", onAppearanceChange);
+    };
   });
   async function lookup() {
     const id = ++seq;
@@ -155,7 +212,8 @@
             </section>{/each}
           <p class="source">
             Source: {entry.Source.Name}
-            {#if entry.Source.Attribution} · {entry.Source.Attribution}{/if}{#if safeLink(entry.Source.URL)}
+            {#if entry.Source.Attribution}
+              · {entry.Source.Attribution}{/if}{#if safeLink(entry.Source.URL)}
               · <a
                 href={safeLink(entry.Source.URL)}
                 target="_blank"
@@ -230,16 +288,145 @@
       <p class="hint">
         You can continue looking up words while it downloads.
       </p>{:else}<p role="status">Loading dictionary information…</p>{/if}{/if}
+  <footer>
+    <span>Appearance</span>
+    <div class="modes" role="radiogroup" aria-label="Appearance">
+      <button
+        type="button"
+        class="mode"
+        aria-label="System"
+        title="System"
+        role="radio"
+        aria-checked={appearance === "system"}
+        tabindex={appearance === "system" ? 0 : -1}
+        onkeydown={modeKey}
+        onclick={() => selectAppearance("system")}
+        ><svg viewBox="0 0 24 24" aria-hidden="true"
+          ><rect x="3" y="4" width="18" height="13" rx="2" /><path
+            d="M8 21h8M12 17v4"
+          /></svg
+        ></button
+      >
+      <button
+        type="button"
+        class="mode"
+        aria-label="Light"
+        title="Light"
+        role="radio"
+        aria-checked={appearance === "light"}
+        tabindex={appearance === "light" ? 0 : -1}
+        onkeydown={modeKey}
+        onclick={() => selectAppearance("light")}
+        ><svg viewBox="0 0 24 24" aria-hidden="true"
+          ><circle cx="12" cy="12" r="4" /><path
+            d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"
+          /></svg
+        ></button
+      >
+      <button
+        type="button"
+        class="mode"
+        aria-label="Dark"
+        title="Dark"
+        role="radio"
+        aria-checked={appearance === "dark"}
+        tabindex={appearance === "dark" ? 0 : -1}
+        onkeydown={modeKey}
+        onclick={() => selectAppearance("dark")}
+        ><svg viewBox="0 0 24 24" aria-hidden="true"
+          ><path
+            d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7Z"
+          /></svg
+        ></button
+      >
+    </div>
+  </footer>
 </main>
 
 <style>
+  :global(html) {
+    --bg: #eef2ef;
+    --text: #21352a;
+    --muted: #50685a;
+    --border: #cad7cd;
+    --input-border: #aabdaf;
+    --surface: white;
+    --accent: #245d42;
+    --button-text: white;
+    --notice: #e3eee5;
+    --badge: #edf3ee;
+    --rule: #e5eee7;
+    --error-bg: #fff1ea;
+    --error-text: #713d27;
+    --focus: #174633;
+  }
+  :global(html[data-theme="dark"]) {
+    color-scheme: dark;
+    --bg: #17221b;
+    --text: #e4eee7;
+    --muted: #b2c5b7;
+    --border: #415548;
+    --input-border: #607a69;
+    --surface: #202f25;
+    --accent: #a5d6b4;
+    --button-text: #172a1e;
+    --notice: #25372b;
+    --badge: #344a3b;
+    --rule: #415548;
+    --error-bg: #4b3027;
+    --error-text: #ffd6c2;
+    --focus: #a5d6b4;
+  }
+  footer {
+    margin-top: 40px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .modes {
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+  }
+  button.mode {
+    width: 36px;
+    height: 34px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+  }
+  button.mode[aria-checked="true"] {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 3px #0003;
+  }
+  .mode svg {
+    width: 19px;
+    height: 19px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
   :global(*) {
     box-sizing: border-box;
   }
   :global(body) {
     margin: 0;
-    background: #eef2ef;
-    color: #21352a;
+    background: var(--bg);
+    color: var(--text);
     font:
       16px/1.55 system-ui,
       sans-serif;
@@ -253,7 +440,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #cad7cd;
+    border-bottom: 1px solid var(--border);
     padding-bottom: 16px;
     margin-bottom: 30px;
   }
@@ -271,7 +458,7 @@
   }
   h3 {
     font-size: 15px;
-    color: #50685a;
+    color: var(--muted);
     font-style: italic;
   }
   p {
@@ -286,7 +473,7 @@
     margin-bottom: 6px;
   }
   label span {
-    color: #607467;
+    color: var(--muted);
     font-weight: 400;
     font-size: 13px;
   }
@@ -297,45 +484,45 @@
   input {
     flex: 1;
     min-width: 0;
-    border: 1px solid #aabdaf;
+    border: 1px solid var(--input-border);
     border-radius: 7px;
     padding: 11px 12px;
     font: inherit;
-    background: white;
+    background: var(--surface);
   }
   button {
     font: inherit;
     font-weight: 650;
-    border: 1px solid #245d42;
+    border: 1px solid var(--accent);
     border-radius: 7px;
     padding: 10px 15px;
-    background: #245d42;
-    color: white;
+    background: var(--accent);
+    color: var(--button-text);
     cursor: pointer;
   }
   .link {
     border: 0;
     padding: 0;
     background: none;
-    color: #245d42;
+    color: var(--accent);
     text-align: left;
   }
   a {
-    color: #245d42;
+    color: var(--accent);
   }
   button:focus-visible,
   input:focus-visible,
   a:focus-visible {
-    outline: 3px solid #174633;
+    outline: 3px solid var(--focus);
     outline-offset: 3px;
   }
   .hint,
   .source {
     font-size: 13px;
-    color: #50685a;
+    color: var(--muted);
   }
   .notice {
-    background: #e3eee5;
+    background: var(--notice);
     border-radius: 8px;
     padding: 14px;
     margin-top: 18px;
@@ -344,8 +531,8 @@
     margin: 5px 0;
   }
   article {
-    background: white;
-    border: 1px solid #d2e0d5;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 10px;
     margin-top: 20px;
     padding: 20px;
@@ -358,13 +545,13 @@
   }
   .badge {
     font-size: 12px;
-    background: #edf3ee;
+    background: var(--badge);
     border-radius: 20px;
     padding: 4px 9px;
     white-space: nowrap;
   }
   .source {
-    border-top: 1px solid #e5eee7;
+    border-top: 1px solid var(--rule);
     padding-top: 12px;
     margin-bottom: 0;
   }
@@ -373,8 +560,8 @@
     margin-bottom: 8px;
   }
   .error {
-    background: #fff1ea;
-    color: #713d27;
+    background: var(--error-bg);
+    color: var(--error-text);
     padding: 12px;
     border-radius: 8px;
   }

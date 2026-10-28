@@ -59,3 +59,7 @@ User approved failing npm audit for moderate or higher findings while displaying
 ## 2026-10-28 — Cache freshness
 
 Keep online results fresh for 365 days before attempting a refresh; retain stale fallback when the provider is unavailable. User requested v0.2.0 and installation after publication (`src:bc2bcf9382dacdc66077`).
+
+## 2026-10-28 — Appearance
+
+Use System by default with footer icons for System, Light and Dark; remember the selection and follow system changes. The user approved the design and authorized automatic spec and architecture approval for this feature (`src:f0c8c5907b9be0a2eada`).
