@@ -51,3 +51,7 @@ Use version 0.1.0 and MIT for the project source, retaining separate third-party
 ## 2026-10-28 — CI and releases
 
 Run routine checks without generating AppImages; a separately dispatched workflow builds the AppImage and creates its tag and GitHub release. Preserve the deferred first release until macOS and Windows testing (source `src:a8efe69c530e6bb4f0af`).
+
+## 2026-10-28 — Audit and first release
+
+User approved failing npm audit for moderate or higher findings while displaying low findings, and explicitly requested the v0.1.0 release after CI and Go installation work (`src:18d6de4a6d7390db8ac3`).

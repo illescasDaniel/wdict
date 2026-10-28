@@ -67,7 +67,7 @@ jobs:
           npm run check --prefix frontend
           npm test --prefix frontend
           go test -tags gtk3 ./...
-          npm audit --prefix frontend
+          npm audit --prefix frontend --audit-level=moderate
       - name: Build AppImage
         run: ./scripts/build-appimage.sh
       - name: Create tag and GitHub release

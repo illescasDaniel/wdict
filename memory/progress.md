@@ -2,7 +2,7 @@
 
 ## Open
 
-- [ ] Resolve npm audit GHSA-gcqx-w48m-w2h4 in deepmerge; no upstream fix available as of 2026-10-28. The unchanged audit gate blocks CI and release.
+- [ ] Resolve npm audit GHSA-gcqx-w48m-w2h4 in deepmerge; no upstream fix available as of 2026-10-28. Low findings remain visible; user approved failing the audit at moderate and above.
 
 - [ ] Capture a usable app screenshot and verify native rendering after the SvelteKit upgrade.
 - [ ] Generate and test macOS and Windows binaries before the first release.

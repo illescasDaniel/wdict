@@ -37,4 +37,4 @@ jobs:
           npm test --prefix frontend
           go test -tags gtk3 ./...
       - name: Audit frontend dependencies
-        run: npm audit --prefix frontend
+        run: npm audit --prefix frontend --audit-level=moderate
