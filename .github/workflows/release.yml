@@ -1,0 +1,82 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version matching VERSION (for example 0.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Validate version and tag
+        env:
+          VERSION_INPUT: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$VERSION_INPUT" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          [[ "$(cat VERSION)" == "$VERSION_INPUT" ]]
+          [[ "$(python3 -c 'import json; print(json.load(open("frontend/package.json"))["version"])')" == "$VERSION_INPUT" ]]
+          git check-ref-format "refs/tags/v$VERSION_INPUT"
+          existing=$(git ls-remote --tags origin "refs/tags/v$VERSION_INPUT")
+          if [[ -n "$existing" ]]; then
+            echo "Tag v$VERSION_INPUT already exists; refusing to overwrite it." >&2
+            exit 1
+          fi
+          successful=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&status=success&per_page=1" --jq '.total_count')
+          if [[ "$successful" == 0 ]]; then
+            echo "CI must pass for the selected main commit before releasing." >&2
+            exit 1
+          fi
+          python3 scripts/release_notes.py "$VERSION_INPUT" > "$RUNNER_TEMP/release-notes.md"
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libgirepository1.0-dev file libfuse2
+      - name: Install, build and test
+        run: |
+          npm ci --prefix frontend
+          npm run build --prefix frontend
+          npm run check --prefix frontend
+          npm test --prefix frontend
+          go test -tags gtk3 ./...
+          npm audit --prefix frontend
+      - name: Build AppImage
+        run: ./scripts/build-appimage.sh
+      - name: Create tag and GitHub release
+        env:
+          VERSION_INPUT: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="v$VERSION_INPUT"
+          git push origin "HEAD:refs/tags/$tag"
+          gh release create "$tag" dist/*.AppImage --verify-tag --title "$tag" --notes-file "$RUNNER_TEMP/release-notes.md"

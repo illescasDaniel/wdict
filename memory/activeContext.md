@@ -2,12 +2,12 @@
 
 ## Current focus
 
-Prepare version 0.1.0 for GitHub: npm advisories fixed, MIT license added, and Linux AppImage CI passed with an uploaded artifact.
+Routine CI checks builds and tests without packaging; a manually dispatched release workflow builds the Linux AppImage, tags the selected main commit and creates a GitHub release.
 
 ## Blockers
 
-Desktop screenshot capture returned a black image, so the README screenshot and native rendering after the SvelteKit upgrade remain unverified. Cross-distribution AppImage testing and bundled dependency license review remain open. Agemem remember remains pending/degraded due to missing credentials.
+npm audit reports low-severity GHSA-gcqx-w48m-w2h4 in the Svelte build tool's deepmerge dependency; there is no upstream fix. The existing audit gate remains unchanged and therefore fails. Desktop screenshot and native rendering after the SvelteKit upgrade remain unverified. Cross-distribution testing and bundled license review remain open.
 
 ## Next steps
 
-Capture a working desktop screenshot and verify native lookup. Test on older Linux distributions and review bundled licenses. Build and test macOS and Windows binaries before creating a release. Measure interactive startup and cold-disk performance.
+Resolve the upstream npm advisory or agree on an audit policy before releasing. Verify native rendering and capture a screenshot; test on older Linux distributions and review bundled licenses. Build and test macOS and Windows binaries before the first release.

@@ -47,3 +47,7 @@ Use Task as a pinned Go tool to expose setup, build, test and AppImage commands 
 ## 2026-10-27 — Publication direction
 
 Use version 0.1.0 and MIT for the project source, retaining separate third-party and dictionary content notices. Build Linux AppImages in CI; defer macOS and Windows binaries and the first release until platform testing.
+
+## 2026-10-28 — CI and releases
+
+Run routine checks without generating AppImages; a separately dispatched workflow builds the AppImage and creates its tag and GitHub release. Preserve the deferred first release until macOS and Windows testing (source `src:a8efe69c530e6bb4f0af`).

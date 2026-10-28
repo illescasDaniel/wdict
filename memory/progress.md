@@ -2,6 +2,8 @@
 
 ## Open
 
+- [ ] Resolve npm audit GHSA-gcqx-w48m-w2h4 in deepmerge; no upstream fix available as of 2026-10-28. The unchanged audit gate blocks CI and release.
+
 - [ ] Capture a usable app screenshot and verify native rendering after the SvelteKit upgrade.
 - [ ] Generate and test macOS and Windows binaries before the first release.
 
@@ -15,6 +17,8 @@
 - [ ] Review and trust the project hooks, then test the MCP and hook checklist.
 
 ## Done
+
+- [x] Split lightweight CI from a manually dispatched GitHub release workflow on 2026-10-28; no tag or release created (source `src:a8efe69c530e6bb4f0af`).
 
 - [x] Upgraded SvelteKit dependencies to resolve npm audit findings, added MIT license and 0.1.0 metadata, and configured Linux AppImage CI on 2026-10-27. Local tests and AppImage build passed; GitHub CI run 40527973403 built and uploaded the AppImage.
 
