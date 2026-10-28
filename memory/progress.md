@@ -19,6 +19,8 @@
 
 ## Done
 
+- [x] Verified online lookup results persist across separate processes; fresh disk hits avoid the provider and stale disk results are used when it fails.
+
 - [x] User confirmed the search-field autofocus works; clarified README installation options (`src:f3e85e0506d5e89bd969`).
 
 - [x] Released v0.1.0 with a Linux x86_64 AppImage; clean-cache go install of the tagged module succeeded (`src:5c122ea6bbaa9ba14638`).
