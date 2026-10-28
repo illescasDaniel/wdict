@@ -19,6 +19,8 @@
 
 ## Done
 
+- [x] Published v0.2.0 with a Linux AppImage and updated the user’s Go-installed executable; version metadata confirms v0.2.0 (`src:69a073eeb1caadca4326`).
+
 - [x] Changed cached online results to remain fresh for 365 days, with expiry boundary and cross-process coverage (`src:bc2bcf9382dacdc66077`).
 
 - [x] Verified online lookup results persist across separate processes; fresh disk hits avoid the provider and stale disk results are used when it fails.
