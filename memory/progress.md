@@ -2,6 +2,7 @@
 
 ## Open
 
+
 - [ ] Resolve npm audit GHSA-gcqx-w48m-w2h4 in deepmerge; no upstream fix available as of 2026-10-28. Low findings remain visible; user approved failing the audit at moderate and above.
 
 - [ ] Capture a usable app screenshot and verify native rendering after the SvelteKit upgrade.
@@ -17,6 +18,8 @@
 - [ ] Review and trust the project hooks, then test the MCP and hook checklist.
 
 ## Done
+
+- [x] User confirmed the search-field autofocus works; clarified README installation options (`src:f3e85e0506d5e89bd969`).
 
 - [x] Released v0.1.0 with a Linux x86_64 AppImage; clean-cache go install of the tagged module succeeded (`src:5c122ea6bbaa9ba14638`).
 

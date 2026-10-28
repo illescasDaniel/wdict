@@ -6,6 +6,20 @@ A Linux-first desktop dictionary built with Go, Wails v3 and SvelteKit. Current 
 
 Routine CI checks the Linux build and tests without packaging an AppImage. A manually started release workflow builds an AppImage and attaches it to a GitHub release. macOS and Windows binaries are planned after those platforms have been built and tested.
 
+## Install on Linux
+
+Choose either the ready-to-run AppImage or install from source with Go:
+
+- **AppImage:** Download `wdict-x86_64.AppImage` from the [v0.1.0 release](https://github.com/illescasDaniel/wdict/releases/tag/v0.1.0), then make it executable and run it:
+
+  ```sh
+  chmod +x wdict-x86_64.AppImage
+  ./wdict-x86_64.AppImage
+  ```
+
+  FUSE may be required; alternatively run `./wdict-x86_64.AppImage --appimage-extract-and-run`.
+- **Go:** Follow [Install with Go](#install-with-go-linux) below. This builds the executable locally and requires Go, a C compiler and Linux development libraries.
+
 ## Build and run on Linux
 
 Install Go 1.26.4 or newer, Node.js 22.17 or newer (Node 24 recommended), and the development packages for GTK 3 and WebKit2GTK 4.1. These are system build prerequisites; the project uses Go modules and project-local npm dependencies, not globally installed Wails or JavaScript tools.
@@ -30,7 +44,7 @@ go tool task test
 
 ## Install with Go (Linux)
 
-After the v0.1.0 release, install Go 1.26.4 or newer, a C compiler, `pkg-config`, and the GTK 3 and WebKit2GTK 4.1 development packages. Then run:
+Install Go 1.26.4 or newer, a C compiler, `pkg-config`, and the GTK 3 and WebKit2GTK 4.1 development packages. Then run:
 
 ```sh
 go install -tags gtk3 github.com/illescasDaniel/wdict@v0.1.0
@@ -39,7 +53,7 @@ wdict
 
 Go installs the executable to `GOBIN` (normally `~/go/bin`), which must be on your `PATH`. GTK and WebKit libraries must also be installed at runtime. The frontend is embedded; Node.js is not needed for `go install`. This does not create a desktop launcher. The `gtk3` tag selects GTK 3 / WebKit2GTK 4.1; macOS and Windows installation have not yet been verified.
 
-## Linux AppImage
+## Build a Linux AppImage
 
 On Linux, install the build prerequisites above, plus `pkg-config`, `file`, `find`, librsvg and GObject Introspection development files. Run:
 

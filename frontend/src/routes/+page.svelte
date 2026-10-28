@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import { call } from "../lib-api.js";
+  let queryInput;
   let query = "",
     page = "lookup",
     busy = false,
@@ -29,6 +30,7 @@
     }
   }
   onMount(() => {
+    queryInput?.focus();
     refresh();
     let timer = setInterval(() => {
       if (progress?.State === "downloading" || progress?.State === "installing")
@@ -121,6 +123,7 @@
       <div class="search">
         <input
           id="query"
+          bind:this={queryInput}
           bind:value={query}
           placeholder="Enter a word or phrase"
           autocomplete="off"

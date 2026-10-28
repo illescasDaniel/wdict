@@ -319,11 +319,6 @@ describe("lookup and offline dictionary UI", () => {
     const user = userEvent.setup();
     // when
     render(Page);
-    await user.tab();
-    expect(document.activeElement).toBe(
-      screen.getByRole("button", { name: "Offline dictionaries" }),
-    );
-    await user.tab();
     const input = screen.getByLabelText(/word or phrase/i);
     expect(document.activeElement).toBe(input);
     await user.type(input, "hello{Enter}");
