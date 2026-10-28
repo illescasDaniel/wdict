@@ -41,7 +41,7 @@ Match the [wireframe](../../wireframes/word-lookup.html): single input, English 
 
 ## Interfaces & contracts
 
-The frontend invokes the Go lookup use case through Wails with query and language `en`. Results are `found`, `invalid_query`, `not_found`, or `source_unavailable`. The Go adapter calls the Free Dictionary API documented in the [design](../../design/word-lookup/DESIGN.md), maps valid definitions to the domain, and returns source attribution from the response. The lookup checks the installed dictionary for the selected language first. If absent, unavailable, invalid or missing the entry, it checks memory then disk, and queries the provider only on a miss or when an entry is older than 7 days. A successful online result replaces both cache tiers; not-found responses and errors are not cached. Stale entries are retained for fallback on source failure. The lookup may update cache state but does not alter source dictionary data. Provider terms and real-world phrase coverage must be verified before release; inability to satisfy them requires revisiting this spec.
+The frontend invokes the Go lookup use case through Wails with query and language `en`. Results are `found`, `invalid_query`, `not_found`, or `source_unavailable`. The Go adapter calls the Free Dictionary API documented in the [design](../../design/word-lookup/DESIGN.md), maps valid definitions to the domain, and returns source attribution from the response. The lookup checks the installed dictionary for the selected language first. If absent, unavailable, invalid or missing the entry, it checks memory then disk, and queries the provider only on a miss or when an entry is at least 365 days old. A successful online result replaces both cache tiers; not-found responses and errors are not cached. Stale entries are retained for fallback on source failure. The lookup may update cache state but does not alter source dictionary data. Provider terms and real-world phrase coverage must be verified before release; inability to satisfy them requires revisiting this spec.
 
 ## Data & migration
 
@@ -113,7 +113,7 @@ Use the pure-Go `github.com/ianlewis/go-stardict` reader as the selected candida
 
 ### Scenario: Fresh memory cache hit
 
-**Given** no installed dictionary entry matches and a valid matching entry in memory fetched less than 7 days ago **When** the user searches for it **Then** the cached entry and its source and saved date are shown and no provider request is made.
+**Given** no installed dictionary entry matches and a valid matching entry in memory fetched less than 365 days ago **When** the user searches for it **Then** the cached entry and its source and saved date are shown and no provider request is made.
 
 ### Scenario: Fresh disk cache hit after restart
 
@@ -121,7 +121,7 @@ Use the pure-Go `github.com/ianlewis/go-stardict` reader as the selected candida
 
 ### Scenario: Expired entry refresh
 
-**Given** no installed dictionary entry matches and an entry at least 7 days old **When** the user searches and the provider succeeds **Then** the fresh result is shown and replaces the cached entry.
+**Given** no installed dictionary entry matches and an entry at least 365 days old **When** the user searches and the provider succeeds **Then** the fresh result is shown and replaces the cached entry.
 
 ### Scenario: Stale fallback (F5)
 

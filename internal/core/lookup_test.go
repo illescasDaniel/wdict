@@ -42,6 +42,32 @@ func (c *fakeCache) Put(_ context.Context, record CacheRecord) error {
 type fakeClock struct{ now time.Time }
 
 func (c fakeClock) Now() time.Time { return c.now }
+
+func TestGivenCachedEntryWhenCheckingAgeThenRefreshAtOneYear(t *testing.T) {
+	now := time.Date(2026, 10, 28, 12, 0, 0, 0, time.UTC)
+	for _, tc := range []struct {
+		name      string
+		age       time.Duration
+		wantCalls int
+		wantWord  string
+	}{
+		{"eight days", 8 * 24 * time.Hour, 0, "saved"},
+		{"just under a year", 365*24*time.Hour - time.Second, 0, "saved"},
+		{"exactly one year", 365 * 24 * time.Hour, 1, "updated"},
+		{"over a year", 366 * 24 * time.Hour, 1, "updated"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cache := &fakeCache{found: true, record: CacheRecord{Entries: []Entry{{Headword: "saved"}}, FetchedAt: now.Add(-tc.age)}}
+			provider := &fakeSource{found: true, entries: []Entry{{Headword: "updated"}}}
+			service := LookupService{Memory: cache, Online: provider, Clock: fakeClock{now}}
+			result, err := service.Lookup(context.Background(), LookupRequest{Query: "word", Language: "en"})
+			if err != nil || result.Status != Found || len(result.Entries) != 1 || result.Entries[0].Headword != tc.wantWord || provider.calls != tc.wantCalls {
+				t.Fatalf("result=%+v error=%v provider calls=%d", result, err, provider.calls)
+			}
+		})
+	}
+}
+
 func TestGivenOfflineEntryWhenLookingUpThenNoOnlineRequest(t *testing.T) {
 	// given
 	now := time.Date(2026, 10, 27, 0, 0, 0, 0, time.UTC)
@@ -58,7 +84,7 @@ func TestGivenOfflineEntryWhenLookingUpThenNoOnlineRequest(t *testing.T) {
 func TestGivenExpiredCacheWhenProviderFailsThenStaleResult(t *testing.T) {
 	// given
 	now := time.Date(2026, 10, 27, 0, 0, 0, 0, time.UTC)
-	cache := &fakeCache{found: true, record: CacheRecord{Entries: []Entry{{Headword: "hello"}}, FetchedAt: now.Add(-8 * 24 * time.Hour)}}
+	cache := &fakeCache{found: true, record: CacheRecord{Entries: []Entry{{Headword: "hello"}}, FetchedAt: now.Add(-365 * 24 * time.Hour)}}
 	online := &fakeSource{err: errors.New("offline")}
 	s := LookupService{Offline: &fakeSource{}, Online: online, Memory: cache, Disk: &fakeCache{}, Clock: fakeClock{now}, Provider: "online"}
 	// when
@@ -120,7 +146,7 @@ func TestGivenCacheHitWhenLookingUpThenNoNetwork(t *testing.T) {
 func TestGivenExpiredCacheWhenProviderSucceedsThenRefreshesCaches(t *testing.T) {
 	// given
 	now := time.Now()
-	old := CacheRecord{Entries: []Entry{{Headword: "old"}}, FetchedAt: now.Add(-8 * 24 * time.Hour)}
+	old := CacheRecord{Entries: []Entry{{Headword: "old"}}, FetchedAt: now.Add(-365 * 24 * time.Hour)}
 	mem := &fakeCache{found: true, record: old}
 	disk := &fakeCache{}
 	provider := &fakeSource{found: true, entries: []Entry{{Headword: "new"}}}
@@ -135,7 +161,7 @@ func TestGivenExpiredCacheWhenProviderSucceedsThenRefreshesCaches(t *testing.T) 
 func TestGivenDiskFailureWhenProviderSucceedsThenResultAndMemoryAreKept(t *testing.T) {
 	// given
 	now := time.Date(2026, 10, 27, 0, 0, 0, 0, time.UTC)
-	old := CacheRecord{Entries: []Entry{{Headword: "old"}}, FetchedAt: now.Add(-8 * 24 * time.Hour)}
+	old := CacheRecord{Entries: []Entry{{Headword: "old"}}, FetchedAt: now.Add(-365 * 24 * time.Hour)}
 	mem := &fakeCache{}
 	disk := &fakeCache{record: old, found: true}
 	provider := &fakeSource{found: true, entries: []Entry{{Headword: "word"}}}

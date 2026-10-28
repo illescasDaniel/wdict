@@ -11,6 +11,8 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
+const cacheFreshness = 365 * 24 * time.Hour
+
 // LookupService coordinates local data, the two response-cache tiers and online lookup.
 type LookupService struct {
 	Offline, Online DictionarySource
@@ -51,7 +53,7 @@ func (s *LookupService) Lookup(ctx context.Context, request LookupRequest) (Look
 		if err != nil || !found || len(rec.Entries) == 0 || rec.FetchedAt.IsZero() {
 			continue
 		}
-		if now.Sub(rec.FetchedAt) < 7*24*time.Hour && !rec.FetchedAt.After(now) {
+		if now.Sub(rec.FetchedAt) < cacheFreshness && !rec.FetchedAt.After(now) {
 			rec.LastUsed = now
 			_ = tier.cache.Put(ctx, rec)
 			if tier.origin == OriginDisk && s.Memory != nil {

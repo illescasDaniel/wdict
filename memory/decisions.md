@@ -55,3 +55,7 @@ Run routine checks without generating AppImages; a separately dispatched workflo
 ## 2026-10-28 — Audit and first release
 
 User approved failing npm audit for moderate or higher findings while displaying low findings, and explicitly requested the v0.1.0 release after CI and Go installation work (`src:18d6de4a6d7390db8ac3`).
+
+## 2026-10-28 — Cache freshness
+
+Keep online results fresh for 365 days before attempting a refresh; retain stale fallback when the provider is unavailable. User requested v0.2.0 and installation after publication (`src:bc2bcf9382dacdc66077`).

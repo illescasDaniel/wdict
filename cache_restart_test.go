@@ -55,8 +55,10 @@ func testRestartPhase(t *testing.T, phase string) {
 	t.Helper()
 	now := time.Date(2026, 10, 28, 12, 0, 0, 0, time.UTC)
 	provider := &restartProvider{fail: phase != "online"}
-	if phase == "stale" {
-		now = now.Add(8 * 24 * time.Hour)
+	if phase == "fresh" {
+		now = now.Add(364 * 24 * time.Hour)
+	} else if phase == "stale" {
+		now = now.Add(365 * 24 * time.Hour)
 	}
 	cache := diskCache(os.UserCacheDir)
 	if cache == nil {

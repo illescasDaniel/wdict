@@ -2,7 +2,7 @@
 
 ## Current focus
 
-User confirmed autofocus; README and UI changes committed locally. A separate-process regression test confirms persistent online cache behavior across restarts.
+Preparing v0.2.0: online cache freshness is 365 days; tests and release notes are ready. User requested publishing and installing the release locally.
 
 ## Blockers
 
@@ -10,4 +10,4 @@ npm audit reports low-severity GHSA-gcqx-w48m-w2h4 in the Svelte build tool's de
 
 ## Next steps
 
-Keep local commits unpushed as requested; continue with any user feedback. Track the upstream npm advisory. Verify native rendering and capture a screenshot; test on older Linux distributions and review bundled licenses. Build and test macOS and Windows binaries in a future release; the user explicitly requested v0.1.0 now.
+Commit and push the v0.2.0 changes, verify CI, run the release workflow, then update the user’s installed binary. Track the upstream npm advisory. Verify native rendering and capture a screenshot; test on older Linux distributions and review bundled licenses. Build and test macOS and Windows binaries in a future release; the user explicitly requested v0.1.0 now.

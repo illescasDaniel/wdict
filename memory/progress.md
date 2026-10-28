@@ -19,6 +19,8 @@
 
 ## Done
 
+- [x] Changed cached online results to remain fresh for 365 days, with expiry boundary and cross-process coverage (`src:bc2bcf9382dacdc66077`).
+
 - [x] Verified online lookup results persist across separate processes; fresh disk hits avoid the provider and stale disk results are used when it fails.
 
 - [x] User confirmed the search-field autofocus works; clarified README installation options (`src:f3e85e0506d5e89bd969`).
