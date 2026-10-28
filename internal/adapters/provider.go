@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"wdict/internal/core"
+	"github.com/illescasDaniel/wdict/internal/core"
 )
 
 // OnlineDictionary accesses the fixed English Free Dictionary API endpoint.

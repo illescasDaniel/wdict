@@ -18,8 +18,8 @@ import (
 
 	"github.com/gofrs/flock"
 	stardict "github.com/ianlewis/go-stardict"
+	"github.com/illescasDaniel/wdict/internal/core"
 	"github.com/klauspost/compress/zstd"
-	"wdict/internal/core"
 )
 
 const dictionaryURL = "https://github.com/xxyzz/wiktionary_stardict/releases/download/20261018/en-en.tar.zst"

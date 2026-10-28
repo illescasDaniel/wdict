@@ -64,6 +64,11 @@ jobs:
         run: |
           npm ci --prefix frontend
           npm run build --prefix frontend
+          if [ -n "$(git status --porcelain --untracked-files=all -- frontend/build)" ]; then
+            echo "Frontend assets are stale; rebuild and commit frontend/build." >&2
+            git status --short --untracked-files=all -- frontend/build
+            exit 1
+          fi
           npm run check --prefix frontend
           npm test --prefix frontend
           go test -tags gtk3 ./...

@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/adrg/xdg"
+	"github.com/illescasDaniel/wdict/internal/adapters"
+	"github.com/illescasDaniel/wdict/internal/core"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
-	"wdict/internal/adapters"
-	"wdict/internal/core"
 )
 
 //go:embed all:frontend/build

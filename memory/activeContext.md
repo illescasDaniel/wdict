@@ -2,7 +2,7 @@
 
 ## Current focus
 
-User requested fixing CI, then preparing Go installation and publishing v0.1.0 with an AppImage. Audit policy was approved for moderate and higher; verify CI before the Go-install changes.
+User requested fixing CI, then preparing Go installation and publishing v0.1.0 with an AppImage. Approved moderate-and-higher audit gate passed GitHub CI. Go module path and committed frontend prepared; isolated versioned Go installation built and launched the app.
 
 ## Blockers
 
@@ -10,4 +10,4 @@ npm audit reports low-severity GHSA-gcqx-w48m-w2h4 in the Svelte build tool's de
 
 ## Next steps
 
-Verify CI, prepare Go installation and run the v0.1.0 release workflow. Track the upstream npm advisory. Verify native rendering and capture a screenshot; test on older Linux distributions and review bundled licenses. Build and test macOS and Windows binaries in a future release; the user explicitly requested v0.1.0 now.
+Verify committed frontend freshness and Go installation from the published commit; ensure CI passes, then run the v0.1.0 release workflow. Track the upstream npm advisory. Verify native rendering and capture a screenshot; test on older Linux distributions and review bundled licenses. Build and test macOS and Windows binaries in a future release; the user explicitly requested v0.1.0 now.

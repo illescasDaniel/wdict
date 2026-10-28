@@ -5,11 +5,11 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"github.com/illescasDaniel/wdict/internal/core"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
-	"wdict/internal/core"
 
 	stardict "github.com/ianlewis/go-stardict"
 )

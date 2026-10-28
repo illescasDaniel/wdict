@@ -18,8 +18,8 @@ import (
 
 	"github.com/gofrs/flock"
 	"github.com/ianlewis/go-dictzip"
+	"github.com/illescasDaniel/wdict/internal/core"
 	"github.com/klauspost/compress/zstd"
-	"wdict/internal/core"
 )
 
 // fixtureArchive builds a real one-entry StarDict package without network access.

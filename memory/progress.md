@@ -5,18 +5,21 @@
 - [ ] Resolve npm audit GHSA-gcqx-w48m-w2h4 in deepmerge; no upstream fix available as of 2026-10-28. Low findings remain visible; user approved failing the audit at moderate and above.
 
 - [ ] Capture a usable app screenshot and verify native rendering after the SvelteKit upgrade.
-- [ ] Generate and test macOS and Windows binaries before the first release.
+- [ ] Generate and test macOS and Windows binaries in a future release.
 
 - [ ] Test the AppImage interactively and on older target distributions; review bundled dependency licenses before distribution.
 
 - [ ] Verify end-to-end interactive startup and cold-disk performance.
-- [ ] In a later task, test the app on macOS and Windows before claiming support.
+- [ ] Test the app on macOS and Windows before claiming support.
 - [ ] After v1, consider inflected-form lookup and spelling suggestions.
 - [ ] Evaluate Spanish and select a licensed dataset for the in-app offline dictionary download.
 
 - [ ] Review and trust the project hooks, then test the MCP and hook checklist.
 
 ## Done
+
+- [x] Prepared the GitHub Go module path and reproducible embedded frontend; isolated versioned go install built and launched the app on 2026-10-28.
+- [x] Applied the approved audit threshold and verified GitHub CI run 40772755480 passed.
 
 - [x] Split lightweight CI from a manually dispatched GitHub release workflow on 2026-10-28; no tag or release created (source `src:a8efe69c530e6bb4f0af`).
 

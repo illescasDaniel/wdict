@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"wdict/internal/core"
+	"github.com/illescasDaniel/wdict/internal/core"
 )
 
 func TestGivenExistingDiskEntriesWhenReplacementRenameFailsThenEntriesRemain(t *testing.T) {

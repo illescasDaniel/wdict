@@ -14,10 +14,10 @@ import (
 	"github.com/ianlewis/go-stardict/dict"
 	"github.com/ianlewis/go-stardict/idx"
 	"github.com/ianlewis/go-stardict/syn"
+	"github.com/illescasDaniel/wdict/internal/core"
 	"golang.org/x/net/html"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/unicode/norm"
-	"wdict/internal/core"
 )
 
 // OfflineDictionary opens the dictionary lazily and scans its compact indexes.

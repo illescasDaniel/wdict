@@ -1,4 +1,4 @@
-module wdict
+module github.com/illescasDaniel/wdict
 
 go 1.26.4
 

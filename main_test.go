@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/illescasDaniel/wdict/internal/adapters"
+	"github.com/illescasDaniel/wdict/internal/core"
 	"testing"
-	"wdict/internal/adapters"
-	"wdict/internal/core"
 )
 
 type startupProvider struct{}

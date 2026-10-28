@@ -13,7 +13,7 @@ import (
 	"strings"
 	"sync"
 
-	"wdict/internal/core"
+	"github.com/illescasDaniel/wdict/internal/core"
 )
 
 type MemoryCache struct {
