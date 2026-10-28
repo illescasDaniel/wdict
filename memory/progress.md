@@ -18,6 +18,8 @@
 
 ## Done
 
+- [x] Released v0.1.0 with a Linux x86_64 AppImage; clean-cache go install of the tagged module succeeded (`src:5c122ea6bbaa9ba14638`).
+
 - [x] Prepared the GitHub Go module path and reproducible embedded frontend; isolated versioned go install built and launched the app on 2026-10-28.
 - [x] Applied the approved audit threshold and verified GitHub CI run 40772755480 passed.
 
