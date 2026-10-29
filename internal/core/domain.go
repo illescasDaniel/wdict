@@ -40,6 +40,7 @@ const (
 	InvalidQuery      LookupStatus = "invalid_query"
 	NotFound          LookupStatus = "not_found"
 	SourceUnavailable LookupStatus = "source_unavailable"
+	SilentUnavailable LookupStatus = "silent_unavailable"
 )
 
 type ResultOrigin string

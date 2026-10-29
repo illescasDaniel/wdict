@@ -2,6 +2,18 @@
 
 Append dated decisions with context, rationale and source references. Add a new entry when a decision is reversed.
 
+## 2026-10-29 — Legacy cache attribution
+
+The user approved preserving legacy cached definitions while showing a notice if a source or license link is missing (`src:517058a14965c942a353`). A durable note was queued but remains unscreened because the decision provider was unavailable.
+
+## 2026-10-29 — Silent HTTP 502 responses
+
+The user asked to treat HTTP 502 from the online dictionary lookup endpoints as silent errors for now (`src:fbb1669e08460c8e2421`). Retain stale fallback, do not cache failures as missing entries, and show a neutral message when no results are available.
+
+## 2026-10-29 — Automatic bilingual lookup
+
+Search both English and Spanish for each query without a language selector, as requested by the user (`src:34b97b8117fcb33761f4`); design approved (`src:58170218c984fa66a08b`); specification decisions approved (`src:e86c89718081e601095e`); spec approved (`src:6e99afe45172b4ac8823`); architecture approved (`src:dc4bf98b737711e4b089`).
+
 ## 2026-10-29 — Launch experiments
 
 Experiments showed no demonstrated launch improvement and the user saw no difference from the placeholder; remove the experiments and retain the independent dictionary error fix (`src:92330b20cd5d33849f20`, `src:951f2ed31a886ccf2478`).

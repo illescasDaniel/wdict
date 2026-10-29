@@ -45,10 +45,10 @@ func TestGivenProviderStatusWhenLookingUpThenMapsResponses(t *testing.T) {
 	for _, tc := range []struct {
 		status             int
 		wantFound, wantErr bool
-	}{{201, true, false}, {404, false, false}, {429, false, true}, {503, false, true}} {
+	}{{201, true, false}, {404, false, false}, {429, false, true}, {502, false, true}, {503, false, true}} {
 		t.Run(http.StatusText(tc.status), func(t *testing.T) {
 			client := &http.Client{Transport: transportFunc(func(*http.Request) (*http.Response, error) {
-				return &http.Response{StatusCode: tc.status, Body: io.NopCloser(strings.NewReader(`[{"word":"test","meanings":[{"definitions":[{"definition":"a test"}]}]}]`)), Header: make(http.Header)}, nil
+				return &http.Response{StatusCode: tc.status, Body: io.NopCloser(strings.NewReader(`[{"word":"test","sourceUrls":["https://en.wiktionary.org/wiki/test"],"license":{"name":"CC BY-SA","url":"https://creativecommons.org/licenses/by-sa/3.0/"},"meanings":[{"definitions":[{"definition":"a test"}]}]}]`)), Header: make(http.Header)}, nil
 			})}
 			// when
 			_, found, err := (OnlineDictionary{Client: client}).Find(context.Background(), "test", "en")
@@ -86,5 +86,15 @@ func TestGivenOversizedResponseWhenLookingUpThenUnavailable(t *testing.T) {
 	// then
 	if err == nil {
 		t.Fatal("accepted oversized response")
+	}
+}
+
+func TestGivenMissingAttributionWhenLookingUpThenUnavailable(t *testing.T) {
+	client := &http.Client{Transport: transportFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`[{"word":"test","meanings":[{"definitions":[{"definition":"a test"}]}]}]`)), Header: make(http.Header)}, nil
+	})}
+	_, found, err := (OnlineDictionary{Client: client}).Find(context.Background(), "test", "en")
+	if found || err == nil {
+		t.Fatalf("found=%v err=%v", found, err)
 	}
 }

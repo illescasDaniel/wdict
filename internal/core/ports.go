@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
@@ -19,6 +20,9 @@ type Dictionaries interface {
 	List(ctx context.Context) ([]Dictionary, error)
 	Download(ctx context.Context, id DictionaryID, progress func(DownloadProgress)) error
 }
+
+// ErrSilentUnavailable marks a temporary provider failure that is not shown as an error.
+var ErrSilentUnavailable = errors.New("provider temporarily unavailable")
 
 // DictionarySource reports a missing entry as found=false, err=nil; unavailable,
 // invalid or unreadable sources return an error. Entries retain attribution.

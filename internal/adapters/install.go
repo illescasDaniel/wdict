@@ -28,6 +28,7 @@ const dictionarySize int64 = 142487509
 const dictionaryVersion = "20261018"
 const dictionaryID = "wiktionary-en-20261018"
 
+var SpanishDictionarySourceInfo = core.Source{ID: "wiktionary-es-20261018", Name: "Wikcionario Español-Español", URL: "https://es.wiktionary.org/", Attribution: "Wiktionary contributors, CC BY-SA 4.0; compiled by xxyzz; definitions extracted and formatting changed by wdict", LicenseURL: "https://creativecommons.org/licenses/by-sa/4.0/", AdditionalURLs: []string{"https://xxyzz.github.io/wiktionary_stardict/"}}
 var DictionarySourceInfo = core.Source{ID: dictionaryID, Name: "Wiktionary English-English", URL: "https://en.wiktionary.org/", Attribution: "Wiktionary contributors, CC BY-SA 4.0; compiled by xxyzz; definitions extracted and formatting changed by wdict", LicenseURL: "https://creativecommons.org/licenses/by-sa/4.0/", AdditionalURLs: []string{"https://xxyzz.github.io/wiktionary_stardict/"}}
 
 type Installer struct {
@@ -35,6 +36,7 @@ type Installer struct {
 	Client          *http.Client
 	mu              sync.Mutex
 	packageOverride *packageMetadata // injected only by package tests
+	Spanish         bool
 }
 
 type packageMetadata struct {
@@ -42,14 +44,35 @@ type packageMetadata struct {
 	Size     int64
 }
 
+func (i *Installer) base() string {
+	if i.Spanish {
+		return "es-es"
+	}
+	return "en-en"
+}
+func (i *Installer) version() string {
+	if i.Spanish {
+		return "es-20261018"
+	}
+	return dictionaryVersion
+}
+func (i *Installer) id() core.DictionaryID {
+	if i.Spanish {
+		return "wiktionary-es-20261018"
+	}
+	return dictionaryID
+}
 func (i *Installer) metadata() packageMetadata {
 	if i.packageOverride != nil {
 		return *i.packageOverride
 	}
+	if i.Spanish {
+		return packageMetadata{URL: "https://github.com/xxyzz/wiktionary_stardict/releases/download/20261018/es-es.tar.zst", SHA: "0319285758d5d40022c3cc00c0e414b2d60883a1c1ae0bd53378789443c48676", Size: 23446485}
+	}
 	return packageMetadata{URL: dictionaryURL, SHA: dictionarySHA, Size: dictionarySize}
 }
 
-func (i *Installer) CurrentIFO() string { return filepath.Join(i.Dir, dictionaryVersion, "en-en.ifo") }
+func (i *Installer) CurrentIFO() string { return filepath.Join(i.Dir, i.version(), i.base()+".ifo") }
 
 // Recover removes interrupted temporary installations only when no other
 // process owns the shared download lock. It never touches installed data.
@@ -77,10 +100,10 @@ func (i *Installer) Recover() error {
 			return err
 		}
 	}
-	backup := filepath.Join(i.Dir, ".old-"+dictionaryVersion)
+	backup := filepath.Join(i.Dir, ".old-"+i.version())
 	if _, err := os.Stat(i.CurrentIFO()); errors.Is(err, os.ErrNotExist) {
 		if _, err := os.Stat(backup); err == nil {
-			if err := os.Rename(backup, filepath.Join(i.Dir, dictionaryVersion)); err != nil {
+			if err := os.Rename(backup, filepath.Join(i.Dir, i.version())); err != nil {
 				return err
 			}
 		}
@@ -88,13 +111,17 @@ func (i *Installer) Recover() error {
 	return nil
 }
 func (i *Installer) List(_ context.Context) ([]core.Dictionary, error) {
-	err := validateInstalled(i.Dir)
+	err := i.validateInstalled()
+	if i.Spanish {
+		return []core.Dictionary{{ID: i.id(), Name: "Wiktionary Spanish-Spanish", Language: "es", Source: SpanishDictionarySourceInfo, Version: dictionaryVersion, License: "CC BY-SA 4.0", DownloadBytes: i.metadata().Size, Installed: err == nil}}, nil
+	}
 	return []core.Dictionary{{ID: dictionaryID, Name: "Wiktionary English-English", Language: "en", Source: DictionarySourceInfo, Version: dictionaryVersion, License: "CC BY-SA 4.0", DownloadBytes: dictionarySize, Installed: err == nil}}, nil
 }
 
-func validateInstalled(dir string) error {
-	base := filepath.Join(dir, dictionaryVersion)
-	for _, name := range []string{"en-en.ifo", "en-en.idx", "en-en.dict.dz", "en-en.syn"} {
+func validateInstalled(dir string) error { return (&Installer{Dir: dir}).validateInstalled() }
+func (i *Installer) validateInstalled() error {
+	base := filepath.Join(i.Dir, i.version())
+	for _, name := range []string{i.base() + ".ifo", i.base() + ".idx", i.base() + ".dict.dz", i.base() + ".syn"} {
 		info, err := os.Stat(filepath.Join(base, name))
 		if err != nil {
 			return err
@@ -103,14 +130,14 @@ func validateInstalled(dir string) error {
 			return errors.New("invalid dictionary file")
 		}
 	}
-	d, err := stardict.Open(filepath.Join(base, "en-en.ifo"), nil)
+	d, err := stardict.Open(filepath.Join(base, i.base()+".ifo"), nil)
 	if err != nil {
 		return err
 	}
 	return d.Close()
 }
 func (i *Installer) Download(ctx context.Context, id core.DictionaryID, progress func(core.DownloadProgress)) error {
-	if id != dictionaryID {
+	if id != i.id() {
 		return errors.New("unknown dictionary")
 	}
 	if !i.mu.TryLock() {
@@ -193,14 +220,18 @@ func (i *Installer) Download(ctx context.Context, id core.DictionaryID, progress
 		return errors.New("dictionary checksum verification failed")
 	}
 	report(core.DownloadInstalling, n)
-	if err = extractDictionary(filepath.Join(temp, "archive"), temp); err != nil {
+	if err = extractDictionaryBase(filepath.Join(temp, "archive"), temp, i.base()); err != nil {
 		return err
 	}
-	d, err := stardict.Open(filepath.Join(temp, "en-en.ifo"), nil)
+	d, err := stardict.Open(filepath.Join(temp, i.base()+".ifo"), nil)
 	if err != nil {
 		return fmt.Errorf("invalid dictionary: %w", err)
 	}
-	entries, err := d.Search("hello")
+	sample := "hello"
+	if i.Spanish {
+		sample = "casa"
+	}
+	entries, err := d.Search(sample)
 	if err != nil || len(entries) == 0 || strings.TrimSpace(entries[0].Data().String()) == "" {
 		_ = d.Close()
 		return errors.New("dictionary contents could not be validated")
@@ -213,12 +244,12 @@ func (i *Installer) Download(ctx context.Context, id core.DictionaryID, progress
 	}
 	// Immutable version directories make the initial installation atomic. Existing
 	// valid copies are retained instead of being replaced during a retry.
-	target := filepath.Join(i.Dir, dictionaryVersion)
-	if validateInstalled(i.Dir) == nil {
+	target := filepath.Join(i.Dir, i.version())
+	if i.validateInstalled() == nil {
 		report(core.DownloadComplete, n)
 		return nil
 	}
-	backup := filepath.Join(i.Dir, ".old-"+dictionaryVersion)
+	backup := filepath.Join(i.Dir, ".old-"+i.version())
 	if _, statErr := os.Stat(target); statErr == nil {
 		if _, err = os.Stat(backup); err == nil {
 			return errors.New("dictionary recovery directory already exists")
@@ -240,6 +271,9 @@ func (i *Installer) Download(ctx context.Context, id core.DictionaryID, progress
 	return nil
 }
 func extractDictionary(archive, dest string) error {
+	return extractDictionaryBase(archive, dest, "en-en")
+}
+func extractDictionaryBase(archive, dest, base string) error {
 	f, err := os.Open(archive)
 	if err != nil {
 		return err
@@ -251,7 +285,7 @@ func extractDictionary(archive, dest string) error {
 	}
 	defer z.Close()
 	t := tar.NewReader(z)
-	wanted := map[string]bool{"en-en.ifo": false, "en-en.idx": false, "en-en.dict.dz": false, "en-en.syn": false}
+	wanted := map[string]bool{base + ".ifo": false, base + ".idx": false, base + ".dict.dz": false, base + ".syn": false}
 	var total int64
 	for {
 		h, e := t.Next()

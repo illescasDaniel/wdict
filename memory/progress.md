@@ -2,6 +2,8 @@
 
 ## Open
 
+- [ ] Push v0.4.0, verify CI, publish the release, and update the locally installed executable.
+
 - [ ] Verify automatic appearance interactively in the native window.
 
 
@@ -20,6 +22,17 @@
 - [ ] Review and trust the project hooks, then test the MCP and hook checklist.
 
 ## Done
+
+- [x] Replaced the subprocess cache restart test with fresh service and memory-cache instances against the same disk cache; separately tagged and documented real Spanish-data integration checks. Default race tests and both real-data checks passed locally using the verified archive and captured response. Independent test-quality regrade passed; this does not test an actual process restart.
+- [x] Resolved Spanish support grader failures: preserve legacy cached entries with an attribution notice and reject duplicate Spanish language sections. Independent regrade passed with a partial observation on integration test setup; frontend tests, Svelte checks, build and Go race tests passed.
+
+- [x] Implemented silent HTTP 502 behavior for English and Spanish online lookups while retaining stale cache fallback (`src:fbb1669e08460c8e2421`).
+
+- [x] Investigated `diccionario`: the installed Spanish dictionary finds it, the English dictionary misses, and a separate English online request returned a Cloudflare HTTP 502 of uncertain underlying cause; distinguish this online failure from an ordinary missing entry.
+
+- [x] Approved Spanish support spec and prepared core contracts (`src:6e99afe45172b4ac8823`).
+
+- [x] Approved automatic bilingual lookup design on 2026-10-29 (`src:58170218c984fa66a08b`).
 
 - [x] Tried launch optimizations without demonstrating a speedup; the user saw no visual difference from the placeholder, so experiments were removed (`src:92330b20cd5d33849f20`, `src:951f2ed31a886ccf2478`).
 - [x] Fixed the existing dictionary metadata failure state so users can see the error and retry without restarting.

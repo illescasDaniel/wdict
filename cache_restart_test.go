@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -35,19 +34,10 @@ func TestGivenOnlineLookupWhenAppRestartsThenDiskCacheIsReused(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("XDG_CACHE_HOME isolation is Linux-specific")
 	}
-	if phase := os.Getenv("WDICT_CACHE_RESTART_PHASE"); phase != "" {
-		testRestartPhase(t, phase)
-		return
-	}
-
-	// Each invocation is a separate process with its own memory cache.
-	cacheDir := t.TempDir()
+	// Recreate the service and memory cache for each phase, using the same disk.
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
 	for _, phase := range []string{"online", "fresh", "stale"} {
-		cmd := exec.Command(os.Args[0], "-test.run=^TestGivenOnlineLookupWhenAppRestartsThenDiskCacheIsReused$")
-		cmd.Env = append(os.Environ(), "WDICT_CACHE_RESTART_PHASE="+phase, "XDG_CACHE_HOME="+cacheDir)
-		if output, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("%s process failed: %v\n%s", phase, err, output)
-		}
+		testRestartPhase(t, phase)
 	}
 }
 
@@ -65,8 +55,8 @@ func testRestartPhase(t *testing.T, phase string) {
 		t.Fatal("disk cache unavailable")
 	}
 	// The same wiring and cache location are used by the desktop app.
-	app := &App{lookup: &core.LookupService{Online: provider, Memory: &adapters.MemoryCache{}, Disk: cache, Clock: restartClock{now}, Provider: "free-dictionary-api"}}
-	result, err := app.Lookup("word")
+	lookup := &core.LookupService{Online: provider, Memory: &adapters.MemoryCache{}, Disk: cache, Clock: restartClock{now}, Provider: "free-dictionary-api"}
+	result, err := lookup.Lookup(context.Background(), core.LookupRequest{Query: "word", Language: "en"})
 	if err != nil || result.Status != core.Found || len(result.Entries) != 1 || result.Entries[0].Headword != "word" {
 		t.Fatalf("%s: result=%+v error=%v", phase, result, err)
 	}

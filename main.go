@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"embed"
+	"fmt"
 	"io/fs"
 	"log"
 	"os"
@@ -25,15 +26,42 @@ type clock struct{}
 func (clock) Now() time.Time { return time.Now() }
 
 type App struct {
-	lookup         *core.LookupService
 	dictionaries   core.Dictionaries
 	mu             sync.Mutex
 	progress       core.DownloadProgress
 	downloadActive bool
+	bilingual      core.BilingualLookup
+	emit           func(core.LanguageOutcome)
+	searchCancel   context.CancelFunc
+	searchContext  context.Context
+	searchNumber   uint64
+	searchQuery    string
 }
 
-func (a *App) Lookup(query string) (core.LookupResult, error) {
-	return a.lookup.Lookup(context.Background(), core.LookupRequest{Query: query, Language: "en"})
+func (a *App) Lookup(query string) (string, error) {
+	a.mu.Lock()
+	if a.searchCancel != nil {
+		a.searchCancel()
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	a.searchCancel = cancel
+	a.searchContext = ctx
+	a.searchNumber++
+	a.searchQuery = query
+	id := core.SearchID(fmt.Sprint(a.searchNumber))
+	a.mu.Unlock()
+	go func() { _ = a.bilingual.Lookup(ctx, core.BilingualRequest{ID: id, Query: query}, a.emit) }()
+	return string(id), nil
+}
+func (a *App) RetryLanguage(id, query string, language core.Language) error {
+	a.mu.Lock()
+	if a.searchContext == nil || core.SearchID(fmt.Sprint(a.searchNumber)) != core.SearchID(id) || query != a.searchQuery {
+		a.mu.Unlock()
+		return nil
+	}
+	ctx := a.searchContext
+	a.mu.Unlock()
+	return a.bilingual.RetryLanguage(ctx, core.BilingualRequest{ID: core.SearchID(id), Query: query}, language, a.emit)
 }
 func (a *App) Dictionaries() ([]core.Dictionary, error) {
 	return a.dictionaries.List(context.Background())
@@ -78,17 +106,26 @@ func initialWindowSize(width, height int) (int, int) {
 
 func main() {
 	installer := &adapters.Installer{Dir: filepath.Join(xdg.DataHome, "wdict", "dictionaries")}
+	spanish := &adapters.Installer{Dir: installer.Dir, Spanish: true}
 	go func() {
-		if err := installer.Recover(); err != nil {
-			log.Printf("dictionary recovery: %v", err)
+		for _, i := range []*adapters.Installer{installer, spanish} {
+			if err := i.Recover(); err != nil {
+				log.Printf("dictionary recovery: %v", err)
+			}
 		}
 	}()
-	appService := &App{dictionaries: &core.DictionaryService{Catalog: installer, Installer: installer}, lookup: &core.LookupService{Offline: &adapters.OfflineDictionary{IFO: installer.CurrentIFO(), Source: adapters.DictionarySourceInfo}, Online: adapters.OnlineDictionary{}, Memory: &adapters.MemoryCache{}, Disk: diskCache(os.UserCacheDir), Clock: clock{}, Provider: "free-dictionary-api"}}
+	catalog := &adapters.Catalog{English: installer, Spanish: spanish}
+	memory := &adapters.MemoryCache{}
+	disk := diskCache(os.UserCacheDir)
+	bilingual := &core.BilingualService{Sources: sourceResolver{english: core.LanguageSources{Offline: &adapters.OfflineDictionary{IFO: installer.CurrentIFO(), Source: adapters.DictionarySourceInfo}, Online: adapters.OnlineDictionary{}, Provider: "free-dictionary-api"}, spanish: core.LanguageSources{Offline: &adapters.OfflineDictionary{IFO: spanish.CurrentIFO(), Source: adapters.SpanishDictionarySourceInfo, Language: core.Spanish}, Online: adapters.SpanishOnlineDictionary{}, Provider: "spanish-wiktionary"}}, Memory: memory, Disk: disk, Clock: clock{}}
+	appService := &App{dictionaries: &core.DictionaryService{Catalog: catalog, Installer: catalog}, bilingual: bilingual}
+
 	root, err := fs.Sub(assets, "frontend/build")
 	if err != nil {
 		log.Fatal(err)
 	}
 	app := application.New(application.Options{Name: "wdict", Description: "Look up words and phrases", Services: []application.Service{application.NewService(appService)}, Assets: application.AssetOptions{Handler: application.BundledAssetFileServer(root)}})
+	appService.emit = func(outcome core.LanguageOutcome) { app.Event.Emit("lookup:result", outcome) }
 	window := app.Window.NewWithOptions(application.WebviewWindowOptions{Title: "wdict", URL: "/", Width: 1040, Height: 730, MinWidth: 320, MinHeight: 400})
 	app.Event.OnApplicationEvent(events.Common.ApplicationStarted, func(*application.ApplicationEvent) {
 		if screen := app.Screen.GetPrimary(); screen != nil {
@@ -99,5 +136,18 @@ func main() {
 	})
 	if err = app.Run(); err != nil {
 		log.Fatal(err)
+	}
+}
+
+type sourceResolver struct{ english, spanish core.LanguageSources }
+
+func (r sourceResolver) Resolve(language core.Language) (core.LanguageSources, error) {
+	switch language {
+	case core.English:
+		return r.english, nil
+	case core.Spanish:
+		return r.spanish, nil
+	default:
+		return core.LanguageSources{}, fmt.Errorf("unsupported language")
 	}
 }

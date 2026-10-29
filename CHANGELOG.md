@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0] - 2026-10-29
+
+- Search English and Spanish together, with independent online results and downloadable Spanish offline dictionary support.
+- Keep older cached entries available and indicate when source or license links are missing.
+- Treat online provider HTTP 502 responses as silent temporary failures, using stale cached definitions when available.
+- Reject ambiguous Spanish dictionary responses and improve dictionary installation and recovery coverage.
+
 ## [0.3.0] - 2026-10-28
 
 - Add System, Light and Dark appearance options in the footer; System follows the device setting.

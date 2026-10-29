@@ -1,6 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  import { call } from "../lib-api.js";
+  import { call, onLookupResult } from "../lib-api.js";
   import {
     readAppearance,
     saveAppearance,
@@ -39,28 +39,32 @@
     } catch {}
   }
   let queryInput;
+  let eventReady;
   let query = "",
     page = "lookup",
     busy = false,
     status = "",
     entries = [],
-    origin = "",
-    fetched = "",
-    stale = false,
-    dictionary = null,
+    dictionaries = [],
+    results = {},
+    activeSearch = "",
+    searchQuery = "",
+    previousQuery = "",
+    buffered = {},
     progress = null,
     downloadActive = false,
     refreshSeq = 0,
     error = "",
+    errorID = "",
     metadataError = "",
     seq = 0;
   async function refresh() {
     const id = ++refreshSeq;
     try {
-      const nextDictionary = (await call("Dictionaries"))[0];
+      const nextDictionaries = await call("Dictionaries");
       const nextProgress = await call("Progress");
       if (id !== refreshSeq) return;
-      dictionary = nextDictionary;
+      dictionaries = nextDictionaries;
       metadataError = "";
       if (
         !downloadActive ||
@@ -89,49 +93,95 @@
     applyAppearance();
     queryInput?.focus();
     refresh();
+    let unsubscribe;
+    eventReady = onLookupResult((outcome) => {
+      if (!activeSearch) {
+        (buffered[outcome.SearchID] ||= []).push(outcome);
+        return;
+      }
+      if (outcome.SearchID === activeSearch) acceptOutcome(outcome);
+    })
+      .then((off) => {
+        unsubscribe = off;
+        return true;
+      })
+      .catch(() => false);
     let timer = setInterval(() => {
       if (progress?.State === "downloading" || progress?.State === "installing")
         refresh();
     }, 500);
     return () => {
       clearInterval(timer);
+      unsubscribe?.();
       media?.removeEventListener("change", onAppearanceChange);
     };
   });
+  function acceptOutcome(outcome) {
+    if (outcome.SearchID !== activeSearch) return;
+    results = { ...results, [outcome.Language]: outcome.Result };
+    busy = !results.en || !results.es;
+    const values = Object.values(results);
+    const found = values.some((v) => v?.Status === "found");
+    if (found) {
+      entries = values.flatMap((v) => (v?.Status === "found" ? v.Entries : []));
+      previousQuery = searchQuery;
+      status = "";
+    } else if (!busy) {
+      status = values.some((v) => v?.Status === "invalid_query")
+        ? "Enter a word or phrase of up to 256 characters."
+        : values.some((v) => v?.Status === "source_unavailable")
+          ? "The dictionary is unavailable. Check your connection and try again."
+          : values.some((v) => v?.Status === "silent_unavailable")
+            ? "No definitions available right now."
+            : "No entry found. Try another word or phrase.";
+    }
+  }
   async function lookup() {
     const id = ++seq;
+    const submitted = query;
+    activeSearch = "";
+    buffered = {};
+    results = {};
+    searchQuery = submitted;
     busy = true;
     status = "Searching…";
     try {
-      let result = await call("Lookup", query);
+      if (!(await eventReady)) throw new Error("Unable to listen for results");
       if (id !== seq) return;
-      busy = false;
-      if (result.Status === "found") {
-        entries = result.Entries;
-        origin = result.Origin;
-        fetched = result.FetchedAt;
-        stale = result.Stale;
-        status = "";
-      } else
-        status =
-          {
-            invalid_query: "Enter a word or phrase of up to 256 characters.",
-            not_found: "No entry found. Try another word or phrase.",
-            source_unavailable:
-              "The dictionary is unavailable. Check your connection and try again.",
-          }[result.Status] || "Unable to complete the lookup.";
-    } catch (e) {
+      const searchID = await call("Lookup", submitted);
+      if (id !== seq) return;
+      activeSearch = searchID;
+      for (const outcome of buffered[searchID] || []) acceptOutcome(outcome);
+      buffered = {};
+    } catch {
       if (id === seq) {
         busy = false;
         status = "The dictionary is unavailable. Please try again.";
       }
     }
   }
-  async function download() {
+  async function retryLanguage(language) {
+    const id = activeSearch;
+    results = { ...results, [language]: null };
+    busy = true;
+    try {
+      await call("RetryLanguage", id, searchQuery, language);
+    } catch {
+      if (id === activeSearch)
+        acceptOutcome({
+          SearchID: id,
+          Language: language,
+          Result: { Status: "source_unavailable" },
+        });
+    }
+  }
+  async function download(dictionary) {
     if (downloadActive) return;
     downloadActive = true;
     error = "";
+    errorID = dictionary.ID;
     progress = {
+      DictionaryID: dictionary.ID,
       State: "downloading",
       BytesRead: 0,
       TotalBytes: dictionary.DownloadBytes,
@@ -140,7 +190,7 @@
       await call("Download", dictionary.ID);
       downloadActive = false;
       await refresh();
-    } catch (e) {
+    } catch {
       downloadActive = false;
       error =
         "Couldn’t install the dictionary. Check your connection and available storage, then try again.";
@@ -172,14 +222,14 @@
   </header>
   {#if page === "lookup"}
     <h1>Look up a word</h1>
-    <p>Find English definitions for words and phrases.</p>
+    <p>Find English and Spanish definitions for words and phrases.</p>
     <form
       onsubmit={(e) => {
         e.preventDefault();
         lookup();
       }}
     >
-      <label for="query">Word or phrase <span>English</span></label>
+      <label for="query">Word or phrase</label>
       <div class="search">
         <input
           id="query"
@@ -195,28 +245,88 @@
       be sent to the online dictionary.
     </p>
     {#if status}<div class="notice" role="status">{status}</div>{/if}
-    {#if entries.length}{#each entries as entry}<article>
-          <h2>{entry.Headword}</h2>
-          {#if origin !== "offline"}<p class="hint">
-              {stale
+    {#each ["en", "es"] as language}
+      {#if results[language]?.Status === "found"}
+        {#each results[language].Entries as entry}<article>
+            <h2>
+              {language === "en" ? "English" : "Spanish"} · {entry.Headword}
+            </h2>
+            <p class="hint">
+              {results[language].Stale
                 ? "Stale saved result"
-                : origin === "online"
-                  ? "Online result"
-                  : "Saved result"}{fetched
-                ? " · " + new Date(fetched).toLocaleDateString()
+                : results[language].Origin === "offline"
+                  ? "Offline result"
+                  : results[language].Origin === "online"
+                    ? "Online result"
+                    : "Saved result"}{results[language].FetchedAt &&
+              results[language].Origin !== "offline"
+                ? " · " +
+                  new Date(results[language].FetchedAt).toLocaleDateString()
                 : ""}
-            </p>{/if}{#each entry.Meanings as meaning}<section>
-              {#if meaning.PartOfSpeech}<h3>{meaning.PartOfSpeech}</h3>{/if}
-              <ol>
-                {#each meaning.Definitions as definition}<li>
-                    {definition}
-                  </li>{/each}
-              </ol>
-            </section>{/each}
+            </p>
+            {#each entry.Meanings as meaning}<section>
+                {#if meaning.PartOfSpeech}<h3>{meaning.PartOfSpeech}</h3>{/if}
+                <ol>
+                  {#each meaning.Definitions as definition}<li>
+                      {definition}
+                    </li>{/each}
+                </ol>
+              </section>{/each}
+            <p class="source">
+              Source: {entry.Source.Name}
+              {entry.Source.Attribution || ""}
+              {#if safeLink(entry.Source.URL)}
+                · <a
+                  href={safeLink(entry.Source.URL)}
+                  target="_blank"
+                  rel="noreferrer">Source</a
+                >{/if}
+              {#if safeLink(entry.Source.LicenseURL)}
+                · <a
+                  href={safeLink(entry.Source.LicenseURL)}
+                  target="_blank"
+                  rel="noreferrer">License</a
+                >{/if}
+              {#each entry.Source.AdditionalURLs || [] as url}{#if safeLink(url)}
+                  · <a href={safeLink(url)} target="_blank" rel="noreferrer"
+                    >More information</a
+                  >{/if}{/each}
+            </p>
+            {#if !safeLink(entry.Source?.URL) || !safeLink(entry.Source?.LicenseURL)}
+              <p class="hint">Source or license information unavailable for this cached entry.</p>
+            {/if}
+          </article>{/each}
+      {:else if results[language]?.Status === "source_unavailable"}
+        <p class="error">
+          {language === "en" ? "English" : "Spanish"} online lookup unavailable.
+          <button onclick={() => retryLanguage(language)}
+            >Retry {language === "en" ? "English" : "Spanish"}</button
+          >
+        </p>
+      {:else if busy && !results[language]}
+        <p role="status">
+          Searching {language === "en" ? "English" : "Spanish"}…
+        </p>
+      {/if}
+    {/each}
+    {#if !Object.values(results).some((v) => v?.Status === "found") && entries.length}
+      {#each entries as entry}<article>
+          <h2>
+            {entry.Language === "en"
+              ? "English · "
+              : entry.Language === "es"
+                ? "Spanish · "
+                : ""}{entry.Headword}
+          </h2>
+          {#each entry.Meanings as meaning}<ol>
+              {#each meaning.Definitions as definition}<li>
+                  {definition}
+                </li>{/each}
+            </ol>{/each}
+          <p class="hint">Previous result for “{previousQuery}”</p>
           <p class="source">
             Source: {entry.Source.Name}
-            {#if entry.Source.Attribution}
-              · {entry.Source.Attribution}{/if}{#if safeLink(entry.Source.URL)}
+            {entry.Source.Attribution || ""}{#if safeLink(entry.Source.URL)}
               · <a
                 href={safeLink(entry.Source.URL)}
                 target="_blank"
@@ -226,14 +336,16 @@
                 href={safeLink(entry.Source.LicenseURL)}
                 target="_blank"
                 rel="noreferrer">License</a
-              >{/if}{#each entry.Source.AdditionalURLs || [] as url}{#if safeLink(url)}
-                · <a href={safeLink(url)} target="_blank" rel="noreferrer"
-                  >More information</a
-                >{/if}{/each}
+              >{/if}
           </p>
-        </article>{/each}{:else if !busy}<div class="notice">
+          {#if !safeLink(entry.Source?.URL) || !safeLink(entry.Source?.LicenseURL)}
+            <p class="hint">Source or license information unavailable for this cached entry.</p>
+          {/if}
+        </article>{/each}
+    {:else if !entries.length && !busy}
+      <div class="notice">
         <strong>Look up words offline</strong>
-        <p>Download an English dictionary for offline definitions.</p>
+        <p>Download dictionaries for offline definitions.</p>
         <button
           class="link"
           onclick={() => {
@@ -241,56 +353,69 @@
             refresh();
           }}>View offline dictionaries →</button
         >
-      </div>{/if}
+      </div>
+    {/if}
   {:else}<h1>Offline dictionaries</h1>
     <p>Download a dictionary to look up words without a connection.</p>
     {#if metadataError}<p class="error" role="alert">{metadataError}</p>
       <button onclick={refresh}>Retry loading dictionary information</button
       >{/if}
-    {#if dictionary}<article>
-        <div class="title">
-          <h2>{dictionary.Name}</h2>
-          <span class="badge"
-            >{dictionary.Installed
-              ? "Installed"
-              : progress?.State === "installing"
-                ? "Installing"
-                : progress?.State === "downloading"
-                  ? "Downloading"
-                  : "Not installed"}</span
-          >
-        </div>
-        <p class="hint">
-          Language: English definitions<br />Source:
-          <a
-            href={dictionary.Source.AdditionalURLs[0]}
-            target="_blank"
-            rel="noreferrer">Wiktionary · xxyzz</a
-          ><br />License:
-          <a
-            href={dictionary.Source.LicenseURL}
-            target="_blank"
-            rel="noreferrer">{dictionary.License}</a
-          >
-          · Download: {(dictionary.DownloadBytes / 1000000).toFixed(0)} MB
-        </p>
-        {#if progress?.State === "downloading"}<progress
-            aria-label="Dictionary download"
-            max={progress.TotalBytes}
-            value={progress.BytesRead}
-          ></progress>
+    {#if dictionaries.length}{#each dictionaries as dictionary}<article>
+          <div class="title">
+            <h2>{dictionary.Name}</h2>
+            <span class="badge"
+              >{dictionary.Installed
+                ? "Installed"
+                : progress?.DictionaryID === dictionary.ID &&
+                    progress?.State === "installing"
+                  ? "Installing"
+                  : progress?.DictionaryID === dictionary.ID &&
+                      progress?.State === "downloading"
+                    ? "Downloading"
+                    : "Not installed"}</span
+            >
+          </div>
           <p class="hint">
-            {(progress.BytesRead / 1000000).toFixed(1)} MB of {(
-              progress.TotalBytes / 1000000
-            ).toFixed(0)} MB
-          </p>{:else if progress?.State === "installing"}<p class="notice">
-            Checking and installing the dictionary…
-          </p>{:else if error}<button onclick={download}>Try again</button
-          >{:else if dictionary.Installed}<p class="notice">
-            Ready to use offline.
-          </p>{:else}<button onclick={download}>Download</button
-          >{/if}{#if error}<p class="error" role="alert">{error}</p>{/if}
-      </article>
+            Language: {dictionary.Language === "es" ? "Spanish" : "English"} definitions<br
+            />Source:
+            <a
+              href={dictionary.Source.AdditionalURLs[0]}
+              target="_blank"
+              rel="noreferrer">Wiktionary · xxyzz</a
+            ><br />License:
+            <a
+              href={dictionary.Source.LicenseURL}
+              target="_blank"
+              rel="noreferrer">{dictionary.License}</a
+            >
+            · Download: {(dictionary.DownloadBytes / 1000000).toFixed(0)} MB
+          </p>
+          {#if progress?.DictionaryID === dictionary.ID && progress?.State === "downloading"}<progress
+              aria-label="Dictionary download"
+              max={progress.TotalBytes}
+              value={progress.BytesRead}
+            ></progress>
+            <p class="hint">
+              {(progress.BytesRead / 1000000).toFixed(1)} MB of {(
+                progress.TotalBytes / 1000000
+              ).toFixed(0)} MB
+            </p>{:else if progress?.DictionaryID === dictionary.ID && progress?.State === "installing"}<p
+              class="notice"
+            >
+              Checking and installing the dictionary…
+            </p>{:else if error && errorID === dictionary.ID}<button
+              onclick={() => download(dictionary)}>Try again</button
+            >{:else if dictionary.Installed}<p class="notice">
+              Ready to use offline.
+            </p>{:else}<button onclick={() => download(dictionary)}
+              >Download</button
+            >{/if}{#if error && errorID === dictionary.ID}<p
+              class="error"
+              role="alert"
+            >
+              {error}
+            </p>{/if}
+        </article>{/each}
       <p class="hint">
         You can continue looking up words while it downloads.
       </p>{:else if !metadataError}<p role="status">
@@ -479,11 +604,6 @@
     display: block;
     font-weight: 650;
     margin-bottom: 6px;
-  }
-  label span {
-    color: var(--muted);
-    font-weight: 400;
-    font-size: 13px;
   }
   .search {
     display: flex;

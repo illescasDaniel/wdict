@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spanish lookup — system design</title>
+<style>
+	:root {
+		--bg: #ffffff; --fg: #1f2328; --muted: #59636e; --line: #d1d9e0; --code: #f6f8fa;
+		--note-bg: #fff8c5; --note-line: #d4a72c; --err-bg: #ffebe9; --err-line: #cf222e;
+	}
+	@media (prefers-color-scheme: dark) {
+		:root {
+			--bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --line: #3d444d; --code: #151b23;
+			--note-bg: #2e2a1a; --note-line: #9e6a03; --err-bg: #2d1416; --err-line: #f85149;
+		}
+	}
+	body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, sans-serif; }
+	main { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
+	.note { border: 1px solid var(--note-line); background: var(--note-bg); border-radius: 6px; padding: 8px 12px; }
+	.legend span { display: inline-block; margin-right: 12px; }
+	.legend i { display: inline-block; width: 12px; height: 12px; border: 1px solid; border-radius: 2px;
+		vertical-align: -1px; margin-right: 4px; }
+	h1, h2 { border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+	a { color: inherit; }
+	code { background: var(--code); border-radius: 4px; padding: 1px 4px; font-size: 0.9em; }
+	pre { background: var(--code); border-radius: 6px; padding: 12px; overflow-x: auto; }
+	pre code { background: none; padding: 0; }
+	pre.mermaid { background: none; text-align: center; }
+	pre.mermaid-error { background: var(--err-bg); border: 1px solid var(--err-line); white-space: pre-wrap; }
+	table { border-collapse: collapse; display: block; overflow-x: auto; }
+	th, td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+</style>
+</head>
+<body>
+<main>
+	<p class="note"><strong>Review only.</strong> Generated from <code>DESIGN.md</code>, which is the source of
+	truth. Components:
+	<span class="legend"><span><i style="background:#dcfce7;border-color:#15803d"></i>added</span><span><i
+	style="background:#fef9c3;border-color:#a16207"></i>changed</span><span><i
+	style="background:#fee2e2;border-color:#b91c1c;border-style:dashed"></i>removed</span></span></p>
+	<article id="doc"></article>
+</main>
+<script>const SOURCE = "# Spanish lookup \u2014 system design\n\n- **Wireframe:** [Spanish lookup and dictionaries](../../wireframes/spanish-support.html)\n- **Design approved:** 2026-10-29 in chat (`src:58170218c984fa66a08b`).\n- **Spec:** to be written after confirming the [proposed decisions](DECISIONS.md).\n\n## Summary\n\nSearch English and Spanish automatically for every query, without a language selector. Show available definitions grouped and labelled by language, including both when a word exists in both. Each language independently follows offline dictionary, fresh cache, online provider and stale fallback, so a hit in one language does not prevent looking up the other. English keeps its current sources; Spanish uses the Spanish Wiktionary edition online and a separately downloaded Spanish\u2013Spanish Wiktionary StarDict snapshot offline. The interface remains in English.\n\nThe [publisher's catalog](https://xxyzz.github.io/wiktionary_stardict/) lists a Spanish edition with approximately 124,000 Spanish entries and a 23 MB download (catalog snapshot can change). Pin a specific release, exact size and publisher checksum after verifying the package and its license metadata. [MediaWiki's parse API](https://www.mediawiki.org/wiki/API:Parsing_wikitext) supplies rendered page HTML; the Spanish adapter must extract only Spanish definitions and reject ambiguous or unparseable content rather than presenting other-language text as a definition. Confirm real samples and coverage before finalizing its extraction contract.\n\n## Main flow\n\n```mermaid\nsequenceDiagram\n    actor U as User\n    participant UI as Lookup screen\n    participant L as Bilingual lookup\n    participant O as Offline dictionaries\n    participant C as Language-scoped cache\n    participant W as Online providers\n    U->>UI: Search casa\n    UI->>L: Lookup casa\n    alt F1: empty or invalid query\n        L-->>UI: InvalidQuery\n    else valid query\n        par For English and Spanish independently\n            L->>O: Find query in language\n            alt offline hit\n                O-->>L: Entries\n            else missing or unreadable\n                L->>C: Get provider and language and query\n                alt fresh cache hit\n                    C-->>L: Entries\n                else no fresh entry\n                    L->>W: Find query in language\n                    alt F2: unavailable or unusable response\n                        W-->>L: error\n                        L->>C: Use stale entry if present\n                    else F3: no entry in language\n                        W-->>L: not found\n                    else found\n                        W-->>L: Entries and attribution\n                        L->>C: Store language entry\n                    end\n                end\n            end\n        end\n        L-->>UI: Per-language results and statuses\n        UI-->>U: Show found definitions and any partial failure\n    end\n```\n\n```mermaid\nsequenceDiagram\n    actor U as User\n    participant UI as Dictionaries screen\n    participant D as DictionaryService\n    participant I as Installer\n    participant P as Pinned package\n    U->>UI: Download Spanish dictionary\n    UI->>D: Download Spanish catalog ID\n    alt F4: unknown dictionary ID or metadata unavailable\n        D-->>UI: error and retry\n    else trusted catalog entry\n        D->>I: Install Spanish package\n        I->>P: Download pinned URL with limits\n        alt F5: transfer, checksum, extraction or validation fails\n            I-->>UI: Failed, preserve installed dictionaries, retry\n        else verified and installed\n            I-->>UI: Complete with progress\n        end\n    end\n```\n\n## Components\n\n```mermaid\nflowchart LR\n    classDef added fill:#dcfce7,stroke:#15803d,color:#14532d\n    classDef changed fill:#fef9c3,stroke:#a16207,color:#713f12\n    UI[Lookup and dictionary screens]:::changed --> API[Wails service]:::changed\n    API --> L[LookupService]:::changed\n    L --> O[Language-routed StarDict readers]:::changed\n    L --> C[(Existing cache)]\n    L --> E[English Free Dictionary API]\n    L --> S[Spanish Wiktionary adapter]:::added\n    API --> I[Catalog and installer]:::changed\n    I --> P[Spanish StarDict package]:::added\n    I --> EN[Existing English package]\n```\n\n## Data and compatibility\n\nNo database migration. Keep the existing English `20261018/en-en.ifo` layout and cache keys readable. Install Spanish into a separate identity-specific directory so installation, recovery and replacement cannot overwrite English. Catalog records carry language, source, package identity, size and checksum; only catalog IDs can trigger downloads. Use independent readers and caches per language. The existing cache key already includes provider and language; select a distinct Spanish provider ID without invalidating English cache entries. A failed install leaves any previously working dictionary intact. Existing English-only settings and data require no deletion. No language selection or setting is needed.\n\n## Contracts and screen states\n\nThe frontend starts `Lookup(query)` and receives independently delivered outcomes per language, each with a search ID, query, status, entries, origin and stale flag. The framework-independent `BilingualLookup` contract uses callbacks and a `SourceResolver` for language-specific source and provider identity; the Wails transport will relay those outcomes. The core callback shape makes the incremental delivery requirement explicit. Both searches run concurrently and each uses the existing per-language offline-first order. Results appear as they arrive, grouped English then Spanish when present; slow or failed providers do not hide successful results. If one language fails, show its unavailable message alongside the other language's definitions, with retry. Show \u201cNo definitions found\u201d only when both report not found; show unavailable if neither found and at least one failed. If a stale entry is used, label it within its language group. A new search invalidates or cancels all earlier in-flight work.\n\n`Dictionaries()` returns both catalog entries; `Download(id)` remains restricted to the catalog. Progress identifies the selected dictionary and download failure can be retried. The search, bilingual and partial results, offline notice, loading, missing, error, stale, install progress and install failure states are shown in the wireframe. Each result and dictionary entry links to its actual source and license, and README attribution identifies the publisher and modifications. Treat downloaded HTML as untrusted: extract plain text, never render provider markup, bound response size and time, and escape titles in URLs. Preserve the existing download verification and archive protections.\n\n## Open questions and verification before specification\n\n- The Spanish online adapter's extraction needs representative live samples across meanings, accents, multiple language sections, redirects and missing pages. Check Spanish Wiktionary's content reuse terms and the exact pinned package's license and checksum before locking the contract. HTML layouts may change; parsing failures must surface as unavailable rather than false definitions.\n";</script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+(async function () {
+	const doc = document.getElementById("doc");
+	if (typeof marked === "undefined" || typeof mermaid === "undefined") {
+		doc.innerHTML = '<p class="note">Could not load the renderers (offline?). Showing the raw Markdown.</p>';
+		const pre = document.createElement("pre");
+		pre.textContent = SOURCE;
+		doc.appendChild(pre);
+		return;
+	}
+	const renderer = new marked.Renderer();
+	const plainCode = renderer.code.bind(renderer);
+	renderer.code = function (code, lang) {
+		const token = typeof code === "object" ? code : { text: code, lang: lang };
+		if ((token.lang || "").trim() !== "mermaid") return plainCode.apply(null, arguments);
+		const pre = document.createElement("pre");
+		pre.className = "mermaid";
+		pre.textContent = token.text;
+		return pre.outerHTML;
+	};
+	doc.innerHTML = marked.parse(SOURCE, { renderer: renderer });
+
+	const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+	mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: dark ? "dark" : "default" });
+	const valid = [];
+	for (const pre of doc.querySelectorAll("pre.mermaid")) {
+		try {
+			await mermaid.parse(pre.textContent);
+			valid.push(pre);
+		} catch (error) {
+			pre.className = "mermaid-error";
+			pre.textContent = "Mermaid syntax error:\n" + (error && error.message ? error.message : error)
+				+ "\n\n" + pre.textContent;
+		}
+	}
+	if (valid.length) await mermaid.run({ nodes: valid });
+	document.body.dataset.rendered = String(valid.length);
+})();
+</script>
+</body>
+</html>

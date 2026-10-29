@@ -1,9 +1,7 @@
 # Agemem recall degraded — 2026-10-29
 
-A `project_memory_recall` for `startup blank window splash screenshot initial appearance Wails` returned `decision_status: degraded`, diagnostic `stage: jev_fallback`, `cause: budget_exhausted`. Reproduction: issue the same recall query with the configured cascade; the failure depends on provider budget. Impact: decision-assisted retrieval was incomplete, although local bank, notes and BM25 source results were returned and could be checked against project source. No provider or fallback configuration was changed.
+Reproduction: call `project_memory_recall` for the reported bilingual `diccionario` lookup. It returned `decision_status: degraded` and diagnostic `jev_fallback` / `budget_exhausted`, while still returning bank, note and source evidence. Impact: combined retrieval sufficiency was not certified; checked the current source and reproduced the lookup directly instead. No provider configuration was changed.
 
-The query `implement native startup snapshot placeholder Wails webview startup` also returned the same degraded diagnostic later that day.
+The same diagnostic recurred during the follow-up provider investigation; current source and HTTP responses were checked independently.
 
-The query `remove startup placeholder keep dictionary error fix and note experiments unsuccessful` also degraded. Capturing the user's request succeeded, but `project_memory_remember` returned pending and unscreened with the same budget-exhausted diagnostic. `project_memory_maintain` flushed zero notes and reported degraded consolidation. Impact: the durable note is not screened; the bank records the captured source directly. Retry maintenance when the configured provider is available.
-
-The query `commit push dictionary metadata retry fix no release launch experiment memory` also returned the same degraded diagnostic; project files were inspected directly before committing.
+Remembering the captured 502 preference (`src:fbb1669e08460c8e2421`) returned pending/degraded with `jev_fallback` / `budget_exhausted`; maintenance flushed zero notes. Impact: the note remains unscreened, with the original source and decision preserved in the Markdown bank.

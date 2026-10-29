@@ -7,9 +7,12 @@ import {
 } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Page from "./+page.svelte";
-import { call } from "../lib-api.js";
+import { call, onLookupResult } from "../lib-api.js";
 import userEvent from "@testing-library/user-event";
-vi.mock("../lib-api.js", () => ({ call: vi.fn() }));
+vi.mock("../lib-api.js", () => ({
+  call: vi.fn(),
+  onLookupResult: vi.fn(async () => () => {}),
+}));
 const dictionary = {
   ID: "one",
   Name: "English dictionary",
@@ -28,11 +31,51 @@ const entry = {
     Name: "Example",
     Attribution: "Example contributors",
     URL: "https://example.com",
+    LicenseURL: "https://example.com/license",
   },
 };
+let resultHandler;
+let fakeSearch = 0;
+function mockBackend(implementation) {
+  call.mockImplementation(async (method, ...args) => {
+    const id = String(++fakeSearch);
+    const value = await implementation(method, ...args);
+    if (
+      method === "Lookup" &&
+      value &&
+      typeof value === "object" &&
+      value.Status
+    ) {
+      queueMicrotask(() => {
+        resultHandler?.({
+          SearchID: id,
+          Query: args[0],
+          Language: "en",
+          Result: value,
+        });
+        resultHandler?.({
+          SearchID: id,
+          Query: args[0],
+          Language: "es",
+          Result: {
+            Status:
+              value.Status === "invalid_query" ? "invalid_query" : "not_found",
+          },
+        });
+      });
+      return id;
+    }
+    return value;
+  });
+}
 beforeEach(() => {
+  resultHandler = undefined;
+  onLookupResult.mockImplementation(async (handler) => {
+    resultHandler = handler;
+    return () => {};
+  });
   call.mockReset();
-  call.mockImplementation(async (method) =>
+  mockBackend(async (method) =>
     method === "Dictionaries"
       ? [dictionary]
       : method === "Progress"
@@ -42,6 +85,68 @@ beforeEach(() => {
 });
 afterEach(() => cleanup());
 describe("lookup and offline dictionary UI", () => {
+  it.each([false, true])(
+    "given_legacy_cache_when_displayed_then_missing_attribution_is_noted (stale=%s)",
+    async (stale) => {
+      const legacy = {
+        ...entry,
+        Source: { ...entry.Source, LicenseURL: "javascript:alert(1)" },
+      };
+      mockBackend(async (method) =>
+        method === "Lookup"
+          ? {
+              Status: "found",
+              Entries: [legacy],
+              Origin: "disk_cache",
+              Stale: stale,
+            }
+          : method === "Dictionaries"
+            ? [dictionary]
+            : {},
+      );
+      render(Page);
+      await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+      await screen.findByText("a greeting");
+      expect(
+        screen.getByText(
+          "Source or license information unavailable for this cached entry.",
+        ),
+      ).toBeTruthy();
+      expect(
+        screen.getByRole("link", { name: "Source" }).getAttribute("href"),
+      ).toBe("https://example.com/");
+      expect(screen.queryByRole("link", { name: "License" })).toBeNull();
+    },
+  );
+  it("given_legacy_cache_when_next_search_fails_then_previous_result_retains_attribution_notice", async () => {
+    let failed = false;
+    const legacy = { ...entry, Source: { ...entry.Source, URL: "" } };
+    mockBackend(async (method) =>
+      method === "Lookup"
+        ? failed
+          ? { Status: "source_unavailable" }
+          : { Status: "found", Entries: [legacy], Origin: "disk_cache" }
+        : method === "Dictionaries"
+          ? [dictionary]
+          : {},
+    );
+    render(Page);
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await screen.findByText("a greeting");
+    failed = true;
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await screen.findByText(/Previous result for/);
+    expect(screen.getByText("a greeting")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Source or license information unavailable for this cached entry.",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: "License" }).getAttribute("href"),
+    ).toBe("https://example.com/license");
+    expect(screen.queryByRole("link", { name: "Source" })).toBeNull();
+  });
   it("given_app_start_when_window_opens_then_no_requests_are_sent_and_network_notice_is_shown", async () => {
     // given
     // when
@@ -54,10 +159,422 @@ describe("lookup and offline dictionary UI", () => {
       ),
     ).toBe(false);
   });
+  it("given_both_languages_when_results_arrive_then_they_are_shown_independently", async () => {
+    mockBackend(async (method) =>
+      method === "Dictionaries"
+        ? [dictionary]
+        : method === "Progress"
+          ? {}
+          : method === "Lookup"
+            ? "search-1"
+            : null,
+    );
+    render(Page);
+    await fireEvent.input(screen.getByLabelText(/word or phrase/i), {
+      target: { value: "casa" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await waitFor(() => expect(call).toHaveBeenCalledWith("Lookup", "casa"));
+    resultHandler({
+      SearchID: "search-1",
+      Query: "casa",
+      Language: "es",
+      Result: {
+        Status: "found",
+        Origin: "offline",
+        Entries: [
+          {
+            ...entry,
+            Headword: "casa",
+            Meanings: [{ Definitions: ["Una vivienda"] }],
+          },
+        ],
+      },
+    });
+    await screen.findByText("Una vivienda");
+    expect(screen.getByText(/Searching English/)).toBeTruthy();
+    resultHandler({
+      SearchID: "search-1",
+      Query: "casa",
+      Language: "en",
+      Result: { Status: "source_unavailable" },
+    });
+    await screen.findByRole("button", { name: "Retry English" });
+    expect(screen.getByText(/English online lookup unavailable/)).toBeTruthy();
+    expect(screen.getByText("Una vivienda")).toBeTruthy();
+  });
+  it("given_spanish_found_and_english_missing_when_results_arrive_then_no_error_is_shown", async () => {
+    mockBackend(async (method) =>
+      method === "Dictionaries"
+        ? [dictionary]
+        : method === "Progress"
+          ? {}
+          : method === "Lookup"
+            ? "diccionario"
+            : null,
+    );
+    render(Page);
+    await fireEvent.input(screen.getByLabelText(/word or phrase/i), {
+      target: { value: "diccionario" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await waitFor(() =>
+      expect(call).toHaveBeenCalledWith("Lookup", "diccionario"),
+    );
+    resultHandler({
+      SearchID: "diccionario",
+      Language: "en",
+      Result: { Status: "not_found" },
+    });
+    resultHandler({
+      SearchID: "diccionario",
+      Language: "es",
+      Result: {
+        Status: "found",
+        Origin: "offline",
+        Entries: [
+          {
+            ...entry,
+            Headword: "diccionario",
+            Language: "es",
+            Meanings: [{ Definitions: ["Libro de palabras"] }],
+          },
+        ],
+      },
+    });
+    await screen.findByText("Libro de palabras");
+    expect(screen.queryByText(/English online lookup unavailable/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Retry English" })).toBeNull();
+  });
+  it("given_silent_502_and_spanish_result_when_looking_up_then_no_english_error_is_shown", async () => {
+    mockBackend(async (method) =>
+      method === "Dictionaries"
+        ? [dictionary]
+        : method === "Progress"
+          ? {}
+          : method === "Lookup"
+            ? "silent-502"
+            : null,
+    );
+    render(Page);
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await waitFor(() => expect(call).toHaveBeenCalledWith("Lookup", ""));
+    resultHandler({
+      SearchID: "silent-502",
+      Language: "en",
+      Result: { Status: "silent_unavailable" },
+    });
+    resultHandler({
+      SearchID: "silent-502",
+      Language: "es",
+      Result: {
+        Status: "found",
+        Origin: "offline",
+        Entries: [
+          {
+            ...entry,
+            Headword: "diccionario",
+            Language: "es",
+            Meanings: [{ Definitions: ["Libro de palabras"] }],
+          },
+        ],
+      },
+    });
+    await screen.findByText("Libro de palabras");
+    expect(screen.queryByText(/English online lookup unavailable/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Retry English" })).toBeNull();
+  });
+  it("given_only_silent_errors_when_search_finishes_then_no_failure_or_false_not_found_is_shown", async () => {
+    mockBackend(async (method) =>
+      method === "Dictionaries"
+        ? [dictionary]
+        : method === "Progress"
+          ? {}
+          : method === "Lookup"
+            ? "both-502"
+            : null,
+    );
+    render(Page);
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await waitFor(() => expect(call).toHaveBeenCalledWith("Lookup", ""));
+    resultHandler({
+      SearchID: "both-502",
+      Language: "en",
+      Result: { Status: "silent_unavailable" },
+    });
+    resultHandler({
+      SearchID: "both-502",
+      Language: "es",
+      Result: { Status: "silent_unavailable" },
+    });
+    await screen.findByText("No definitions available right now.");
+    expect(screen.queryByText(/No entry found/)).toBeNull();
+    expect(screen.queryByText(/online lookup unavailable/)).toBeNull();
+  });
+  it("given_retry_pending_when_other_language_returns_then_both_remain_usable", async () => {
+    mockBackend(async (method) =>
+      method === "Dictionaries"
+        ? [dictionary]
+        : method === "Progress"
+          ? {}
+          : method === "Lookup"
+            ? "retry-test"
+            : method === "RetryLanguage"
+              ? new Promise(() => {})
+              : null,
+    );
+    render(Page);
+    await fireEvent.input(screen.getByLabelText(/word or phrase/i), {
+      target: { value: "casa" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await waitFor(() => expect(call).toHaveBeenCalledWith("Lookup", "casa"));
+    resultHandler({
+      SearchID: "retry-test",
+      Language: "en",
+      Result: { Status: "source_unavailable" },
+    });
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Retry English" }),
+    );
+    resultHandler({
+      SearchID: "retry-test",
+      Language: "es",
+      Result: {
+        Status: "found",
+        Origin: "offline",
+        Entries: [
+          {
+            ...entry,
+            Language: "es",
+            Headword: "casa",
+            Meanings: [{ Definitions: ["vivienda"] }],
+          },
+        ],
+      },
+    });
+    await screen.findByText("vivienda");
+    expect(screen.getByText(/Searching English/)).toBeTruthy();
+  });
+  it("given_two_found_outcomes_when_search_completes_then_both_languages_are_labelled", async () => {
+    mockBackend(async (method) =>
+      method === "Dictionaries"
+        ? [dictionary]
+        : method === "Progress"
+          ? {}
+          : method === "Lookup"
+            ? "both"
+            : null,
+    );
+    render(Page);
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await waitFor(() => expect(call).toHaveBeenCalledWith("Lookup", ""));
+    resultHandler({
+      SearchID: "both",
+      Language: "en",
+      Result: {
+        Status: "found",
+        Origin: "online",
+        Entries: [{ ...entry, Language: "en" }],
+      },
+    });
+    resultHandler({
+      SearchID: "both",
+      Language: "es",
+      Result: {
+        Status: "found",
+        Origin: "offline",
+        Entries: [
+          {
+            ...entry,
+            Language: "es",
+            Headword: "hola",
+            Meanings: [{ Definitions: ["saludo"] }],
+          },
+        ],
+      },
+    });
+    await screen.findByText("saludo");
+    expect(screen.getByText(/English · hello/)).toBeTruthy();
+    expect(screen.getByText(/Spanish · hola/)).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: "Source" })).toHaveLength(2);
+    expect(screen.getAllByRole("link", { name: "License" })).toHaveLength(2);
+  });
+  it("given_one_missing_and_one_unavailable_when_search_completes_then_unavailable_is_shown", async () => {
+    mockBackend(async (method) =>
+      method === "Dictionaries"
+        ? [dictionary]
+        : method === "Progress"
+          ? {}
+          : method === "Lookup"
+            ? "missing"
+            : null,
+    );
+    render(Page);
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await waitFor(() => expect(call).toHaveBeenCalledWith("Lookup", ""));
+    resultHandler({
+      SearchID: "missing",
+      Language: "en",
+      Result: { Status: "not_found" },
+    });
+    resultHandler({
+      SearchID: "missing",
+      Language: "es",
+      Result: { Status: "source_unavailable" },
+    });
+    await screen.findByText(/The dictionary is unavailable/);
+    expect(screen.queryByText(/No entry found/)).toBeNull();
+  });
+  it("given_listener_is_pending_when_search_submitted_then_waits_for_registration", async () => {
+    let activate;
+    onLookupResult.mockImplementation(
+      (handler) =>
+        new Promise((resolve) => {
+          activate = () => {
+            resultHandler = handler;
+            resolve(() => {});
+          };
+        }),
+    );
+    mockBackend(async (method) =>
+      method === "Dictionaries"
+        ? [dictionary]
+        : method === "Progress"
+          ? {}
+          : method === "Lookup"
+            ? "ready"
+            : null,
+    );
+    render(Page);
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    expect(call.mock.calls.some(([method]) => method === "Lookup")).toBe(false);
+    activate();
+    await waitFor(() => expect(call).toHaveBeenCalledWith("Lookup", ""));
+  });
+  it("given_new_search_when_old_event_arrives_then_it_is_ignored", async () => {
+    let n = 0;
+    mockBackend(async (method) =>
+      method === "Dictionaries"
+        ? [dictionary]
+        : method === "Progress"
+          ? {}
+          : method === "Lookup"
+            ? String(++n)
+            : null,
+    );
+    render(Page);
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await waitFor(() => expect(n).toBe(1));
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await waitFor(() => expect(n).toBe(2));
+    resultHandler({
+      SearchID: "1",
+      Language: "en",
+      Result: { Status: "found", Origin: "online", Entries: [entry] },
+    });
+    resultHandler({
+      SearchID: "2",
+      Language: "es",
+      Result: {
+        Status: "found",
+        Origin: "online",
+        Entries: [
+          {
+            ...entry,
+            Headword: "hola",
+            Meanings: [{ Definitions: ["saludo"] }],
+          },
+        ],
+      },
+    });
+    await screen.findByText("saludo");
+    expect(screen.queryByText("a greeting")).toBeNull();
+  });
+  it("given_failed_retry_when_call_rejects_then_unavailable_returns", async () => {
+    mockBackend(async (method) =>
+      method === "Dictionaries"
+        ? [dictionary]
+        : method === "Progress"
+          ? {}
+          : method === "Lookup"
+            ? "retry-fail"
+            : method === "RetryLanguage"
+              ? Promise.reject(Error("failed"))
+              : null,
+    );
+    render(Page);
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await waitFor(() => expect(call).toHaveBeenCalledWith("Lookup", ""));
+    resultHandler({
+      SearchID: "retry-fail",
+      Language: "en",
+      Result: { Status: "source_unavailable" },
+    });
+    resultHandler({
+      SearchID: "retry-fail",
+      Language: "es",
+      Result: { Status: "not_found" },
+    });
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Retry English" }),
+    );
+    await screen.findByText(/The dictionary is unavailable/);
+    expect(screen.queryByText("Searching…")).toBeNull();
+  });
+  it("given_retry_from_previous_search_when_it_arrives_then_it_is_ignored", async () => {
+    let next = 0;
+    mockBackend(async (method) =>
+      method === "Dictionaries"
+        ? [dictionary]
+        : method === "Progress"
+          ? {}
+          : method === "Lookup"
+            ? String(++next)
+            : method === "RetryLanguage"
+              ? new Promise(() => {})
+              : null,
+    );
+    render(Page);
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await waitFor(() => expect(next).toBe(1));
+    resultHandler({
+      SearchID: "1",
+      Language: "en",
+      Result: { Status: "source_unavailable" },
+    });
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Retry English" }),
+    );
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await waitFor(() => expect(next).toBe(2));
+    resultHandler({
+      SearchID: "1",
+      Language: "en",
+      Result: { Status: "found", Origin: "online", Entries: [entry] },
+    });
+    resultHandler({
+      SearchID: "2",
+      Language: "es",
+      Result: {
+        Status: "found",
+        Origin: "online",
+        Entries: [
+          {
+            ...entry,
+            Headword: "hola",
+            Meanings: [{ Definitions: ["saludo"] }],
+          },
+        ],
+      },
+    });
+    await screen.findByText("saludo");
+    expect(screen.queryByText("a greeting")).toBeNull();
+  });
   it("given_metadata_failure_when_dictionary_opened_then_error_can_be_retried", async () => {
     // given
     let failed = true;
-    call.mockImplementation(async (method) => {
+    mockBackend(async (method) => {
       if (method === "Dictionaries" && failed) throw Error("unavailable");
       return method === "Dictionaries" ? [dictionary] : {};
     });
@@ -81,7 +598,7 @@ describe("lookup and offline dictionary UI", () => {
   });
   it("given_successful_lookup_when_next_entry_is_missing_then_previous_result_remains", async () => {
     // given
-    call.mockImplementation(async (method) =>
+    mockBackend(async (method) =>
       method === "Dictionaries"
         ? [dictionary]
         : method === "Progress"
@@ -97,7 +614,7 @@ describe("lookup and offline dictionary UI", () => {
     });
     await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
     await screen.findByText("a greeting");
-    call.mockImplementation(async (method) =>
+    mockBackend(async (method) =>
       method === "Lookup"
         ? { Status: "not_found" }
         : method === "Dictionaries"
@@ -112,7 +629,7 @@ describe("lookup and offline dictionary UI", () => {
   it("given_pending_lookup_when_newer_lookup_completes_then_old_response_is_ignored", async () => {
     // given
     let resolveFirst;
-    call.mockImplementation((method) =>
+    mockBackend((method) =>
       method === "Dictionaries"
         ? Promise.resolve([dictionary])
         : method === "Progress"
@@ -140,7 +657,7 @@ describe("lookup and offline dictionary UI", () => {
   });
   it("given_download_failure_when_user_starts_install_then_retry_is_available", async () => {
     // given
-    call.mockImplementation(async (method) =>
+    mockBackend(async (method) =>
       method === "Dictionaries"
         ? [dictionary]
         : method === "Progress"
@@ -166,7 +683,7 @@ describe("lookup and offline dictionary UI", () => {
   it("given_previous_result_when_lookup_fails_then_error_and_previous_result_are_shown", async () => {
     // given
     let status = "found";
-    call.mockImplementation(async (method) =>
+    mockBackend(async (method) =>
       method === "Dictionaries"
         ? [dictionary]
         : method === "Progress"
@@ -192,7 +709,7 @@ describe("lookup and offline dictionary UI", () => {
   });
   it("given_stale_cache_when_provider_fails_then_saved_date_and_attribution_are_shown", async () => {
     // given
-    call.mockImplementation(async (method) =>
+    mockBackend(async (method) =>
       method === "Dictionaries"
         ? [dictionary]
         : method === "Progress"
@@ -219,7 +736,7 @@ describe("lookup and offline dictionary UI", () => {
     let finish;
     let installed = false;
     let downloading = false;
-    call.mockImplementation((method) => {
+    mockBackend((method) => {
       if (method === "Dictionaries")
         return Promise.resolve([{ ...dictionary, Installed: installed }]);
       if (method === "Progress")
@@ -273,7 +790,7 @@ describe("lookup and offline dictionary UI", () => {
   it("given_pending_download_when_progress_response_is_empty_then_download_remains_active", async () => {
     // given
     let finish;
-    call.mockImplementation((method) => {
+    mockBackend((method) => {
       if (method === "Dictionaries") return Promise.resolve([dictionary]);
       if (method === "Progress") return Promise.resolve({});
       if (method === "Download")
@@ -311,7 +828,7 @@ describe("lookup and offline dictionary UI", () => {
       ...entry,
       Meanings: [{ Definitions: ["<img src=x onerror=alert(1)>"] }],
     };
-    call.mockImplementation(async (method) =>
+    mockBackend(async (method) =>
       method === "Dictionaries"
         ? [dictionary]
         : method === "Progress"
@@ -330,7 +847,7 @@ describe("lookup and offline dictionary UI", () => {
   it("given_pending_lookup_when_using_keyboard_then_navigation_remains_available", async () => {
     // given
     let finish;
-    call.mockImplementation((method) =>
+    mockBackend((method) =>
       method === "Dictionaries"
         ? Promise.resolve([dictionary])
         : method === "Progress"

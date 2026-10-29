@@ -223,3 +223,22 @@ func TestGivenInvalidQueriesWhenLookingUpThenNoNetwork(t *testing.T) {
 		}
 	}
 }
+
+func TestGivenSilentProviderFailureWhenStaleEntryExistsThenStaleResultIsReturned(t *testing.T) {
+	now := time.Now()
+	source := &fakeSource{err: ErrSilentUnavailable}
+	cache := &fakeCache{found: true, record: CacheRecord{FetchedAt: now.Add(-366 * 24 * time.Hour), Entries: []Entry{{Headword: "word"}}}}
+	service := LookupService{Online: source, Memory: cache, Clock: fakeClock{now: now}}
+	result, err := service.Lookup(context.Background(), LookupRequest{Query: "word", Language: English})
+	if err != nil || result.Status != Found || !result.Stale {
+		t.Fatalf("result=%+v err=%v", result, err)
+	}
+}
+func TestGivenSilentProviderFailureWhenNoCacheThenStatusIsNotNotFound(t *testing.T) {
+	cache := &fakeCache{}
+	service := LookupService{Online: &fakeSource{err: ErrSilentUnavailable}, Memory: cache, Clock: fakeClock{now: time.Now()}}
+	result, err := service.Lookup(context.Background(), LookupRequest{Query: "word", Language: English})
+	if err != nil || result.Status != SilentUnavailable || cache.puts != 0 {
+		t.Fatalf("result=%+v err=%v puts=%d", result, err, cache.puts)
+	}
+}

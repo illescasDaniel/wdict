@@ -23,11 +23,12 @@ import (
 )
 
 // fixtureArchive builds a real one-entry StarDict package without network access.
-func fixtureArchive(t *testing.T) []byte {
+func fixtureArchive(t *testing.T) []byte { return fixtureArchiveLanguage(t, "en-en", "hello") }
+func fixtureArchiveLanguage(t *testing.T, base, word string) []byte {
 	t.Helper()
 	definition := []byte("a greeting")
 	var idx bytes.Buffer
-	idx.WriteString("hello\x00")
+	idx.WriteString(word + "\x00")
 	binary.Write(&idx, binary.BigEndian, uint32(0))
 	binary.Write(&idx, binary.BigEndian, uint32(len(definition)))
 	var syn bytes.Buffer
@@ -45,7 +46,7 @@ func fixtureArchive(t *testing.T) []byte {
 		t.Fatal(err)
 	}
 	ifo := fmt.Sprintf("StarDict's dict ifo file\nversion=3.0.0\nbookname=Fixture\nwordcount=1\nsynwordcount=1\nidxfilesize=%d\nsametypesequence=m\n", idx.Len())
-	files := map[string][]byte{"en-en.ifo": []byte(ifo), "en-en.idx": idx.Bytes(), "en-en.syn": syn.Bytes(), "en-en.dict.dz": dict.Bytes()}
+	files := map[string][]byte{base + ".ifo": []byte(ifo), base + ".idx": idx.Bytes(), base + ".syn": syn.Bytes(), base + ".dict.dz": dict.Bytes()}
 	var output bytes.Buffer
 	z, err := zstd.NewWriter(&output)
 	if err != nil {
@@ -258,5 +259,46 @@ func TestGivenInterruptedReplacementWhenRecoveringThenBackupIsRestored(t *testin
 	list, err := i.List(context.Background())
 	if err != nil || !list[0].Installed {
 		t.Fatalf("recovery failed: %+v %v", list, err)
+	}
+}
+
+func TestGivenEnglishInstalledWhenSpanishInstallFailsAndRetriesThenBothSurviveRestart(t *testing.T) {
+	dir := t.TempDir()
+	en := fixtureInstaller(t, dir, fixtureArchive(t))
+	if err := en.Download(context.Background(), en.id(), nil); err != nil {
+		t.Fatal(err)
+	}
+	es := fixtureInstaller(t, dir, fixtureArchiveLanguage(t, "es-es", "casa"))
+	es.Spanish = true
+	bad := *es
+	metadata := *es.packageOverride
+	metadata.SHA = strings.Repeat("0", 64)
+	bad.packageOverride = &metadata
+	if err := bad.Download(context.Background(), bad.id(), nil); err == nil {
+		t.Fatal("expected checksum failure")
+	}
+	if err := en.validateInstalled(); err != nil {
+		t.Fatalf("English lost: %v", err)
+	}
+	if err := es.Download(context.Background(), es.id(), nil); err != nil {
+		t.Fatal(err)
+	}
+	restartedEn := &Installer{Dir: dir}
+	restartedEs := &Installer{Dir: dir, Spanish: true}
+	if err := restartedEn.Recover(); err != nil {
+		t.Fatal(err)
+	}
+	if err := restartedEs.Recover(); err != nil {
+		t.Fatal(err)
+	}
+	catalog := Catalog{English: restartedEn, Spanish: restartedEs}
+	list, err := catalog.List(context.Background())
+	if err != nil || len(list) != 2 || !list[0].Installed || !list[1].Installed {
+		t.Fatalf("list=%+v err=%v", list, err)
+	}
+	spanish := OfflineDictionary{IFO: restartedEs.CurrentIFO(), Language: core.Spanish, Source: SpanishDictionarySourceInfo}
+	entries, found, err := spanish.Find(context.Background(), "casa", core.Spanish)
+	if err != nil || !found || len(entries) == 0 {
+		t.Fatalf("entries=%v found=%v err=%v", entries, found, err)
 	}
 }

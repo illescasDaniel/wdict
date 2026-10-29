@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 	"unicode"
@@ -23,8 +24,8 @@ type LookupService struct {
 
 func (s *LookupService) Lookup(ctx context.Context, request LookupRequest) (LookupResult, error) {
 	query := strings.TrimSpace(request.Query)
-	if query == "" || !utf8.ValidString(request.Query) || utf8.RuneCountInString(query) > 256 || strings.IndexFunc(request.Query, unicode.IsControl) >= 0 {
-		return LookupResult{Status: InvalidQuery}, nil
+	if result, _ := s.validateOnly(request.Query); result.Status == InvalidQuery {
+		return result, nil
 	}
 	if err := ctx.Err(); err != nil {
 		return LookupResult{}, err
@@ -75,6 +76,9 @@ func (s *LookupService) Lookup(ctx context.Context, request LookupRequest) (Look
 		if stale != nil {
 			return LookupResult{Status: Found, Entries: stale.Entries, Origin: staleOrigin, FetchedAt: stale.FetchedAt, Stale: true}, nil
 		}
+		if errors.Is(err, ErrSilentUnavailable) {
+			return LookupResult{Status: SilentUnavailable}, nil
+		}
 		return LookupResult{Status: SourceUnavailable}, nil
 	}
 	if !found {
@@ -88,4 +92,12 @@ func (s *LookupService) Lookup(ctx context.Context, request LookupRequest) (Look
 		_ = s.Disk.Put(ctx, rec)
 	}
 	return LookupResult{Status: Found, Entries: entries, Origin: OriginOnline, FetchedAt: now}, nil
+}
+
+func (s *LookupService) validateOnly(input string) (LookupResult, error) {
+	query := strings.TrimSpace(input)
+	if query == "" || !utf8.ValidString(input) || utf8.RuneCountInString(query) > 256 || strings.IndexFunc(input, unicode.IsControl) >= 0 {
+		return LookupResult{Status: InvalidQuery}, nil
+	}
+	return LookupResult{}, nil
 }

@@ -24,6 +24,7 @@ import (
 type OfflineDictionary struct {
 	IFO        string
 	Source     core.Source
+	Language   core.Language
 	mu         sync.Mutex
 	dictionary *stardict.Stardict
 	cache      map[string][]core.Entry
@@ -31,7 +32,7 @@ type OfflineDictionary struct {
 }
 
 func (d *OfflineDictionary) Find(ctx context.Context, query string, language core.Language) ([]core.Entry, bool, error) {
-	if language != "en" {
+	if (d.Language == "" && language != "en") || (d.Language != "" && language != d.Language) {
 		return nil, false, nil
 	}
 	if err := ctx.Err(); err != nil {
@@ -82,15 +83,28 @@ func (d *OfflineDictionary) Find(ctx context.Context, query string, language cor
 		}
 		for _, data := range word.Data {
 			if data.Type == dict.HTMLType {
-				meanings = append(meanings, htmlMeanings(string(data.Data))...)
+				if language == core.Spanish {
+					document, parseErr := html.Parse(strings.NewReader(string(data.Data)))
+					if parseErr != nil {
+						return nil, false, parseErr
+					}
+					extracted, _ := spanishMeanings(document, true)
+					meanings = append(meanings, extracted...)
+				} else {
+					meanings = append(meanings, htmlMeanings(string(data.Data))...)
+				}
 			} else if text := strings.TrimSpace(data.String()); text != "" {
 				meanings = append(meanings, core.Meaning{Definitions: []string{text}})
 			}
 		}
 		if len(meanings) > 0 {
 			source := d.Source
-			if source.ID == dictionaryID {
-				source.URL = "https://en.wiktionary.org/wiki/" + url.PathEscape(strings.ReplaceAll(m.Word, " ", "_"))
+			if source.ID == dictionaryID || source.ID == "wiktionary-es-20261018" {
+				host := "https://en.wiktionary.org/wiki/"
+				if language == "es" {
+					host = "https://es.wiktionary.org/wiki/"
+				}
+				source.URL = host + url.PathEscape(strings.ReplaceAll(m.Word, " ", "_"))
 			}
 			entries = append(entries, core.Entry{Headword: m.Word, Language: language, Meanings: meanings, Source: source})
 		}

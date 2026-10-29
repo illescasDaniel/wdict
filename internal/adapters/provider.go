@@ -35,6 +35,9 @@ func (p OnlineDictionary) Find(ctx context.Context, query string, language core.
 		return nil, false, err
 	}
 	defer response.Body.Close()
+	if response.StatusCode == http.StatusBadGateway {
+		return nil, false, core.ErrSilentUnavailable
+	}
 	if response.StatusCode == http.StatusNotFound {
 		return nil, false, nil
 	}
@@ -80,7 +83,7 @@ func (p OnlineDictionary) Find(ctx context.Context, query string, language core.
 				entry.Meanings = append(entry.Meanings, meaning)
 			}
 		}
-		if strings.TrimSpace(entry.Headword) != "" && len(entry.Meanings) > 0 {
+		if strings.TrimSpace(entry.Headword) != "" && len(entry.Meanings) > 0 && validSourceURL(entry.Source.URL) && validSourceURL(entry.Source.LicenseURL) {
 			entries = append(entries, entry)
 		}
 	}
@@ -88,4 +91,10 @@ func (p OnlineDictionary) Find(ctx context.Context, query string, language core.
 		return nil, false, fmt.Errorf("provider response has no definitions")
 	}
 	return entries, true, nil
+}
+
+// validSourceURL prevents provider-supplied URLs from becoming unsafe links.
+func validSourceURL(raw string) bool {
+	parsed, err := url.Parse(raw)
+	return err == nil && parsed.Host != "" && (parsed.Scheme == "http" || parsed.Scheme == "https") && parsed.User == nil
 }
