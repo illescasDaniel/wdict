@@ -2,6 +2,10 @@
 
 Append dated decisions with context, rationale and source references. Add a new entry when a decision is reversed.
 
+## 2026-10-29 — Launch experiments
+
+Experiments showed no demonstrated launch improvement and the user saw no difference from the placeholder; remove the experiments and retain the independent dictionary error fix (`src:92330b20cd5d33849f20`, `src:951f2ed31a886ccf2478`).
+
 ## 2026-10-27 — Dictionary direction
 
 User approved the initial design with changes in chat on 2026-10-26: Linux first, aim for macOS and Windows, English and Spanish with same-language definitions, downloadable data where feasible, online cache as an option, and interest in inflections and suggestions. Tkinter is unsuitable for the user’s high-DPI setup; GUI stack and scope remain open. See `design/word-lookup/tech-stack-and-decisions.md`.

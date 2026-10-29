@@ -52,6 +52,7 @@
     downloadActive = false,
     refreshSeq = 0,
     error = "",
+    metadataError = "",
     seq = 0;
   async function refresh() {
     const id = ++refreshSeq;
@@ -60,6 +61,7 @@
       const nextProgress = await call("Progress");
       if (id !== refreshSeq) return;
       dictionary = nextDictionary;
+      metadataError = "";
       if (
         !downloadActive ||
         nextProgress?.State === "downloading" ||
@@ -67,7 +69,8 @@
       )
         progress = nextProgress;
     } catch (e) {
-      error = "Unable to load dictionary information.";
+      if (id !== refreshSeq) return;
+      metadataError = "Unable to load dictionary information.";
     }
   }
   onMount(() => {
@@ -241,6 +244,9 @@
       </div>{/if}
   {:else}<h1>Offline dictionaries</h1>
     <p>Download a dictionary to look up words without a connection.</p>
+    {#if metadataError}<p class="error" role="alert">{metadataError}</p>
+      <button onclick={refresh}>Retry loading dictionary information</button
+      >{/if}
     {#if dictionary}<article>
         <div class="title">
           <h2>{dictionary.Name}</h2>
@@ -287,7 +293,9 @@
       </article>
       <p class="hint">
         You can continue looking up words while it downloads.
-      </p>{:else}<p role="status">Loading dictionary information…</p>{/if}{/if}
+      </p>{:else if !metadataError}<p role="status">
+        Loading dictionary information…
+      </p>{/if}{/if}
   <footer>
     <span>Appearance</span>
     <div class="modes" role="radiogroup" aria-label="Appearance">

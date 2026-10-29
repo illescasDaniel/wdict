@@ -21,6 +21,11 @@
 
 ## Done
 
+- [x] Tried launch optimizations without demonstrating a speedup; the user saw no visual difference from the placeholder, so experiments were removed (`src:92330b20cd5d33849f20`, `src:951f2ed31a886ccf2478`).
+- [x] Fixed the existing dictionary metadata failure state so users can see the error and retry without restarting.
+
+- [x] Published v0.3.0 with a Linux AppImage and updated the local Go-installed executable (`src:7b175f2d2ec3b891cb96`).
+
 - [x] Added Given/When/Then comments and formatted appearance changes; frontend checks and 15 tests passed on 2026-10-28.
 
 - [x] Approved and implemented the automatic appearance design with tests on 2026-10-28 (`src:f0c8c5907b9be0a2eada`).

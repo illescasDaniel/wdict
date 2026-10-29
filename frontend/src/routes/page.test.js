@@ -54,6 +54,31 @@ describe("lookup and offline dictionary UI", () => {
       ),
     ).toBe(false);
   });
+  it("given_metadata_failure_when_dictionary_opened_then_error_can_be_retried", async () => {
+    // given
+    let failed = true;
+    call.mockImplementation(async (method) => {
+      if (method === "Dictionaries" && failed) throw Error("unavailable");
+      return method === "Dictionaries" ? [dictionary] : {};
+    });
+    render(Page);
+    // when
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Offline dictionaries" }),
+    );
+    await screen.findByText("Unable to load dictionary information.");
+    failed = false;
+    await fireEvent.click(
+      screen.getByRole("button", {
+        name: "Retry loading dictionary information",
+      }),
+    );
+    // then
+    await screen.findByText("English dictionary");
+    expect(
+      screen.queryByText("Unable to load dictionary information."),
+    ).toBeNull();
+  });
   it("given_successful_lookup_when_next_entry_is_missing_then_previous_result_remains", async () => {
     // given
     call.mockImplementation(async (method) =>
