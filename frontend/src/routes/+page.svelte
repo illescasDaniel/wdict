@@ -1,5 +1,17 @@
 <script>
   import { onMount } from "svelte";
+  import { createLanguageController } from "../language.js";
+  let languageController = createLanguageController();
+  let interfaceLanguage = "en";
+  $: t = (key, options) => {
+    interfaceLanguage;
+    return languageController.translate(key, options);
+  };
+  async function changeLanguage(event) {
+    await languageController.setLanguage(event.currentTarget.value);
+    interfaceLanguage = languageController.language;
+    document.documentElement.lang = interfaceLanguage;
+  }
   import { call, onLookupResult } from "../lib-api.js";
   import {
     readAppearance,
@@ -28,7 +40,7 @@
       ];
     selectAppearance(next);
     event.currentTarget.parentElement
-      .querySelector(`[aria-label="${next[0].toUpperCase() + next.slice(1)}"]`)
+      .querySelector(`[data-mode="${next}"]`)
       .focus();
   }
   function selectAppearance(value) {
@@ -74,10 +86,17 @@
         progress = nextProgress;
     } catch (e) {
       if (id !== refreshSeq) return;
-      metadataError = "Unable to load dictionary information.";
+      metadataError = "metadataUnavailable";
     }
   }
   onMount(() => {
+    let storage;
+    try {
+      storage = window.localStorage;
+    } catch {}
+    languageController = createLanguageController(storage);
+    interfaceLanguage = languageController.language;
+    document.documentElement.lang = interfaceLanguage;
     try {
       appearance = readAppearance(window.localStorage);
     } catch {
@@ -128,12 +147,12 @@
       status = "";
     } else if (!busy) {
       status = values.some((v) => v?.Status === "invalid_query")
-        ? "Enter a word or phrase of up to 256 characters."
+        ? "invalidQuery"
         : values.some((v) => v?.Status === "source_unavailable")
-          ? "The dictionary is unavailable. Check your connection and try again."
+          ? "sourceUnavailable"
           : values.some((v) => v?.Status === "silent_unavailable")
-            ? "No definitions available right now."
-            : "No entry found. Try another word or phrase.";
+            ? "silentUnavailable"
+            : "notFound";
     }
   }
   async function lookup() {
@@ -144,7 +163,7 @@
     results = {};
     searchQuery = submitted;
     busy = true;
-    status = "Searching…";
+    status = "searching";
     try {
       if (!(await eventReady)) throw new Error("Unable to listen for results");
       if (id !== seq) return;
@@ -156,7 +175,7 @@
     } catch {
       if (id === seq) {
         busy = false;
-        status = "The dictionary is unavailable. Please try again.";
+        status = "lookupFailed";
       }
     }
   }
@@ -192,8 +211,7 @@
       await refresh();
     } catch {
       downloadActive = false;
-      error =
-        "Couldn’t install the dictionary. Check your connection and available storage, then try again.";
+      error = "installationFailed";
       await refresh();
     }
   }
@@ -215,53 +233,54 @@
         onclick={() => {
           page = "dictionaries";
           refresh();
-        }}>Offline dictionaries</button
+        }}>{t("offlineDictionaries")}</button
       >{:else}<button class="link" onclick={() => (page = "lookup")}
-        >← Look up</button
+        >{t("backLookup")}</button
       >{/if}
   </header>
   {#if page === "lookup"}
-    <h1>Look up a word</h1>
-    <p>Find English and Spanish definitions for words and phrases.</p>
+    <h1>{t("heading")}</h1>
+    <p>{t("intro")}</p>
     <form
       onsubmit={(e) => {
         e.preventDefault();
         lookup();
       }}
     >
-      <label for="query">Word or phrase</label>
+      <label for="query">{t("query")}</label>
       <div class="search">
         <input
           id="query"
           bind:this={queryInput}
           bind:value={query}
-          placeholder="Enter a word or phrase"
+          placeholder={t("queryPlaceholder")}
           autocomplete="off"
-        /><button type="submit">Look up</button>
+        /><button type="submit">{t("lookup")}</button>
       </div>
     </form>
     <p class="hint">
-      If an offline dictionary or saved entry cannot answer your search, it may
-      be sent to the online dictionary.
+      {t("privacy")}
     </p>
-    {#if status}<div class="notice" role="status">{status}</div>{/if}
+    {#if status}<div class="notice" role="status">{t(status)}</div>{/if}
     {#each ["en", "es"] as language}
       {#if results[language]?.Status === "found"}
         {#each results[language].Entries as entry}<article>
             <h2>
-              {language === "en" ? "English" : "Spanish"} · {entry.Headword}
+              {t(language === "en" ? "english" : "spanish")} · {entry.Headword}
             </h2>
             <p class="hint">
               {results[language].Stale
-                ? "Stale saved result"
+                ? t("staleResult")
                 : results[language].Origin === "offline"
-                  ? "Offline result"
+                  ? t("offlineResult")
                   : results[language].Origin === "online"
-                    ? "Online result"
-                    : "Saved result"}{results[language].FetchedAt &&
+                    ? t("onlineResult")
+                    : t("savedResult")}{results[language].FetchedAt &&
               results[language].Origin !== "offline"
                 ? " · " +
-                  new Date(results[language].FetchedAt).toLocaleDateString()
+                  new Date(results[language].FetchedAt).toLocaleDateString(
+                    interfaceLanguage,
+                  )
                 : ""}
             </p>
             {#each entry.Meanings as meaning}<section>
@@ -273,39 +292,45 @@
                 </ol>
               </section>{/each}
             <p class="source">
-              Source: {entry.Source.Name}
+              {t("source")}: {entry.Source.Name}
               {entry.Source.Attribution || ""}
               {#if safeLink(entry.Source.URL)}
                 · <a
                   href={safeLink(entry.Source.URL)}
                   target="_blank"
-                  rel="noreferrer">Source</a
+                  rel="noreferrer">{t("source")}</a
                 >{/if}
               {#if safeLink(entry.Source.LicenseURL)}
                 · <a
                   href={safeLink(entry.Source.LicenseURL)}
                   target="_blank"
-                  rel="noreferrer">License</a
+                  rel="noreferrer">{t("license")}</a
                 >{/if}
               {#each entry.Source.AdditionalURLs || [] as url}{#if safeLink(url)}
                   · <a href={safeLink(url)} target="_blank" rel="noreferrer"
-                    >More information</a
+                    >{t("moreInformation")}</a
                   >{/if}{/each}
             </p>
             {#if !safeLink(entry.Source?.URL) || !safeLink(entry.Source?.LicenseURL)}
-              <p class="hint">Source or license information unavailable for this cached entry.</p>
+              <p class="hint">{t("missingAttribution")}</p>
             {/if}
           </article>{/each}
       {:else if results[language]?.Status === "source_unavailable"}
         <p class="error">
-          {language === "en" ? "English" : "Spanish"} online lookup unavailable.
+          {t("languageUnavailable", {
+            language: t(language === "en" ? "english" : "spanish"),
+          })}
           <button onclick={() => retryLanguage(language)}
-            >Retry {language === "en" ? "English" : "Spanish"}</button
+            >{t("retryLanguage", {
+              language: t(language === "en" ? "english" : "spanish"),
+            })}</button
           >
         </p>
       {:else if busy && !results[language]}
         <p role="status">
-          Searching {language === "en" ? "English" : "Spanish"}…
+          {t("searchingLanguage", {
+            language: t(language === "en" ? "english" : "spanish"),
+          })}
         </p>
       {/if}
     {/each}
@@ -313,9 +338,9 @@
       {#each entries as entry}<article>
           <h2>
             {entry.Language === "en"
-              ? "English · "
+              ? t("english") + " · "
               : entry.Language === "es"
-                ? "Spanish · "
+                ? t("spanish") + " · "
                 : ""}{entry.Headword}
           </h2>
           {#each entry.Meanings as meaning}<ol>
@@ -323,158 +348,177 @@
                   {definition}
                 </li>{/each}
             </ol>{/each}
-          <p class="hint">Previous result for “{previousQuery}”</p>
+          <p class="hint">{t("previousResult", { query: previousQuery })}</p>
           <p class="source">
-            Source: {entry.Source.Name}
+            {t("source")}: {entry.Source.Name}
             {entry.Source.Attribution || ""}{#if safeLink(entry.Source.URL)}
               · <a
                 href={safeLink(entry.Source.URL)}
                 target="_blank"
-                rel="noreferrer">Source</a
+                rel="noreferrer">{t("source")}</a
               >{/if}{#if safeLink(entry.Source.LicenseURL)}
               · <a
                 href={safeLink(entry.Source.LicenseURL)}
                 target="_blank"
-                rel="noreferrer">License</a
+                rel="noreferrer">{t("license")}</a
               >{/if}
           </p>
           {#if !safeLink(entry.Source?.URL) || !safeLink(entry.Source?.LicenseURL)}
-            <p class="hint">Source or license information unavailable for this cached entry.</p>
+            <p class="hint">{t("missingAttribution")}</p>
           {/if}
         </article>{/each}
     {:else if !entries.length && !busy}
       <div class="notice">
-        <strong>Look up words offline</strong>
-        <p>Download dictionaries for offline definitions.</p>
+        <strong>{t("offlineHeading")}</strong>
+        <p>{t("offlineIntro")}</p>
         <button
           class="link"
           onclick={() => {
             page = "dictionaries";
             refresh();
-          }}>View offline dictionaries →</button
+          }}>{t("viewDictionaries")}</button
         >
       </div>
     {/if}
-  {:else}<h1>Offline dictionaries</h1>
-    <p>Download a dictionary to look up words without a connection.</p>
-    {#if metadataError}<p class="error" role="alert">{metadataError}</p>
-      <button onclick={refresh}>Retry loading dictionary information</button
-      >{/if}
+  {:else}<h1>{t("offlineDictionaries")}</h1>
+    <p>{t("dictionariesIntro")}</p>
+    {#if metadataError}<p class="error" role="alert">{t(metadataError)}</p>
+      <button onclick={refresh}>{t("retryMetadata")}</button>{/if}
     {#if dictionaries.length}{#each dictionaries as dictionary}<article>
           <div class="title">
             <h2>{dictionary.Name}</h2>
             <span class="badge"
               >{dictionary.Installed
-                ? "Installed"
+                ? t("installed")
                 : progress?.DictionaryID === dictionary.ID &&
                     progress?.State === "installing"
-                  ? "Installing"
+                  ? t("installing")
                   : progress?.DictionaryID === dictionary.ID &&
                       progress?.State === "downloading"
-                    ? "Downloading"
-                    : "Not installed"}</span
+                    ? t("downloading")
+                    : t("notInstalled")}</span
             >
           </div>
           <p class="hint">
-            Language: {dictionary.Language === "es" ? "Spanish" : "English"} definitions<br
-            />Source:
+            {t("dictionaryLanguage", {
+              language: t(dictionary.Language === "es" ? "spanish" : "english"),
+            })}<br />{t("source")}:
             <a
               href={dictionary.Source.AdditionalURLs[0]}
               target="_blank"
               rel="noreferrer">Wiktionary · xxyzz</a
-            ><br />License:
+            ><br />{t("license")}:
             <a
               href={dictionary.Source.LicenseURL}
               target="_blank"
               rel="noreferrer">{dictionary.License}</a
             >
-            · Download: {(dictionary.DownloadBytes / 1000000).toFixed(0)} MB
+            · {t("downloadLabel")}: {(
+              dictionary.DownloadBytes / 1000000
+            ).toFixed(0)} MB
           </p>
           {#if progress?.DictionaryID === dictionary.ID && progress?.State === "downloading"}<progress
-              aria-label="Dictionary download"
+              aria-label={t("dictionaryDownload")}
               max={progress.TotalBytes}
               value={progress.BytesRead}
             ></progress>
             <p class="hint">
-              {(progress.BytesRead / 1000000).toFixed(1)} MB of {(
-                progress.TotalBytes / 1000000
-              ).toFixed(0)} MB
+              {t("progress", {
+                read: (progress.BytesRead / 1000000).toFixed(1),
+                total: (progress.TotalBytes / 1000000).toFixed(0),
+              })}
             </p>{:else if progress?.DictionaryID === dictionary.ID && progress?.State === "installing"}<p
               class="notice"
             >
-              Checking and installing the dictionary…
+              {t("checking")}
             </p>{:else if error && errorID === dictionary.ID}<button
-              onclick={() => download(dictionary)}>Try again</button
+              onclick={() => download(dictionary)}>{t("tryAgain")}</button
             >{:else if dictionary.Installed}<p class="notice">
-              Ready to use offline.
+              {t("ready")}
             </p>{:else}<button onclick={() => download(dictionary)}
-              >Download</button
+              >{t("downloadLabel")}</button
             >{/if}{#if error && errorID === dictionary.ID}<p
               class="error"
               role="alert"
             >
-              {error}
+              {t(error)}
             </p>{/if}
         </article>{/each}
       <p class="hint">
-        You can continue looking up words while it downloads.
+        {t("continueLookup")}
       </p>{:else if !metadataError}<p role="status">
-        Loading dictionary information…
+        {t("loadingMetadata")}
       </p>{/if}{/if}
-  <footer>
-    <span>Appearance</span>
-    <div class="modes" role="radiogroup" aria-label="Appearance">
-      <button
-        type="button"
-        class="mode"
-        aria-label="System"
-        title="System"
-        role="radio"
-        aria-checked={appearance === "system"}
-        tabindex={appearance === "system" ? 0 : -1}
-        onkeydown={modeKey}
-        onclick={() => selectAppearance("system")}
-        ><svg viewBox="0 0 24 24" aria-hidden="true"
-          ><rect x="3" y="4" width="18" height="13" rx="2" /><path
-            d="M8 21h8M12 17v4"
-          /></svg
-        ></button
-      >
-      <button
-        type="button"
-        class="mode"
-        aria-label="Light"
-        title="Light"
-        role="radio"
-        aria-checked={appearance === "light"}
-        tabindex={appearance === "light" ? 0 : -1}
-        onkeydown={modeKey}
-        onclick={() => selectAppearance("light")}
-        ><svg viewBox="0 0 24 24" aria-hidden="true"
-          ><circle cx="12" cy="12" r="4" /><path
-            d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"
-          /></svg
-        ></button
-      >
-      <button
-        type="button"
-        class="mode"
-        aria-label="Dark"
-        title="Dark"
-        role="radio"
-        aria-checked={appearance === "dark"}
-        tabindex={appearance === "dark" ? 0 : -1}
-        onkeydown={modeKey}
-        onclick={() => selectAppearance("dark")}
-        ><svg viewBox="0 0 24 24" aria-hidden="true"
-          ><path
-            d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7Z"
-          /></svg
-        ></button
+</main>
+<footer>
+  <div class="footer-inner">
+    <div class="setting">
+      <label for="interface-language">{t("language")}</label><select
+        id="interface-language"
+        value={interfaceLanguage}
+        onchange={changeLanguage}
+        ><option value="en">English</option><option value="es">Español</option
+        ></select
       >
     </div>
-  </footer>
-</main>
+    <div class="setting">
+      <span>{t("appearance")}</span>
+      <div class="modes" role="radiogroup" aria-label={t("appearance")}>
+        <button
+          type="button"
+          class="mode"
+          data-mode="system"
+          aria-label={t("system")}
+          title={t("system")}
+          role="radio"
+          aria-checked={appearance === "system"}
+          tabindex={appearance === "system" ? 0 : -1}
+          onkeydown={modeKey}
+          onclick={() => selectAppearance("system")}
+          ><svg viewBox="0 0 24 24" aria-hidden="true"
+            ><rect x="3" y="4" width="18" height="13" rx="2" /><path
+              d="M8 21h8M12 17v4"
+            /></svg
+          ></button
+        >
+        <button
+          type="button"
+          class="mode"
+          data-mode="light"
+          aria-label={t("light")}
+          title={t("light")}
+          role="radio"
+          aria-checked={appearance === "light"}
+          tabindex={appearance === "light" ? 0 : -1}
+          onkeydown={modeKey}
+          onclick={() => selectAppearance("light")}
+          ><svg viewBox="0 0 24 24" aria-hidden="true"
+            ><circle cx="12" cy="12" r="4" /><path
+              d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"
+            /></svg
+          ></button
+        >
+        <button
+          type="button"
+          class="mode"
+          data-mode="dark"
+          aria-label={t("dark")}
+          title={t("dark")}
+          role="radio"
+          aria-checked={appearance === "dark"}
+          tabindex={appearance === "dark" ? 0 : -1}
+          onkeydown={modeKey}
+          onclick={() => selectAppearance("dark")}
+          ><svg viewBox="0 0 24 24" aria-hidden="true"
+            ><path
+              d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7Z"
+            /></svg
+          ></button
+        >
+      </div>
+    </div>
+  </div>
+</footer>
 
 <style>
   :global(html) {
@@ -511,8 +555,15 @@
     --focus: #a5d6b4;
   }
   footer {
-    margin-top: 40px;
-    padding-top: 14px;
+    flex: none;
+    width: 100%;
+    background: var(--bg);
+    z-index: 2;
+  }
+  .footer-inner {
+    max-width: 760px;
+    margin: auto;
+    padding: 14px 28px;
     border-top: 1px solid var(--border);
     display: flex;
     align-items: center;
@@ -520,6 +571,24 @@
     gap: 12px;
     color: var(--muted);
     font-size: 13px;
+  }
+  .setting {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .setting label {
+    margin: 0;
+    font-weight: 400;
+  }
+  select {
+    font: inherit;
+    min-height: 38px;
+    padding: 5px 9px;
+    border: 1px solid var(--input-border);
+    border-radius: 7px;
+    background: var(--surface);
+    color: var(--text);
   }
   .modes {
     display: flex;
@@ -556,7 +625,13 @@
   :global(*) {
     box-sizing: border-box;
   }
+  :global(html),
   :global(body) {
+    height: 100%;
+  }
+  :global(body) {
+    display: flex;
+    flex-direction: column;
     margin: 0;
     background: var(--bg);
     color: var(--text);
@@ -565,9 +640,13 @@
       sans-serif;
   }
   main {
+    width: 100%;
     max-width: 760px;
-    margin: auto;
+    margin: 0 auto;
     padding: 28px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
   }
   header {
     display: flex;
@@ -640,6 +719,7 @@
   }
   button:focus-visible,
   input:focus-visible,
+  select:focus-visible,
   a:focus-visible {
     outline: 3px solid var(--focus);
     outline-offset: 3px;
@@ -700,6 +780,14 @@
   @media (max-width: 460px) {
     main {
       padding: 18px;
+    }
+    .footer-inner {
+      flex-wrap: wrap;
+      padding: 12px 18px;
+    }
+    .setting {
+      width: 100%;
+      justify-content: space-between;
     }
     .search {
       flex-wrap: wrap;

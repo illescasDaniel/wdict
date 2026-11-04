@@ -2,6 +2,13 @@
 
 Append dated decisions with context, rationale and source references. Add a new entry when a decision is reversed.
 
+## 2026-11-04 — Footer and interface language design
+
+The user approved the fixed-footer and English/Spanish interface-language wireframe (`src:43ce9da020fb43286fd5`).
+The user also agreed to the proposed spec decisions, including formatting app-generated dates in the selected interface language (`src:b100cb1de6d73aa010df`).
+The user approved the spec (`src:cb4e45d81b39aa662285`).
+The user chose a dedicated JavaScript internationalization library (`src:a99625ad49fc3a442cfc`) and approved the i18next architecture (`src:24f6db6819cfaaa41e94`). The architecture approval note remains pending screening.
+
 ## 2026-10-29 — Legacy cache attribution
 
 The user approved preserving legacy cached definitions while showing a notice if a source or license link is missing (`src:517058a14965c942a353`). A durable note was queued but remains unscreened because the decision provider was unavailable.

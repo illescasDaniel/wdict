@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Footer and interface language — design review</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #dfe8e1; color: #21352a; font: 16px/1.5 system-ui, sans-serif; }
+  .review { max-width: 1050px; margin: auto; padding: 28px; }
+  h1 { margin: 0 0 8px; font-size: 27px; line-height: 1.2; }
+  h2 { font-size: 21px; margin: 0; }
+  h3 { margin: 0 0 8px; font-size: 18px; }
+  p { margin: 8px 0 16px; }
+  .review-note { background: #fff9df; border: 1px solid #d9cc8b; border-radius: 8px; padding: 14px 18px; margin: 18px 0 28px; }
+  .review-note p:last-child { margin-bottom: 0; }
+  .caption { margin: 32px 0 10px; }
+  .window { height: 600px; border: 1px solid #aabdaf; border-radius: 10px; box-shadow: 0 5px 20px #21352a20; overflow: hidden; background: #eef2ef; display: flex; flex-direction: column; }
+  .window.narrow { max-width: 360px; height: 620px; }
+  .scroll { overflow-y: auto; flex: 1; min-height: 0; }
+  .inner { max-width: 760px; margin: auto; padding: 28px; }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid #cad7cd; padding-bottom: 16px; margin-bottom: 30px; }
+  header strong { font-size: 21px; }
+  button, select, input { font: inherit; }
+  button { font-weight: 650; border: 1px solid #245d42; border-radius: 7px; padding: 10px 15px; background: #245d42; color: white; }
+  .link { padding: 0; border: 0; background: none; color: #245d42; text-align: left; }
+  form { margin-top: 26px; }
+  label { display: block; font-weight: 650; margin-bottom: 6px; }
+  .search { display: flex; gap: 8px; }
+  input { flex: 1; min-width: 0; border: 1px solid #aabdaf; border-radius: 7px; padding: 11px 12px; background: white; }
+  .hint, .source { font-size: 13px; color: #50685a; }
+  .notice { background: #e3eee5; border-radius: 8px; padding: 14px; margin-top: 18px; }
+  .notice p { margin: 5px 0; }
+  article { background: white; border: 1px solid #cad7cd; border-radius: 10px; margin-top: 20px; padding: 20px; }
+  .source { border-top: 1px solid #e5eee7; padding-top: 12px; }
+  footer { flex: none; background: #eef2ef; border-top: 1px solid #cad7cd; }
+  .footer-inner { max-width: 760px; margin: auto; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; gap: 16px; color: #50685a; font-size: 13px; }
+  .setting { display: flex; align-items: center; gap: 10px; }
+  .setting label { margin: 0; font-weight: 400; }
+  select { min-height: 38px; min-width: 115px; padding: 5px 28px 5px 9px; border: 1px solid #aabdaf; border-radius: 7px; color: #21352a; background: white; }
+  .modes { display: flex; gap: 2px; padding: 3px; border: 1px solid #cad7cd; border-radius: 9px; }
+  .mode { width: 36px; height: 34px; padding: 0; display: grid; place-items: center; border: 0; border-radius: 6px; background: transparent; color: #50685a; }
+  .mode[aria-checked="true"] { background: white; color: #21352a; box-shadow: 0 1px 3px #0003; }
+  .mode svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .narrow .inner { padding: 18px; }
+  .narrow .footer-inner { padding: 12px 18px; flex-wrap: wrap; }
+  .narrow .setting { justify-content: space-between; width: 100%; }
+  .narrow .search { flex-wrap: wrap; }
+  .narrow input { min-width: 180px; }
+  @media (max-width: 520px) { .review { padding: 16px; } .footer-inner { padding: 12px 18px; flex-wrap: wrap; } .setting { justify-content: space-between; width: 100%; } }
+</style>
+</head>
+<body>
+<div class="review">
+  <h1>Footer and interface language</h1>
+  <p>Design proposal · Review the examples below. Scroll inside the second window to see the footer stay visible.</p>
+  <div class="review-note"><strong>Review only — proposed behavior</strong>
+    <p>The footer stays at the bottom of the app window on both screens. The content scrolls independently and its final item remains accessible above the footer. Appearance remains available alongside the new interface language selector.</p>
+    <p>Changing the selector immediately translates app-owned text, labels, statuses, errors and accessibility names across both screens. Dictionary definitions, headwords, source names and license text remain as supplied. Each lookup still searches both English and Spanish dictionaries.</p>
+    <p>Proposed defaults: English when no valid preference is saved; remember a selected language across restarts. If storage is unavailable, retain the selection for the current session. Native select supports keyboard interaction. The examples use native language names so each option is recognizable.</p>
+  </div>
+
+  <h3 class="caption">English · empty lookup</h3>
+  <div class="window">
+    <div class="scroll"><div class="inner">
+      <header><strong>wdict</strong><button class="link" type="button">Offline dictionaries</button></header>
+      <h1>Look up a word</h1><p>Find English and Spanish definitions for words and phrases.</p>
+      <form><label for="word-en">Word or phrase</label><div class="search"><input id="word-en" placeholder="Enter a word or phrase"><button type="button">Look up</button></div></form>
+      <p class="hint">If an offline dictionary or saved entry cannot answer your search, it may be sent to the online dictionary.</p>
+      <div class="notice"><strong>Look up words offline</strong><p>Download dictionaries for offline definitions.</p><button class="link" type="button">View offline dictionaries →</button></div>
+    </div></div>
+    <footer><div class="footer-inner">
+      <div class="setting"><label for="language-en">Language</label><select id="language-en"><option selected>English</option><option>Español</option></select></div>
+      <div class="setting"><span>Appearance</span><div class="modes" role="radiogroup" aria-label="Appearance">
+        <button class="mode" type="button" role="radio" aria-checked="true" aria-label="System" title="System"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
+        <button class="mode" type="button" role="radio" aria-checked="false" aria-label="Light" title="Light"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg></button>
+        <button class="mode" type="button" role="radio" aria-checked="false" aria-label="Dark" title="Dark"><svg viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7Z"/></svg></button>
+      </div></div>
+    </div></footer>
+  </div>
+
+  <h3 class="caption">Español · results and scrolling</h3>
+  <div class="window" lang="es">
+    <div class="scroll" tabindex="0" aria-label="Contenido desplazable"><div class="inner">
+      <header><strong>wdict</strong><button class="link" type="button">Diccionarios sin conexión</button></header>
+      <h1>Buscar una palabra</h1><p>Encuentra definiciones en inglés y español de palabras y expresiones.</p>
+      <form><label for="word-es">Palabra o expresión</label><div class="search"><input id="word-es" value="sol"><button type="button">Buscar</button></div></form>
+      <p class="hint">Si un diccionario sin conexión o una entrada guardada no puede responder a tu búsqueda, esta puede enviarse al diccionario en línea.</p>
+      <article><h2>Español · sol</h2><p class="hint">Resultado sin conexión</p><h3>nombre</h3><ol><li>Estrella luminosa, centro del sistema planetario en que está situada la Tierra.</li></ol><p class="source">Fuente: Wiktionary · <a href="#review">Fuente</a> · <a href="#review">Licencia</a></p></article>
+      <article><h2>Inglés · sol</h2><p class="hint">Resultado guardado</p><h3>noun</h3><ol><li>The sun.</li></ol><p class="source">Fuente: Wiktionary · <a href="#review">Fuente</a> · <a href="#review">Licencia</a></p></article>
+    </div></div>
+    <footer><div class="footer-inner">
+      <div class="setting"><label for="language-es">Idioma</label><select id="language-es"><option>English</option><option selected>Español</option></select></div>
+      <div class="setting"><span>Apariencia</span><div class="modes" role="radiogroup" aria-label="Apariencia">
+        <button class="mode" type="button" role="radio" aria-checked="true" aria-label="Sistema" title="Sistema"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
+        <button class="mode" type="button" role="radio" aria-checked="false" aria-label="Claro" title="Claro"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></button>
+        <button class="mode" type="button" role="radio" aria-checked="false" aria-label="Oscuro" title="Oscuro"><svg viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7Z"/></svg></button>
+      </div></div>
+    </div></footer>
+  </div>
+
+  <h3 class="caption">Español · narrow window and dictionary error</h3>
+  <div class="window narrow" lang="es">
+    <div class="scroll"><div class="inner">
+      <header><strong>wdict</strong><button class="link" type="button">← Buscar</button></header>
+      <h1>Diccionarios sin conexión</h1><p>Descarga un diccionario para buscar palabras sin conexión.</p>
+      <article><h2>Español</h2><p class="hint">Idioma: definiciones en español<br>Fuente: Wiktionary · xxyzz<br>Licencia: CC BY-SA<br>Descarga: 200 MB</p><button type="button">Reintentar</button><p>No se pudo instalar el diccionario. Comprueba tu conexión y el espacio disponible y vuelve a intentarlo.</p></article>
+    </div></div>
+    <footer><div class="footer-inner">
+      <div class="setting"><label for="language-narrow">Idioma</label><select id="language-narrow"><option>English</option><option selected>Español</option></select></div>
+      <div class="setting"><span>Apariencia</span><div class="modes" role="radiogroup" aria-label="Apariencia">
+        <button class="mode" type="button" role="radio" aria-checked="true" aria-label="Sistema" title="Sistema">▣</button>
+        <button class="mode" type="button" role="radio" aria-checked="false" aria-label="Claro" title="Claro">☼</button>
+        <button class="mode" type="button" role="radio" aria-checked="false" aria-label="Oscuro" title="Oscuro">☾</button>
+      </div></div>
+    </div></footer>
+  </div>
+  <div class="review-note" id="review"><strong>Review only — additional states</strong><p>Translate loading, no results, retry, download and installation progress, source and license labels, tooltips and screen-reader text. Preserve the input, existing results, current page and download state while changing language. Long content and keyboard focus must remain reachable without being obscured by the footer. Examples are visual review mockups; controls do not operate the app.</p></div>
+</div>
+</body>
+</html>

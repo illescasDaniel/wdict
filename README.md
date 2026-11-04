@@ -44,6 +44,16 @@ go tool task test
 
 The default Go tests use deterministic fixtures and fake providers. The cache persistence test recreates the service and memory cache against the same on-disk cache, without launching a separate app process.
 
+An optional real-browser smoke test checks footer positioning, scrolling and focus at desktop and narrow sizes. It requires the built frontend, Node.js, a Chrome-compatible browser and permission to bind a loopback server. From the repository root:
+
+```sh
+cd frontend
+npm run build
+CHROME_PATH=/path/to/chrome node scripts/footer-browser-check.mjs
+```
+
+If `google-chrome` is on `PATH`, omit `CHROME_PATH`. The check uses synthetic long content and does not replace testing the native WebKit window. It is not part of `go tool task test`.
+
 To additionally check the real Spanish package and a saved MediaWiki response, supply local files and run the opt-in integration tests:
 
 ```sh

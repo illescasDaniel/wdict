@@ -2,7 +2,7 @@
 
 ## Open
 
-- [ ] Push v0.4.0, verify CI, publish the release, and update the locally installed executable.
+- [ ] Verify fixed footer and language switching with real long results in the native WebKit window.
 
 - [ ] Verify automatic appearance interactively in the native window.
 
@@ -23,6 +23,12 @@
 
 ## Done
 
+- [x] Implemented fixed footer and English/Spanish UI using i18next; rebuilt frontend, passed quality gate (46 frontend tests and Go tests), Chrome layout smoke and independent SDD regrade.
+- [x] Approved i18next-based footer-language architecture (`src:24f6db6819cfaaa41e94`).
+- [x] Approved the footer and interface-language spec (`src:cb4e45d81b39aa662285`).
+- [x] Agreed the footer and interface-language spec decisions, including localized dates (`src:b100cb1de6d73aa010df`).
+- [x] Approved the fixed-footer and interface-language wireframe (`src:43ce9da020fb43286fd5`).
+- [x] Pushed commit f583548, verified CI run 40920837975, published v0.4.0 with the release workflow, and updated the Go-installed executable to v0.4.0 (`src:c306659d288af475a134`).
 - [x] Replaced the subprocess cache restart test with fresh service and memory-cache instances against the same disk cache; separately tagged and documented real Spanish-data integration checks. Default race tests and both real-data checks passed locally using the verified archive and captured response. Independent test-quality regrade passed; this does not test an actual process restart.
 - [x] Resolved Spanish support grader failures: preserve legacy cached entries with an attribution notice and reject duplicate Spanish language sections. Independent regrade passed with a partial observation on integration test setup; frontend tests, Svelte checks, build and Go race tests passed.
 

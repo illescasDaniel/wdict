@@ -7,5 +7,6 @@
   "ollaya_url": "http://127.0.0.1:11435",
   "ollaya_model": "jevk5:4b",
   "cascade_min_confidence": 0.9,
-  "project_id": "8dd5ae921ee645839d5f037f01b73e97"
+  "project_id": "8dd5ae921ee645839d5f037f01b73e97",
+  "decision_backend": "qsiv"
 }
