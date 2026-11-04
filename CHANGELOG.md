@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.0] - 2026-11-04
+
+- Keep the footer visible and add English and Spanish interface language selection.
+- Localize application dates and translated interface text.
+
 ## [0.4.0] - 2026-10-29
 
 - Search English and Spanish together, with independent online results and downloadable Spanish offline dictionary support.

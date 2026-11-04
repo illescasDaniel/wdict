@@ -1,6 +1,6 @@
 # wdict
 
-A Linux-first desktop dictionary built with Go, Wails v3 and SvelteKit. Current version: **0.4.0**. Search English and Spanish words and phrases online, reuse saved results, or download Wiktionary dictionaries in the app for offline use. Queries are sent to the online provider only after an offline and cache miss or an expired cache entry. Online results stay fresh for 365 days; when refresh fails, a stale saved result can still be shown.
+A Linux-first desktop dictionary built with Go, Wails v3 and SvelteKit. Current version: **0.5.0**. Search English and Spanish words and phrases online, reuse saved results, or download Wiktionary dictionaries in the app for offline use. Queries are sent to the online provider only after an offline and cache miss or an expired cache entry. Online results stay fresh for 365 days; when refresh fails, a stale saved result can still be shown.
 
 ## Status
 
@@ -10,7 +10,7 @@ Routine CI checks the Linux build and tests without packaging an AppImage. A man
 
 Choose either the ready-to-run AppImage or install from source with Go:
 
-- **AppImage:** Download `wdict-x86_64.AppImage` from the [v0.4.0 release](https://github.com/illescasDaniel/wdict/releases/tag/v0.4.0), then make it executable and run it:
+- **AppImage:** Download `wdict-x86_64.AppImage` from the [v0.5.0 release](https://github.com/illescasDaniel/wdict/releases/tag/v0.5.0), then make it executable and run it:
 
   ```sh
   chmod +x wdict-x86_64.AppImage
@@ -69,7 +69,7 @@ The package test verifies the pinned checksum during installation. These integra
 Install Go 1.26.4 or newer, a C compiler, `pkg-config`, and the GTK 3 and WebKit2GTK 4.1 development packages. Then run:
 
 ```sh
-go install -tags gtk3 github.com/illescasDaniel/wdict@v0.4.0
+go install -tags gtk3 github.com/illescasDaniel/wdict@v0.5.0
 wdict
 ```
 
