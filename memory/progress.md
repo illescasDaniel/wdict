@@ -23,6 +23,8 @@
 
 ## Done
 
+- [x] Reran the public agentic-loadout 0.5.0 installer for Claude and Codex, retaining the existing provider and Entire setup and restoring the tracked SDD skill symlink.
+- [x] Exercised codenav-go navigation, type-checked edit preview/application and diagnostics while adding unsupported retry-language coverage; targeted race test and full quality gate passed.
 - [x] Implemented fixed footer and English/Spanish UI using i18next; rebuilt frontend, passed quality gate (46 frontend tests and Go tests), Chrome layout smoke and independent SDD regrade.
 - [x] Approved i18next-based footer-language architecture (`src:24f6db6819cfaaa41e94`).
 - [x] Approved the footer and interface-language spec (`src:cb4e45d81b39aa662285`).

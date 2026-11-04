@@ -174,3 +174,27 @@ func TestGivenSpanishStaleAndEnglishFoundWhenSpanishProviderFailsThenBothRemainA
 		t.Fatalf("out=%+v err=%v", out, err)
 	}
 }
+
+func TestGivenUnsupportedLanguageWhenRetryingThenNoSourceOrOutcome(t *testing.T) {
+	// Given an unsupported language and a source that records calls.
+	called := false
+	source := languageSource(func(_ context.Context, _ string, _ Language) ([]Entry, bool, error) {
+		called = true
+		return nil, false, nil
+	})
+	service := BilingualService{Sources: bilingualResolver{Language("fr"): {Online: source}}}
+	delivered := false
+
+	// When retrying the unsupported language.
+	err := service.RetryLanguage(context.Background(), BilingualRequest{Query: "word"}, Language("fr"), func(LanguageOutcome) {
+		delivered = true
+	})
+
+	// Then the request is rejected without querying a source or delivering an outcome.
+	if err == nil {
+		t.Fatal("expected unsupported language error")
+	}
+	if called || delivered {
+		t.Fatalf("unsupported language called source=%t delivered outcome=%t", called, delivered)
+	}
+}

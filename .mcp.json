@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "agemem": {
+      "command": "uvx",
+      "args": [
+        "--python",
+        "3.12",
+        "agemem@0.2.2",
+        "mcp"
+      ]
+    },
+    "webnav": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "webnav-ts-mcp@0.2"
+      ]
+    },
+    "codenav-go": {
+      "type": "stdio",
+      "command": "go",
+      "env": {
+        "CODENAV_GO_MCP_BUILD_FLAGS": "-tags=gtk3"
+      },
+      "args": [
+        "run",
+        "github.com/illescasDaniel/codenav-go-mcp/cmd/codenav-go-mcp@latest"
+      ]
+    }
+  }
+}

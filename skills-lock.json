@@ -3,9 +3,17 @@
   "skills": {
     "sdd-feature": {
       "source": "illescasDaniel/sdd-feature-skill",
+      "ref": "5443fe57ff5f0fef25d8a76f75dae64953bb9e7b",
       "sourceType": "github",
       "skillPath": "skills/sdd-feature/SKILL.md",
       "computedHash": "18931422b9f8b5ba0a921d1d7fe64a1e491fba3a93dd03682b58a9d953e3f2f4"
+    },
+    "worktree": {
+      "source": "illescasDaniel/worktree-skill",
+      "ref": "37674c26b84eca9df37d8dafccc367da7455d079",
+      "sourceType": "github",
+      "skillPath": "skills/worktree/SKILL.md",
+      "computedHash": "3fcb33bc94bf33de8749959249d11ab2f7922275083ff93feceb32b87fb14dfd"
     }
   }
 }
