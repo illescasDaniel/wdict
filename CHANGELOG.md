@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.0] - 2026-11-06
+
+- Suggest offline alternatives, inflected forms and spelling corrections (including phrase headwords) when a lookup misses.
+- Order lookup results by the selected interface language.
+
 ## [0.5.0] - 2026-11-04
 
 - Keep the footer visible and add English and Spanish interface language selection.
