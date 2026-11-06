@@ -108,3 +108,7 @@ On 2026-11-06 the user approved treating 64 MiB as a measured shared-heap target
 ## 2026-11-06 — Lookup alternatives implementation choices
 
 Implemented without a morphology dataset: UniMorph was investigated but no suitable distribution was found for the first release, so bounded regular-form rules (suffix stripping for English and Spanish) are used instead, as approved by the final amendment. Bounded Unicode optimal-string-alignment distance (OSA ≤ 2, which counts adjacent transpositions as one edit) with deterministic tie-breaking ranks spelling candidates; only headwords verified in the installed index are returned. The 64 MiB heap cap is treated as a measured shared-heap target rather than a hard per-feature limit (`src:bb20bbd7cfc98225d3b0`). `timed_out` and `unavailable` alternatives statuses are shown with distinct UI messages. No persistent derived index is written.
+
+## 2026-11-06 — v0.6.0 release process
+
+The Release workflow (`workflow_dispatch`, input version) validates `VERSION`, creates the tag and publishes the release, so tags are never pushed by hand. A hand-pushed `v0.6.0` was deleted before any release or proxy fetch and recreated by the workflow on the same commit `ad7cfee`. After a version bump, `frontend/build` must be rebuilt, not sed-edited, because its hash changes and CI checks it.
