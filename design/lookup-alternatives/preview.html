@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inflected forms and spelling suggestions — design</title>
+<style>
+	:root {
+		--bg: #ffffff; --fg: #1f2328; --muted: #59636e; --line: #d1d9e0; --code: #f6f8fa;
+		--note-bg: #fff8c5; --note-line: #d4a72c; --err-bg: #ffebe9; --err-line: #cf222e;
+	}
+	@media (prefers-color-scheme: dark) {
+		:root {
+			--bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --line: #3d444d; --code: #151b23;
+			--note-bg: #2e2a1a; --note-line: #9e6a03; --err-bg: #2d1416; --err-line: #f85149;
+		}
+	}
+	body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, sans-serif; }
+	main { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
+	.note { border: 1px solid var(--note-line); background: var(--note-bg); border-radius: 6px; padding: 8px 12px; }
+	.legend span { display: inline-block; margin-right: 12px; }
+	.legend i { display: inline-block; width: 12px; height: 12px; border: 1px solid; border-radius: 2px;
+		vertical-align: -1px; margin-right: 4px; }
+	h1, h2 { border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+	a { color: inherit; }
+	code { background: var(--code); border-radius: 4px; padding: 1px 4px; font-size: 0.9em; }
+	pre { background: var(--code); border-radius: 6px; padding: 12px; overflow-x: auto; }
+	pre code { background: none; padding: 0; }
+	pre.mermaid { background: none; text-align: center; }
+	pre.mermaid-error { background: var(--err-bg); border: 1px solid var(--err-line); white-space: pre-wrap; }
+	table { border-collapse: collapse; display: block; overflow-x: auto; }
+	th, td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+</style>
+</head>
+<body>
+<main>
+	<p class="note"><strong>Review only.</strong> Generated from <code>DESIGN.md</code>, which is the source of
+	truth. Components:
+	<span class="legend"><span><i style="background:#dcfce7;border-color:#15803d"></i>added</span><span><i
+	style="background:#fef9c3;border-color:#a16207"></i>changed</span><span><i
+	style="background:#fee2e2;border-color:#b91c1c;border-style:dashed"></i>removed</span></span></p>
+	<article id="doc"></article>
+</main>
+<script>const SOURCE = "# Inflected forms and spelling suggestions \u2014 design\n\n- **Wireframe:** [lookup alternatives](../../wireframes/lookup-alternatives.html)\n- **Spec:** to be written after design approval\n- **Design approved:** 2026-11-06 (`src:c34610a226566b0738a4`)\n\n## Summary\n\nWhen an English or Spanish lookup misses, offer possible base forms and spelling corrections as explicitly labelled alternatives. Selecting one starts a normal bilingual lookup. Exact results remain visible and are never silently replaced. This proposal uses installed offline dictionary indexes, without sending additional queries to an online service. Coverage is deliberately partial: a matching headword is not proof of a morphological relationship.\n\nThe current lookup checks offline, cache and online sources, and emits independent English and Spanish outcomes tagged with a search ID. Alternatives run separately so they cannot delay or change those outcomes. Existing dictionary downloads are optional; suggestions therefore require the relevant downloaded dictionary in this proposal.\n\n## Main flow\n\n```mermaid\nsequenceDiagram\n    actor U as User\n    participant UI as Lookup screen\n    participant B as Bilingual lookup\n    participant L as Existing lookup\n    participant A as Alternatives finder\n    participant I as Installed StarDict index\n    U->>UI: Search for a word\n    UI->>B: Lookup(query)\n    B-->>UI: search ID\n    B->>L: Look up English and Spanish independently\n    alt F1: invalid query\n        L-->>UI: invalid_query, no alternatives\n    else valid query\n        L-->>UI: per-language found, not_found or unavailable\n        alt F2: source unavailable\n            UI-->>U: Preserve unavailable or silent-unavailable behavior\n        else language not found\n            B->>A: Find alternatives for search ID and language\n            A->>I: Check dictionary and read indexes within budget\n            alt F3: dictionary absent or index unreadable\n                I-->>A: unavailable, no scan if absent\n                A-->>UI: alternatives unavailable\n            else F4: scan exceeds budget\n                A-->>UI: timed_out, no partial ranking\n            else F5: search replaced or cancelled\n                A-->>UI: discard old work and events\n            else index scanned\n                I-->>A: candidate headwords\n                A-->>UI: ready with possible base forms and spelling candidates\n                opt F6: no candidates\n                    UI-->>U: Keep ordinary not-found state\n                end\n                U->>UI: Select an alternative\n                UI->>B: Lookup(selected word)\n            end\n        end\n    end\n```\n\nEnglish and Spanish results remain independent. A miss in one language may show alternatives alongside a found result in the other. The finder never asserts that an unavailable online source returned a miss. A new search or retry invalidates older alternatives for the affected search/language.\n\n## Components\n\n```mermaid\nflowchart LR\n    classDef added fill:#dcfce7,stroke:#15803d,color:#14532d\n    classDef changed fill:#fef9c3,stroke:#a16207,color:#713f12\n    classDef removed fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-dasharray:5 3\n    UI[\"Svelte lookup screen\"]:::changed --> B[\"Bilingual lookup and events\"]:::changed\n    B --> L[\"Existing exact lookup\"]\n    B --> A[\"Alternatives finder\"]:::added\n    A --> I[\"Installed StarDict headword and synonym indexes\"]:::changed\n    A -.-> M[\"Possible morphology index, pending evaluation\"]:::added\n    L --> I\n    L --> C[\"Existing caches and online providers\"]\n```\n\n## Candidate approach and constraints\n\n- Investigate a licensed form-to-lemma dataset for English and Spanish before choosing the morphology approach. UniMorph is a promising candidate, subject to coverage, distribution and performance validation. If a reliable suitable dataset cannot be established, use a bounded set of regular-form rules. Preserve ambiguous candidates and verify suggested base forms against the corresponding installed dictionary. Examples are illustrative, not coverage promises.\n- Rank spelling candidates by bounded Unicode edit distance and deterministic tie-breaks, retaining original spelling and accents for display. Propose at most five per language. For a multiword query, search the installed dictionary\u2019s phrase headwords separately for typo corrections, such as `look foward to` \u2192 `look forward to`. Offer only candidates present in that dictionary and require a click to search them (`src:23d2651f2c57ed43c790`). Bound phrase length and search work; exact limits, accent handling and ranking need evaluation against real data.\n- Candidate generation must be bounded, cancellable and independent of exact lookups. Current index scanning is lazy and uses a mutex; feasibility, first-use latency and memory cost must be measured with both real dictionaries before choosing an index structure. A timeout produces no misleading partial top-N ranking. Precise budgets are for the spec decision.\n- No automatic correction or lookup-time network request is proposed. A morphology dataset may require a separately packaged or downloaded derived index; its format, license and update/rollback behavior remain to be decided. Existing caches and dictionary files must remain compatible.\n\n## Contract seam\n\nExisting `Lookup(query)` and per-language outcomes remain intact. A proposed separate `lookup-alternatives` event carries `SearchID`, `Query`, `Language`, `Status` (`ready`, `unavailable`, `timed_out`), `BaseForms` and `Spelling`. Only the current search and language retry may update the screen. Empty arrays mean no suggestions; they do not establish that the word is invalid. The exact event names and limits will be settled in the spec.\n\n| Screen state | Trigger and response |\n|---|---|\n| Searching | Existing lookup pending; no alternatives required yet |\n| Found in one language, other pending | Existing independent result events |\n| Language not found, suggestions loading | Existing `not_found`, then alternative scan begins |\n| Possible base forms / spelling | `ready` with corresponding candidates; buttons start a new lookup |\n| No alternatives | `ready` with empty lists; retain not-found message |\n| Alternatives unavailable or timed out | `unavailable` or `timed_out`; retain exact result or miss and offer no unverified suggestions |\n| Invalid / source unavailable | Existing result state; do not present a provider failure as a spelling error |\n| Narrow window | Same states and controls wrap without horizontal overflow |\n\n## Decisions and open questions\n\n- Alternatives appear only when that language misses. Requiring the relevant offline dictionary is acceptable. Multiword spelling correction is in scope, using a separate search over dictionary phrase headwords. The user likes the wireframe (`src:6f16694188c7fc53cc4a`, `src:23d2651f2c57ed43c790`).\n- Investigate a compatible English and/or Spanish morphology dataset first. If none proves reliable and suitable, use partial regular-form coverage. The dataset, distribution method, licensing obligations, performance and fallback remain open for review.\n- How much additional download or disk usage is acceptable for a morphology index? A measured proposal will be needed before the spec.\n\nResearch: [English and Spanish morphology](../../reports/English%20and%20Spanish%20morphology.md). UniMorph is the recommended first candidate to evaluate, not an approved dataset.\n\n## References and verification\n\n- Existing behavior: `internal/core/lookup.go`, `internal/core/bilingual_service.go`, `internal/adapters/offline.go` and `frontend/src/routes/+page.svelte`.\n- [MediaWiki Search API](https://www.mediawiki.org/wiki/API%3ASearch/en) exposes suggestion metadata, but its suitability, language filtering and extra network behavior are not established for this proposal.\n- Offline index performance, candidate quality, dictionary coverage and licensing implications of any new dataset remain unverified.\n";</script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+(async function () {
+	const doc = document.getElementById("doc");
+	if (typeof marked === "undefined" || typeof mermaid === "undefined") {
+		doc.innerHTML = '<p class="note">Could not load the renderers (offline?). Showing the raw Markdown.</p>';
+		const pre = document.createElement("pre");
+		pre.textContent = SOURCE;
+		doc.appendChild(pre);
+		return;
+	}
+	const renderer = new marked.Renderer();
+	const plainCode = renderer.code.bind(renderer);
+	renderer.code = function (code, lang) {
+		const token = typeof code === "object" ? code : { text: code, lang: lang };
+		if ((token.lang || "").trim() !== "mermaid") return plainCode.apply(null, arguments);
+		const pre = document.createElement("pre");
+		pre.className = "mermaid";
+		pre.textContent = token.text;
+		return pre.outerHTML;
+	};
+	doc.innerHTML = marked.parse(SOURCE, { renderer: renderer });
+
+	const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+	mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: dark ? "dark" : "default" });
+	const valid = [];
+	for (const pre of doc.querySelectorAll("pre.mermaid")) {
+		try {
+			await mermaid.parse(pre.textContent);
+			valid.push(pre);
+		} catch (error) {
+			pre.className = "mermaid-error";
+			pre.textContent = "Mermaid syntax error:\n" + (error && error.message ? error.message : error)
+				+ "\n\n" + pre.textContent;
+		}
+	}
+	if (valid.length) await mermaid.run({ nodes: valid });
+	document.body.dataset.rendered = String(valid.length);
+})();
+</script>
+</body>
+</html>

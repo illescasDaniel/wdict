@@ -8,3 +8,7 @@ export async function onLookupResult(handler) {
   if (!runtime) runtime = await import(/* @vite-ignore */ runtimeURL);
   return runtime.Events.On("lookup:result", (event) => handler(event.data));
 }
+export async function onLookupAlternatives(handler) {
+  if (!runtime) runtime = await import(/* @vite-ignore */ runtimeURL);
+  return runtime.Events.On("lookup-alternatives", (event) => handler(event.data));
+}

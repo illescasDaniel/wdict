@@ -86,3 +86,25 @@ Keep online results fresh for 365 days before attempting a refresh; retain stale
 ## 2026-10-28 — Appearance
 
 Use System by default with footer icons for System, Light and Dark; remember the selection and follow system changes. The user approved the design and authorized automatic spec and architecture approval for this feature (`src:f0c8c5907b9be0a2eada`).
+
+## 2026-11-06 — Lookup alternatives direction
+
+Show alternatives only after a language misses, require the corresponding offline dictionary, investigate suitable morphology datasets before falling back to partial regular-form coverage, and include multiword spelling corrections (`src:6f16694188c7fc53cc4a`). The user approved the full design (`src:c34610a226566b0738a4`).
+
+The user likes the lookup-alternatives wireframe and requested planning a separate search over dictionary phrase headwords for typo correction (`src:23d2651f2c57ed43c790`). 
+
+The user confirmed the five proposed lookup-alternatives specification decisions, including measurement before numerical resource budgets and dataset selection (`src:de40e77c3089de7f6007`).
+
+The user approved the lookup-alternatives spec (`src:665fce98e49af19f680d`). Before implementation, resolve its missing-dictionary state and optional morphology-index fallback alongside measured resource budgets and dataset selection.
+
+On 2026-11-06 the user approved the lookup-alternatives core architecture (`src:fd9eb7586fb1e9d78b2b`); the associated memory note is pending screening.
+
+On 2026-11-06 the user approved the partial lookup-alternatives spec amendment (`src:8a02e642d2cb6cd1bb7f`); the memory note is pending screening.
+
+On 2026-11-06 the user approved the final lookup-alternatives amendment: existing dictionaries, bounded inflection rules, spelling ranking and resource caps (`src:6dce82b0c9d386831cec`).
+
+On 2026-11-06 the user approved treating 64 MiB as a measured shared-heap target rather than a strict per-feature heap cap (`src:bb20bbd7cfc98225d3b0`).
+
+## 2026-11-06 — Lookup alternatives implementation choices
+
+Implemented without a morphology dataset: UniMorph was investigated but no suitable distribution was found for the first release, so bounded regular-form rules (suffix stripping for English and Spanish) are used instead, as approved by the final amendment. Bounded Unicode optimal-string-alignment distance (OSA ≤ 2, which counts adjacent transpositions as one edit) with deterministic tie-breaking ranks spelling candidates; only headwords verified in the installed index are returned. The 64 MiB heap cap is treated as a measured shared-heap target rather than a hard per-feature limit (`src:bb20bbd7cfc98225d3b0`). `timed_out` and `unavailable` alternatives statuses are shown with distinct UI messages. No persistent derived index is written.

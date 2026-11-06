@@ -2,6 +2,10 @@
 
 ## Open
 
+- [x] Implemented lookup alternatives and passed the quality gate on 2026-11-06 (55 frontend tests, Go tests with gtk3 tag, svelte-check clean).
+- [x] Rebuilt `frontend/build` with `go tool task build` on 2026-11-06; the shipped bundle now includes the `timed_out` text (`frontend/build/_app/immutable/nodes/2.DDDowKUZ.js`).
+- [ ] Get an independent grade of the lookup-alternatives branch (not yet run; ask before spawning a code-grader); fix findings. The branch is largely untracked, so the grader must review untracked files too.
+
 - [ ] Verify fixed footer and language switching with real long results in the native WebKit window.
 
 - [ ] Verify automatic appearance interactively in the native window.
@@ -16,12 +20,28 @@
 
 - [ ] Verify end-to-end interactive startup and cold-disk performance.
 - [ ] Test the app on macOS and Windows before claiming support.
-- [ ] After v1, consider inflected-form lookup and spelling suggestions.
-- [ ] Evaluate Spanish and select a licensed dataset for the in-app offline dictionary download.
+- [ ] Design inflected-form lookup and spelling suggestions.
+- [x] Selected and implemented the Spanish offline dataset; see README for attribution.
 
 - [ ] Review and trust the project hooks, then test the MCP and hook checklist.
 
 ## Done
+
+- [x] User approved the lookup-alternatives memory-limit amendment (`src:bb20bbd7cfc98225d3b0`).
+
+- [x] User approved the final lookup-alternatives amendment (`src:6dce82b0c9d386831cec`).
+
+- [x] User approved the partial lookup-alternatives amendment (`src:8a02e642d2cb6cd1bb7f`); memory screening is pending.
+
+- [x] User approved the lookup-alternatives core architecture (`src:fd9eb7586fb1e9d78b2b`); memory screening returned pending.
+
+- [x] User approved the lookup-alternatives spec (`src:665fce98e49af19f680d`).
+
+- [x] Confirmed the five lookup-alternatives spec decisions and drafted the spec (`src:de40e77c3089de7f6007`).
+
+- [x] User approved the lookup-alternatives design and wireframe (`src:c34610a226566b0738a4`).
+
+- [x] User confirmed v0.5.0 was published (`src:92edc1045f02c77efd04`).
 
 - [x] Reran the public agentic-loadout 0.5.0 installer for Claude and Codex, retaining the existing provider and Entire setup and restoring the tracked SDD skill symlink.
 - [x] Exercised codenav-go navigation, type-checked edit preview/application and diagnostics while adding unsupported retry-language coverage; targeted race test and full quality gate passed.

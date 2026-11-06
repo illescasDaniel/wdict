@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lookup alternatives — review wireframe</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; background: #eee9df; color: #292821; font: 16px/1.5 system-ui, sans-serif; }
+  main { max-width: 1050px; margin: auto; }
+  h1, h2, h3, h4 { line-height: 1.2; margin: 0 0 12px; }
+  h2 { font-size: 1.2rem; }
+  h3 { font-size: 1rem; }
+  p { margin: 8px 0; }
+  .note, small { color: #655d50; }
+  .review { background: #fff7e1; border: 2px dashed #9b8055; padding: 16px; border-radius: 12px; margin: 16px 0 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 410px), 1fr)); gap: 16px; }
+  .example { background: #fffdf8; border: 1px solid #d5ccba; border-radius: 14px; padding: 20px; }
+  .window { border: 1px solid #d5ccba; border-radius: 9px; overflow: hidden; background: white; }
+  .app-header, .footer { padding: 12px 16px; background: #f4f1e9; }
+  .app-header { display: flex; justify-content: space-between; gap: 10px; align-items: center; border-bottom: 1px solid #e4ddcf; }
+  .footer { border-top: 1px solid #e4ddcf; font-size: .85rem; }
+  .content { padding: 16px; }
+  .search { display: flex; gap: 8px; margin-bottom: 16px; }
+  input, button { font: inherit; border-radius: 7px; padding: 8px 11px; }
+  input { min-width: 0; flex: 1; border: 1px solid #b5aa99; color: #292821; background: white; }
+  button { border: 1px solid #385e4d; background: #385e4d; color: white; cursor: pointer; }
+  .chip { color: #315f51; background: #fff; border-color: #8aa89a; margin: 2px 4px 2px 0; }
+  .language { border-top: 1px solid #e4ddcf; padding: 14px 0 5px; }
+  .language h3 { margin-bottom: 6px; }
+  .alternative { margin: 12px 0; padding: 10px 12px; background: #f4f8f4; border-radius: 8px; }
+  .alternative strong { display: block; margin-bottom: 4px; font-size: .9rem; }
+  .status { color: #655d50; }
+  .retry { background: white; color: #385e4d; padding: 4px 8px; }
+  .narrow { width: min(100%, 320px); margin: auto; }
+  .narrow .search { flex-wrap: wrap; }
+  .narrow .search input { min-width: 140px; }
+</style>
+</head>
+<body>
+<main>
+<h1>Inflected forms and spelling suggestions</h1>
+<p class="note">Review wireframe · illustrative examples and definitions · static, not an interactive app</p>
+<div class="review">
+  <strong>Review only</strong>
+  <p>Each search checks English and Spanish independently. Suggestions are possible alternatives, not automatic corrections. Selecting one starts a new search in both languages. Examples illustrate layout only and do not promise coverage.</p>
+</div>
+<div class="grid">
+<section class="example">
+  <h2>Possible base form after a miss</h2>
+  <div class="window">
+    <div class="app-header"><strong>wdict</strong><small>Offline dictionaries</small></div>
+    <div class="content">
+      <div class="search"><input value="walked" aria-label="Search word"><button type="button">Search</button></div>
+      <h3>Results for “walked”</h3>
+      <div class="language"><h3>English</h3><p class="status">No definition found.</p>
+        <div class="alternative"><strong>Possible base forms</strong><button class="chip" type="button">walk</button></div>
+      </div>
+      <div class="language"><h3>Spanish</h3><p class="status">No definition found.</p></div>
+    </div>
+    <div class="footer">Appearance: System · Interface: English</div>
+  </div>
+</section>
+<section class="example">
+  <h2>Spelling suggestions after a miss</h2>
+  <div class="window">
+    <div class="app-header"><strong>wdict</strong><small>Offline dictionaries</small></div>
+    <div class="content">
+      <div class="search"><input value="helo" aria-label="Search word"><button type="button">Search</button></div>
+      <h3>Results for “helo”</h3>
+      <div class="language"><h3>English</h3><p class="status">No definition found.</p>
+        <div class="alternative"><strong>Did you mean?</strong><button class="chip" type="button">hello</button><button class="chip" type="button">help</button></div>
+      </div>
+      <div class="language"><h3>Spanish</h3><p class="status">No definition found.</p></div>
+    </div>
+    <div class="footer">Appearance: System · Interface: English</div>
+  </div>
+</section>
+<section class="example">
+  <h2>Spelling suggestion for a phrase</h2>
+  <div class="window">
+    <div class="app-header"><strong>wdict</strong><small>Offline dictionaries</small></div>
+    <div class="content">
+      <div class="search"><input value="look foward to" aria-label="Search phrase"><button type="button">Search</button></div>
+      <h3>Results for “look foward to”</h3>
+      <div class="language"><h3>English</h3><p class="status">No definition found.</p>
+        <div class="alternative"><strong>Did you mean?</strong><button class="chip" type="button">look forward to</button></div>
+      </div>
+      <div class="language"><h3>Spanish</h3><p class="status">No definition found.</p></div>
+    </div>
+    <div class="footer">Appearance: System · Interface: English</div>
+  </div>
+</section>
+<section class="example">
+  <h2>Independent results and searching</h2>
+  <div class="window"><div class="app-header"><strong>wdict</strong><small>Offline dictionaries</small></div>
+    <div class="content">
+      <div class="search"><input value="gift" aria-label="Search word"><button type="button">Search</button></div>
+      <h3>Results for “gift”</h3>
+      <div class="language"><h3>English</h3><p><b>gift</b> · noun</p><p>Something given as a present.</p><small>Dictionary · Source · License</small></div>
+      <div class="language"><h3>Spanish</h3><p class="status">Searching Spanish…</p></div>
+    </div><div class="footer">Appearance: System · Interface: English</div>
+  </div>
+</section>
+<section class="example">
+  <h2>Partial result and alternatives still loading</h2>
+  <div class="window"><div class="app-header"><strong>wdict</strong><small>Offline dictionaries</small></div>
+    <div class="content">
+      <div class="search"><input value="gift" aria-label="Search word"><button type="button">Search</button></div>
+      <h3>Results for “gift”</h3>
+      <div class="language"><h3>English</h3><p><b>gift</b> · noun</p><p>Something given as a present.</p><small>Dictionary · Source · License</small></div>
+      <div class="language"><h3>Spanish</h3><p class="status">No definition found.</p><p class="status">Checking possible alternatives…</p></div>
+    </div><div class="footer">Appearance: System · Interface: English</div>
+  </div>
+</section>
+<section class="example">
+  <h2>No alternatives found</h2>
+  <div class="window"><div class="app-header"><strong>wdict</strong><small>Offline dictionaries</small></div>
+    <div class="content">
+      <div class="search"><input value="xyzzy" aria-label="Search word"><button type="button">Search</button></div>
+      <h3>Results for “xyzzy”</h3>
+      <div class="language"><h3>English</h3><p class="status">No definition found. No suggestions found.</p></div>
+      <div class="language"><h3>Spanish</h3><p class="status">No definition found. No suggestions found.</p></div>
+    </div><div class="footer">Appearance: System · Interface: English</div>
+  </div>
+</section>
+<section class="example">
+  <h2>Unavailable or timed out</h2>
+  <div class="window"><div class="app-header"><strong>wdict</strong><small>Offline dictionaries</small></div>
+    <div class="content">
+      <div class="search"><input value="caminaba" aria-label="Search word"><button type="button">Search</button></div>
+      <h3>Results for “caminaba”</h3>
+      <div class="language"><h3>English</h3><p class="status">The dictionary is unavailable. <button class="retry" type="button">Retry</button></p></div>
+      <div class="language"><h3>Spanish</h3><p class="status">No definition found.</p><p class="status">Suggestions are unavailable right now.</p></div>
+    </div><div class="footer">Appearance: System · Interface: English</div>
+  </div>
+</section>
+</div>
+<section class="example" style="margin-top: 16px">
+  <h2>Narrow window</h2>
+  <div class="window narrow"><div class="app-header"><strong>wdict</strong><small>Offline dictionaries</small></div>
+    <div class="content">
+      <div class="search"><input value="caminaban" aria-label="Search word"><button type="button">Search</button></div>
+      <h3>Results for “caminaban”</h3>
+      <div class="language"><h3>English</h3><p class="status">No definition found.</p></div>
+      <div class="language"><h3>Spanish</h3><p class="status">No definition found.</p><div class="alternative"><strong>Possible base forms</strong><button class="chip" type="button">caminar</button></div></div>
+    </div><div class="footer">Appearance: System · Interface: English</div>
+  </div>
+</section>
+</main>
+</body>
+</html>

@@ -25,6 +25,7 @@ type LanguageOutcome struct {
 	SearchID SearchID
 	Query    string
 	Language Language
+	Attempt  AttemptID
 	Result   LookupResult
 }
 

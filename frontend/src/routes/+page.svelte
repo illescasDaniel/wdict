@@ -12,7 +12,7 @@
     interfaceLanguage = languageController.language;
     document.documentElement.lang = interfaceLanguage;
   }
-  import { call, onLookupResult } from "../lib-api.js";
+  import { call, onLookupResult, onLookupAlternatives } from "../lib-api.js";
   import {
     readAppearance,
     saveAppearance,
@@ -52,6 +52,7 @@
   }
   let queryInput;
   let eventReady;
+  let alternativesListenerReady = false;
   let query = "",
     page = "lookup",
     busy = false,
@@ -59,6 +60,9 @@
     entries = [],
     dictionaries = [],
     results = {},
+    alternatives = {},
+    attempts = {},
+    pendingAlternatives = {},
     activeSearch = "",
     searchQuery = "",
     previousQuery = "",
@@ -113,31 +117,58 @@
     queryInput?.focus();
     refresh();
     let unsubscribe;
-    eventReady = onLookupResult((outcome) => {
+    let unsubscribeAlternatives;
+    let disposed = false;
+    const lookupReady = onLookupResult((outcome) => {
       if (!activeSearch) {
-        (buffered[outcome.SearchID] ||= []).push(outcome);
+        (buffered[outcome.SearchID] ||= []).push({ kind: "lookup", outcome });
         return;
       }
       if (outcome.SearchID === activeSearch) acceptOutcome(outcome);
-    })
-      .then((off) => {
-        unsubscribe = off;
-        return true;
-      })
-      .catch(() => false);
+    }).then((off) => {
+      if (disposed) off?.();
+      else unsubscribe = off;
+      return true;
+    }).catch(() => false);
+    const alternativesReady = Promise.resolve().then(() => onLookupAlternatives((outcome) => {
+      if (!activeSearch) {
+        (buffered[outcome.SearchID] ||= []).push({ kind: "alternatives", outcome });
+        return;
+      }
+      acceptAlternatives(outcome);
+    })).then((off) => {
+      if (disposed) off?.();
+      else {
+        unsubscribeAlternatives = off;
+        alternativesListenerReady = true;
+      }
+    }).catch(() => {});
+    eventReady = Promise.all([lookupReady, alternativesReady]).then(([ok]) => ok);
     let timer = setInterval(() => {
       if (progress?.State === "downloading" || progress?.State === "installing")
         refresh();
     }, 500);
     return () => {
       clearInterval(timer);
+      disposed = true;
       unsubscribe?.();
+      unsubscribeAlternatives?.();
       media?.removeEventListener("change", onAppearanceChange);
     };
   });
   function acceptOutcome(outcome) {
     if (outcome.SearchID !== activeSearch) return;
+    if (!["en", "es"].includes(outcome.Language)) return;
+    const attempt = outcome.Attempt ?? (attempts[outcome.Language] ?? 1);
+    if (attempt !== (attempts[outcome.Language] ?? 1)) return;
     results = { ...results, [outcome.Language]: outcome.Result };
+    if (outcome.Result.Status === "not_found") {
+      alternatives = { ...alternatives, [outcome.Language]: { Status: alternativesListenerReady ? "loading" : "unavailable" } };
+      const pending = pendingAlternatives[outcome.Language];
+      if (pending?.Attempt === attempt) acceptAlternatives(pending);
+    } else {
+      alternatives = { ...alternatives, [outcome.Language]: null };
+    }
     busy = !results.en || !results.es;
     const values = Object.values(results);
     const found = values.some((v) => v?.Status === "found");
@@ -155,12 +186,28 @@
             : "notFound";
     }
   }
+  function acceptAlternatives(outcome) {
+    if (outcome.SearchID !== activeSearch || outcome.Query !== searchQuery ||
+        !["en", "es"].includes(outcome.Language)) return;
+    const attempt = outcome.Attempt ?? 1;
+    if (attempt !== (attempts[outcome.Language] ?? 1)) return;
+    if (!results[outcome.Language]) {
+      pendingAlternatives = { ...pendingAlternatives, [outcome.Language]: outcome };
+      return;
+    }
+    if (results[outcome.Language].Status !== "not_found") return;
+    alternatives = { ...alternatives, [outcome.Language]: outcome };
+    pendingAlternatives = { ...pendingAlternatives, [outcome.Language]: null };
+  }
   async function lookup() {
     const id = ++seq;
     const submitted = query;
     activeSearch = "";
     buffered = {};
     results = {};
+    alternatives = {};
+    attempts = { en: 1, es: 1 };
+    pendingAlternatives = {};
     searchQuery = submitted;
     busy = true;
     status = "searching";
@@ -170,7 +217,10 @@
       const searchID = await call("Lookup", submitted);
       if (id !== seq) return;
       activeSearch = searchID;
-      for (const outcome of buffered[searchID] || []) acceptOutcome(outcome);
+      for (const event of buffered[searchID] || []) {
+        if (event.kind === "lookup") acceptOutcome(event.outcome);
+        else acceptAlternatives(event.outcome);
+      }
       buffered = {};
     } catch {
       if (id === seq) {
@@ -181,7 +231,10 @@
   }
   async function retryLanguage(language) {
     const id = activeSearch;
+    attempts = { ...attempts, [language]: (attempts[language] ?? 1) + 1 };
     results = { ...results, [language]: null };
+    alternatives = { ...alternatives, [language]: null };
+    pendingAlternatives = { ...pendingAlternatives, [language]: null };
     busy = true;
     try {
       await call("RetryLanguage", id, searchQuery, language);
@@ -190,6 +243,7 @@
         acceptOutcome({
           SearchID: id,
           Language: language,
+          Attempt: attempts[language],
           Result: { Status: "source_unavailable" },
         });
     }
@@ -326,6 +380,47 @@
             })}</button
           >
         </p>
+      {:else if results[language]?.Status === "not_found"}
+        <article class="alternative-section">
+          <h2>{t(language === "en" ? "english" : "spanish")}</h2>
+          <p>{t("noDefinition")}</p>
+          {#if alternatives[language]?.Status === "loading"}
+            <p role="status">{t("checkingAlternatives")}</p>
+          {:else if alternatives[language]?.Status === "timed_out"}
+            <p role="status">{t("alternativesTimedOut")}</p>
+          {:else if alternatives[language]?.Status === "unavailable"}
+            <p role="status">
+              {t("alternativesUnavailable")}
+              {#if dictionaries.some((dictionary) => dictionary.Language === language && !dictionary.Installed)}
+                {t("alternativesNeedDictionary")}
+              {/if}
+            </p>
+          {:else if alternatives[language]?.Status === "ready"}
+            {#if alternatives[language].BaseForms?.length}
+              <div class="alternative-group">
+                <strong>{t("possibleBaseForms")}</strong>
+                <div class="alternative-buttons">
+                  {#each alternatives[language].BaseForms as candidate}
+                    <button class="alternative-button" type="button" onclick={() => { query = candidate; lookup(); }}>{candidate}</button>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+            {#if alternatives[language].Spelling?.length}
+              <div class="alternative-group">
+                <strong>{t("didYouMean")}</strong>
+                <div class="alternative-buttons">
+                  {#each alternatives[language].Spelling as candidate}
+                    <button class="alternative-button" type="button" onclick={() => { query = candidate; lookup(); }}>{candidate}</button>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+            {#if !alternatives[language].BaseForms?.length && !alternatives[language].Spelling?.length}
+              <p>{t("noAlternatives")}</p>
+            {/if}
+          {/if}
+        </article>
       {:else if busy && !results[language]}
         <p role="status">
           {t("searchingLanguage", {
@@ -737,6 +832,24 @@
   }
   .notice p {
     margin: 5px 0;
+  }
+  .alternative-group {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--notice);
+  }
+  .alternative-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  button.alternative-button {
+    background: var(--surface);
+    color: var(--accent);
+    padding: 6px 10px;
+    overflow-wrap: anywhere;
   }
   article {
     background: var(--surface);
