@@ -984,3 +984,83 @@ describe("appearance", () => {
     expect(document.documentElement.dataset.theme).toBe("dark");
   });
 });
+
+describe("result order", () => {
+  const precedes = (first, second) =>
+    Boolean(
+      first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  const foundBothLanguages = () => {
+    resultHandler({
+      SearchID: "order",
+      Language: "en",
+      Result: { Status: "found", Origin: "online", Entries: [entry] },
+    });
+    resultHandler({
+      SearchID: "order",
+      Language: "es",
+      Result: {
+        Status: "found",
+        Origin: "offline",
+        Entries: [
+          {
+            ...entry,
+            Language: "es",
+            Headword: "hola",
+            Meanings: [{ Definitions: ["saludo"] }],
+          },
+        ],
+      },
+    });
+  };
+  beforeEach(() => {
+    localStorage.clear();
+    mockBackend(async (method) =>
+      method === "Dictionaries"
+        ? [dictionary]
+        : method === "Progress"
+          ? {}
+          : method === "Lookup"
+            ? "order"
+            : null,
+    );
+  });
+  afterEach(() => localStorage.clear());
+  it("given_english_interface_and_both_results_found_when_displayed_then_english_precedes_spanish", async () => {
+    // given
+    render(Page);
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await waitFor(() => expect(call).toHaveBeenCalledWith("Lookup", ""));
+    // when
+    foundBothLanguages();
+    await screen.findByText("saludo");
+    // then
+    expect(
+      precedes(screen.getByText(/· hello/), screen.getByText(/· hola/)),
+    ).toBe(true);
+  });
+  it("given_both_results_found_when_interface_switches_to_spanish_then_spanish_precedes_english_without_new_lookup", async () => {
+    // given
+    render(Page);
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await waitFor(() => expect(call).toHaveBeenCalledWith("Lookup", ""));
+    foundBothLanguages();
+    await screen.findByText("saludo");
+    const lookupsBefore = call.mock.calls.filter(
+      ([name]) => name === "Lookup",
+    ).length;
+    // when
+    await fireEvent.change(screen.getByLabelText("Language"), {
+      target: { value: "es" },
+    });
+    // then
+    await waitFor(() =>
+      expect(
+        precedes(screen.getByText(/· hola/), screen.getByText(/· hello/)),
+      ).toBe(true),
+    );
+    expect(call.mock.calls.filter(([name]) => name === "Lookup")).toHaveLength(
+      lookupsBefore,
+    );
+  });
+});

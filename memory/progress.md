@@ -135,3 +135,5 @@
 - [x] Prepared the initial dictionary GUI and system designs on 2026-10-26.
 
 - [x] Listed repository MCP and hook configuration on 2026-10-26.
+
+- [x] Approved and implemented result order that follows the interface language (2026-11-06): spec amendment in `specs/footer-language/SPEC.md`, two frontend tests, `$:` ordering in `+page.svelte`, rebuilt `frontend/build`. Quality gate and independent review passed; not committed.

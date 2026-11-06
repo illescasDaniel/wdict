@@ -7,6 +7,7 @@
     interfaceLanguage;
     return languageController.translate(key, options);
   };
+  $: languageOrder = interfaceLanguage === "es" ? ["es", "en"] : ["en", "es"];
   async function changeLanguage(event) {
     await languageController.setLanguage(event.currentTarget.value);
     interfaceLanguage = languageController.language;
@@ -316,7 +317,7 @@
       {t("privacy")}
     </p>
     {#if status}<div class="notice" role="status">{t(status)}</div>{/if}
-    {#each ["en", "es"] as language}
+    {#each languageOrder as language}
       {#if results[language]?.Status === "found"}
         {#each results[language].Entries as entry}<article>
             <h2>

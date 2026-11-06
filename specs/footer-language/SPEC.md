@@ -7,6 +7,7 @@
 - **Design decisions approved:** 2026-11-04 (chat; `src:b100cb1de6d73aa010df`).
 - **Spec approved:** 2026-11-04 (chat; `src:cb4e45d81b39aa662285`).
 - **Related:** Existing bilingual lookup and appearance features remain in effect.
+- **Amendment approved:** 2026-11-06 (chat): result order follows interface language.
 
 ## Design decisions
 
@@ -15,6 +16,7 @@
 - On lookup and offline dictionary views, the footer remains visible at the bottom while content scrolls. All content and keyboard focus remain reachable at desktop and narrow sizes.
 - English and Español switch all app-owned interface text, including current statuses and errors, accessible names, titles and document language, on the next render. Preserve query, results, current view and ongoing download state.
 - Display app-generated dates using the selected interface language. Dictionary headwords, definitions and source-provided content retain their supplied language. Each lookup still searches both dictionaries.
+- Show the results for the selected interface language first: English results above Spanish results in English, and Spanish above English in Español. Both languages are always searched, and changing the interface language reorders the displayed results without a new search.
 
 ### Failure handling
 
@@ -69,6 +71,10 @@
 ### Scenario: Preference write fails
 
 **Given** preference storage cannot be written **When** the user selects Español **Then** the interface switches for the current session without blocking or a new notification.
+
+### Scenario: Result order follows interface language
+
+**Given** a search whose English and Spanish results have both arrived **When** the interface language is English **Then** the English result block appears above the Spanish block; **When** the interface language is Español **Then** the Spanish block appears above the English block, and switching languages reorders the blocks without a new search.
 
 ### Scenario: Localized dates
 
