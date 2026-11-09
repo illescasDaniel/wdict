@@ -112,3 +112,7 @@ Implemented without a morphology dataset: UniMorph was investigated but no suita
 ## 2026-11-06 — v0.6.0 release process
 
 The Release workflow (`workflow_dispatch`, input version) validates `VERSION`, creates the tag and publishes the release, so tags are never pushed by hand. A hand-pushed `v0.6.0` was deleted before any release or proxy fetch and recreated by the workflow on the same commit `ad7cfee`. After a version bump, `frontend/build` must be rebuilt, not sed-edited, because its hash changes and CI checks it.
+
+## 2026-11-09 — Version reporting
+
+The version is `-ldflags -X main.version=$(cat VERSION)` when built via Task or the AppImage script; `go install ...@vX.Y.Z` falls back to build info (leading `v` trimmed); anything else reports `dev`. The footer label comes from the Go `App.Version()` binding, hidden when unavailable. User asked for this after finding no way to see the installed version (v0.6.0 had no flag).

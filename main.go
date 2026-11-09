@@ -8,6 +8,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime/debug"
+	"strings"
 	"sync"
 	"time"
 
@@ -20,6 +22,28 @@ import (
 
 //go:embed all:frontend/build
 var assets embed.FS
+
+// version is overridable via -ldflags "-X main.version=...".
+var version = "dev"
+
+// resolveVersion prefers the ldflags value, then the module version embedded
+// by `go install ...@vX.Y.Z`, then "dev". A leading "v" is trimmed.
+func resolveVersion(ldflag string, info *debug.BuildInfo, ok bool) string {
+	if ldflag != "" && ldflag != "dev" {
+		return ldflag
+	}
+	if ok && info != nil {
+		if v := strings.TrimPrefix(info.Main.Version, "v"); v != "" && info.Main.Version != "(devel)" {
+			return v
+		}
+	}
+	return "dev"
+}
+
+func currentVersion() string {
+	info, ok := debug.ReadBuildInfo()
+	return resolveVersion(version, info, ok)
+}
 
 type clock struct{}
 
@@ -54,6 +78,9 @@ type lookupEvent struct {
 	outcome      *core.LanguageOutcome
 	alternatives *core.AlternativesResult
 }
+
+// Version returns the application version.
+func (a *App) Version() string { return currentVersion() }
 
 func (a *App) Lookup(query string) (string, error) {
 	a.mu.Lock()
@@ -228,6 +255,10 @@ func initialWindowSize(width, height int) (int, int) {
 }
 
 func main() {
+	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-v") {
+		fmt.Println("wdict " + currentVersion())
+		return
+	}
 	installer := &adapters.Installer{Dir: filepath.Join(xdg.DataHome, "wdict", "dictionaries")}
 	spanish := &adapters.Installer{Dir: installer.Dir, Spanish: true}
 	go func() {

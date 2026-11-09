@@ -12,7 +12,7 @@ builddir=$(mktemp -d "${TMPDIR:-/tmp}/wdict-appimage.XXXXXXXX")
 trap 'rm -rf -- "$builddir"' EXIT
 npm ci --prefix frontend
 npm run build --prefix frontend
-go build -tags gtk3 -o "$builddir/wdict" .
+go build -tags gtk3 -ldflags "-X main.version=$(cat "$root/VERSION")" -o "$builddir/wdict" .
 go run -tags gtk3 github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0 generate appimage \
   -binary "$builddir/wdict" -icon "$root/packaging/linux/wdict.png" \
   -desktopfile "$root/packaging/linux/wdict.desktop" -builddir "$builddir/bundle" \

@@ -10,7 +10,7 @@ tasks:
     desc: Build the frontend and Linux app
     cmds:
       - npm run build --prefix frontend
-      - go build -tags gtk3 -o ./wdict .
+      - go build -tags gtk3 -ldflags "-X main.version=$(cat VERSION)" -o ./wdict .
 
   test:
     desc: Run frontend and Go checks

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/illescasDaniel/wdict/internal/adapters"
 	"github.com/illescasDaniel/wdict/internal/core"
+	"runtime/debug"
 	"testing"
 )
 
@@ -78,5 +79,37 @@ func TestGivenDownloadPendingWhenRequestedTwiceThenProgressIsNotFailed(t *testin
 	}
 	if p := app.Progress(); p.State != core.DownloadComplete {
 		t.Fatalf("progress=%+v", p)
+	}
+}
+
+func TestGivenBuildInfoWhenResolvingVersionThenPrefersLdflagsThenModuleVersion(t *testing.T) {
+	info := func(v string) *debug.BuildInfo { return &debug.BuildInfo{Main: debug.Module{Version: v}} }
+	for _, tc := range []struct {
+		name, ldflag string
+		info         *debug.BuildInfo
+		ok           bool
+		want         string
+	}{
+		{"ldflag set", "1.0.0", info("v2.0.0"), true, "1.0.0"},
+		{"dev with module version", "dev", info("v1.2.3"), true, "1.2.3"},
+		{"empty ldflag with module version", "", info("v1.2.3"), true, "1.2.3"},
+		{"devel build", "dev", info("(devel)"), true, "dev"},
+		{"empty module version", "dev", info(""), true, "dev"},
+		{"no build info", "dev", nil, false, "dev"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := resolveVersion(tc.ldflag, tc.info, tc.ok); got != tc.want {
+				t.Errorf("got %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestGivenVersionVariableWhenCallingAppVersionThenReturnsResolvedVersion(t *testing.T) {
+	old := version
+	defer func() { version = old }()
+	version = "3.4.5"
+	if got := (&App{}).Version(); got != "3.4.5" {
+		t.Errorf("got %q, want 3.4.5", got)
 	}
 }

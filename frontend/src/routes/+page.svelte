@@ -74,6 +74,7 @@
     error = "",
     errorID = "",
     metadataError = "",
+    version = "",
     seq = 0;
   async function refresh() {
     const id = ++refreshSeq;
@@ -117,6 +118,12 @@
     applyAppearance();
     queryInput?.focus();
     refresh();
+    (async () => {
+      try {
+        const value = await call("Version");
+        if (typeof value === "string") version = value;
+      } catch {}
+    })();
     let unsubscribe;
     let unsubscribeAlternatives;
     let disposed = false;
@@ -613,6 +620,9 @@
         >
       </div>
     </div>
+    {#if version}<span class="version"
+        >{version === "dev" ? "dev" : `v${version}`}</span
+      >{/if}
   </div>
 </footer>
 
@@ -672,6 +682,11 @@
     display: flex;
     align-items: center;
     gap: 10px;
+  }
+  .version {
+    margin-left: auto;
+    font-size: 11px;
+    opacity: 0.85;
   }
   .setting label {
     margin: 0;
@@ -902,6 +917,10 @@
     .setting {
       width: 100%;
       justify-content: space-between;
+    }
+    .version {
+      width: 100%;
+      text-align: right;
     }
     .search {
       flex-wrap: wrap;

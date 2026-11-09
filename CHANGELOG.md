@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.6.1] - 2026-11-09
+
+- Add `wdict --version` (and `-v`) and show the app version in the footer.
+
 ## [0.6.0] - 2026-11-06
 
 - Suggest offline alternatives, inflected forms and spelling corrections (including phrase headwords) when a lookup misses.

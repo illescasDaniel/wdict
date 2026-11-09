@@ -1063,4 +1063,38 @@ describe("result order", () => {
       lookupsBefore,
     );
   });
+  it.each([
+    ["0.6.0", "v0.6.0"],
+    ["dev", "dev"],
+  ])(
+    "given_backend_version_when_footer_renders_then_label_is_shown (%s)",
+    async (version, label) => {
+      // given
+      mockBackend(async (method) =>
+        method === "Version"
+          ? version
+          : method === "Dictionaries"
+            ? [dictionary]
+            : {},
+      );
+      // when
+      render(Page);
+      // then
+      expect(await screen.findByText(label)).toBeTruthy();
+    },
+  );
+  it("given_version_call_fails_when_footer_renders_then_no_label_is_shown", async () => {
+    // given
+    mockBackend(async (method) => {
+      if (method === "Version") throw new Error("boom");
+      return method === "Dictionaries" ? [dictionary] : {};
+    });
+    // when
+    render(Page);
+    await waitFor(() =>
+      expect(call.mock.calls.some(([name]) => name === "Version")).toBe(true),
+    );
+    // then
+    expect(document.querySelector(".version")).toBeNull();
+  });
 });

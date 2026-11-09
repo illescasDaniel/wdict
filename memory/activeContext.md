@@ -2,7 +2,7 @@
 
 ## Current focus
 
-v0.6.0 is released (2026-11-06): GitHub release Latest with the Linux x86_64 AppImage, module served by the Go proxy, and the Go-installed `/home/daniel/go/bin/wdict` reports v0.6.0. It ships lookup alternatives (inflected forms and spelling suggestions, including phrase headwords) and interface-language result ordering. Release commits: `1de1e80` (version bump) and `ad7cfee` (rebuilt `frontend/build`); the Release workflow was dispatched with version 0.6.0 and created the tag itself.
+v0.6.0 is released (2026-11-06; lookup alternatives and interface-language result ordering). v0.6.1 (2026-11-09) adds `wdict --version`/`-v` (ldflags `main.version`, falling back to the `go install` module version, then `dev`) and a muted version label at the end of the footer via `App.Version()`. The user noticed v0.6.0 had no way to show its version. Release process: bump version files, rebuild `frontend/build` with `npm run build --prefix frontend`, wait for green CI, then dispatch the Release workflow (it creates the tag; never push `v*` by hand), then `go install -tags gtk3 github.com/illescasDaniel/wdict@vX.Y.Z`.
 
 Earlier work (v0.5.0 footer and interface language, v0.4.0 Spanish support, silent HTTP 502 handling per `src:fbb1669e08460c8e2421`, Agentic-loadout 0.5.0 setup) is recorded in `progress.md` and `decisions.md`.
 

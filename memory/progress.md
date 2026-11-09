@@ -139,3 +139,5 @@
 - [x] Approved and implemented result order that follows the interface language (2026-11-06): spec amendment in `specs/footer-language/SPEC.md`, two frontend tests, `$:` ordering in `+page.svelte`, rebuilt `frontend/build`. Quality gate and independent review passed; not committed.
 
 - [x] Released v0.6.0 on 2026-11-06 (bump `1de1e80`, asset rebuild `ad7cfee`): CI green, Release workflow succeeded, AppImage attached, proxy serves it, and `go install` updated `/home/daniel/go/bin/wdict` to v0.6.0.
+
+- [x] Added `wdict --version`/`-v` and a footer version label for v0.6.1 on 2026-11-09 (Go: `resolveVersion` with tests, ldflags in Taskfile and `build-appimage.sh`; frontend: footer label with 3 tests). Gate green (60 frontend tests, Go tests). Not yet verified in the native window.
