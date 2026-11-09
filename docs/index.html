@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Interactive map of wdict's components, dependencies and data flows.">
+<title>wdict Architecture Map</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap">
+<style>
+/* Layout: five-column dependency map (frontend, bridge, core, adapters, outside world) beside a detail panel that lists flow steps and component facts. */
+:root {
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --fg: #16202b;
+  --muted: #5b6876;
+  --line: #d3dae2;
+  --accent: #1f5fd1;
+  --c-ui: #1f8a70;
+  --c-bridge: #7a56d6;
+  --c-core: #c47a12;
+  --c-adapt: #2b6cd6;
+  --c-ext: #6d7885;
+  --font-display: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f151c; --surface: #17202a; --fg: #e5ebf1; --muted: #93a1b0; --line: #2a3643; --accent: #6f9bf2;
+    --c-ui: #46c3a4; --c-bridge: #a78bf5; --c-core: #e6a244; --c-adapt: #6f9bf2; --c-ext: #9aa6b3;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f151c; --surface: #17202a; --fg: #e5ebf1; --muted: #93a1b0; --line: #2a3643; --accent: #6f9bf2;
+  --c-ui: #46c3a4; --c-bridge: #a78bf5; --c-core: #e6a244; --c-adapt: #6f9bf2; --c-ext: #9aa6b3;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-block: 28px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(28px, 4vw, 40px); line-height: 1.1; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.lede { margin: 6px 0 0; color: var(--muted); max-width: 70ch; }
+code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.tab { font: inherit; font-weight: 500; background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 14px; cursor: pointer; }
+.tab small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+.tab[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.tab:focus-visible, .node:focus-visible, .step:focus-visible, .link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+@media (max-width: 1000px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.map { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; }
+.map svg { display: block; width: 100%; min-width: 900px; height: auto; }
+.colhead { font: 500 11px var(--font-body); letter-spacing: 0.09em; text-transform: uppercase; fill: var(--muted); }
+.band { fill: var(--bg); }
+.node { cursor: pointer; }
+.node rect.box { fill: color-mix(in srgb, var(--c) 13%, var(--surface)); stroke: color-mix(in srgb, var(--c) 55%, var(--surface)); stroke-width: 1.2; }
+.node rect.tick { fill: var(--c); }
+.node text.t { font: 600 13px var(--font-body); fill: var(--fg); }
+.node text.s { font: 400 11px var(--font-body); fill: var(--muted); }
+.node:hover rect.box { stroke: var(--c); }
+.node.sel rect.box { stroke: var(--c); stroke-width: 2.4; }
+.node.dim { opacity: 0.35; }
+.edge path { fill: none; stroke: var(--muted); stroke-width: 1.3; opacity: 0.55; }
+.edge.on path { stroke: var(--accent); stroke-width: 2.4; opacity: 1; }
+.edge.dim path { opacity: 0.12; }
+.badge rect { fill: var(--accent); }
+.badge text { font: 600 11px var(--font-body); fill: #fff; }
+.edge.hidden-badge .badge { display: none; }
+.panel { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+.card h2 { font-family: var(--font-display); font-weight: 600; font-size: 22px; line-height: 1.2; margin: 0 0 4px; }
+.eyebrow { font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin: 0 0 6px; }
+.pill { display: inline-block; font-size: 12px; font-weight: 500; padding: 1px 9px; border-radius: 99px; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 50%, var(--surface)); background: color-mix(in srgb, var(--c) 10%, var(--surface)); }
+.files { display: flex; flex-direction: column; gap: 2px; margin: 10px 0; color: var(--muted); overflow-wrap: anywhere; }
+.card p { margin: 8px 0; }
+.card ul { margin: 8px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; }
+.sub { font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin: 16px 0 4px; }
+.conn { list-style: none; padding: 0 !important; display: flex; flex-direction: column; gap: 4px !important; }
+.conn li { display: flex; gap: 8px; align-items: baseline; }
+.arrow { color: var(--muted); font-family: var(--font-mono); flex: none; width: 2.4em; }
+.link { font: inherit; background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-align: left; font-weight: 500; }
+.link:hover { text-decoration: underline; }
+.how { color: var(--muted); font-size: 13px; }
+ol.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; counter-reset: s; }
+.step { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; width: 100%; text-align: left; font: inherit; color: var(--fg); background: none; border: 1px solid transparent; border-radius: 6px; padding: 7px 8px; cursor: pointer; }
+.step:hover { background: var(--bg); }
+.step[aria-current="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.step b { font: 600 12px var(--font-body); color: #fff; background: var(--accent); border-radius: 99px; width: 22px; height: 22px; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 13px; padding: 0 2px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 2px; background: var(--c); display: inline-block; }
+.rule { color: var(--muted); font-size: 13px; }
+@media (prefers-reduced-motion: no-preference) { .edge path, .node { transition: opacity .15s, stroke .15s; } }
+</style>
+<style>body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>wdict architecture map</h1>
+    <p class="lede">A desktop dictionary for English and Spanish, built with Go, Wails v3 and SvelteKit. Pick a flow to follow one request through the components, or click any box to see what it owns and who it talks to.</p>
+  </header>
+
+  <div class="tabs" role="group" aria-label="Flow">
+    <button class="tab" id="tab-deps" data-flow="deps" aria-pressed="true">All connections<small>how the parts depend on each other</small></button>
+    <button class="tab" id="tab-search" data-flow="search" aria-pressed="false">Word search<small>query to definitions, both languages</small></button>
+    <button class="tab" id="tab-alts" data-flow="alts" aria-pressed="false">Suggestions<small>after a word is not found</small></button>
+    <button class="tab" id="tab-download" data-flow="download" aria-pressed="false">Dictionary download<small>install an offline dictionary</small></button>
+  </div>
+
+  <div class="main">
+    <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+      <div class="map"><svg id="svg" viewBox="0 0 1100 560" role="group" aria-label="Component diagram"></svg></div>
+      <div class="legend" id="legend"></div>
+      <p class="rule">Dependency rule: <code>internal/core</code> imports no adapter code. It defines interfaces (ports) and the adapters implement them. Only <code>main()</code> knows both sides and wires them together.</p>
+    </div>
+    <aside class="panel" aria-live="polite">
+      <div class="card" id="steps-card" hidden></div>
+      <div class="card" id="detail"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function () {
+  var LAYERS = {
+    ui: { name: "Frontend", c: "var(--c-ui)" },
+    bridge: { name: "Wails and Go shell", c: "var(--c-bridge)" },
+    core: { name: "Core (pure Go)", c: "var(--c-core)" },
+    adapt: { name: "Adapters", c: "var(--c-adapt)" },
+    ext: { name: "Outside world", c: "var(--c-ext)" }
+  };
+  var COLS = [
+    { x: 16, w: 150, name: "Frontend" },
+    { x: 206, w: 160, name: "Shell and bridge" },
+    { x: 416, w: 190, name: "Core" },
+    { x: 656, w: 200, name: "Adapters" },
+    { x: 896, w: 190, name: "Outside world" }
+  ];
+  var NODES = [
+    { id: "i18n", col: 0, y: 56, h: 64, layer: "ui", t: "language · appearance", s: "interface text, theme",
+      files: ["frontend/src/language.js", "frontend/src/appearance.js"],
+      d: "i18next resources for the English and Spanish interface, and the light, dark or system theme preference.",
+      facts: ["The theme is kept in localStorage under wdict-appearance; reads and writes tolerate storage being unavailable.", "The interface language also decides which language's results are listed first."] },
+    { id: "ui", col: 0, y: 150, h: 64, layer: "ui", t: "+page.svelte", s: "SvelteKit single page",
+      files: ["frontend/src/routes/+page.svelte"],
+      d: "The whole UI: search form, one result block per language, suggestions, and the offline dictionary list with download buttons.",
+      facts: ["Each search gets a sequence number, so answers to an older query are ignored.", "Events that arrive before Lookup returns its SearchID are buffered, then replayed.", "Source links pass a safeLink check before being rendered.", "Built to frontend/build and embedded into the Go binary."] },
+    { id: "api", col: 0, y: 290, h: 64, layer: "ui", t: "lib-api.js", s: "Wails client wrapper",
+      files: ["frontend/src/lib-api.js"],
+      d: "Loads /wails/runtime.js on first use and exposes call(method, ...args) plus two event subscriptions.",
+      facts: ["call() maps to Call.ByName('main.App.' + method).", "Subscribes to the lookup:result and lookup-alternatives events."] },
+    { id: "comp", col: 1, y: 56, h: 64, layer: "bridge", t: "main()", s: "composition root",
+      files: ["main.go"],
+      d: "Builds every adapter, injects them into the core services, creates the App, embeds the frontend and opens the window.",
+      facts: ["Installers store dictionaries under the XDG data directory; the response cache lives in the user cache directory.", "Runs Installer.Recover() in the background to clean up interrupted installs.", "Sizes the initial window from the primary display."] },
+    { id: "app", col: 1, y: 150, h: 100, layer: "bridge", t: "main.App", s: "bound service, search state",
+      files: ["main.go"],
+      d: "The Go object the frontend can call. It owns the state of the current search and turns core results into UI events.",
+      facts: ["Methods: Lookup, RetryLanguage, Dictionaries, Download, Progress.", "A new Lookup cancels the previous search and issues a SearchID plus a per-language AttemptID.", "One ordered dispatcher delivers events and drops stale ones, without holding the mutex while calling Wails.", "Starts suggestion search when a language reports not_found.", "Allows one download at a time."] },
+    { id: "wails", col: 1, y: 290, h: 64, layer: "bridge", t: "Wails v3 runtime", s: "window, IPC, events",
+      files: ["github.com/wailsapp/wails/v3"],
+      d: "Native window with a web view, a bridge for method calls and an event bus. Assets are served from the embedded frontend/build.",
+      facts: ["On Linux it needs the gtk3 build tag (GTK 3, WebKit2GTK 4.1).", "Go to UI events: app.Event.Emit('lookup:result' | 'lookup-alternatives')."] },
+    { id: "alt", col: 2, y: 56, h: 64, layer: "core", t: "AlternativesService", s: "base forms, spelling",
+      files: ["internal/core/alternatives.go", "internal/core/alternatives_service.go"],
+      d: "Suggests other headwords for a word that was not found, using only the installed dictionary.",
+      facts: ["Runs only after a confirmed miss, with a 2 second deadline.", "Candidates are possible base forms (suffix rules) and close spellings ranked by edit distance up to 2; at most 5 are kept.", "Every candidate is checked against real headwords.", "On timeout it returns timed_out with no partial list."] },
+    { id: "dsvc", col: 2, y: 140, h: 64, layer: "core", t: "DictionaryService", s: "trusted install requests",
+      files: ["internal/core/dictionaries.go"],
+      d: "Lists dictionaries and installs only IDs found in the catalog. URLs and checksums never come from the frontend." ,
+      facts: ["Implements the Dictionaries port."] },
+    { id: "bil", col: 2, y: 240, h: 64, layer: "core", t: "BilingualService", s: "English + Spanish fan-out",
+      files: ["internal/core/bilingual.go", "internal/core/bilingual_service.go"],
+      d: "Runs a search in both languages at the same time and reports each outcome as soon as it is ready.",
+      facts: ["RetryLanguage repeats one language and keeps the other result.", "Validates the query before resolving any source.", "A SourceResolver supplies the offline source, online source and cache provider name per language."] },
+    { id: "look", col: 2, y: 334, h: 64, layer: "core", t: "LookupService", s: "one language, tiered sources",
+      files: ["internal/core/lookup.go"],
+      d: "The lookup policy for a single language: validate, then offline dictionary, memory cache, disk cache and online provider, in that order.",
+      facts: ["Queries are limited to 256 characters with no control characters.", "Cache entries younger than 365 days are fresh; disk hits are promoted to memory.", "If the online source fails, a stale cached entry is returned and marked stale.", "HTTP 502 becomes silent_unavailable instead of an error message.", "Statuses: found, not_found, invalid_query, source_unavailable, silent_unavailable."] },
+    { id: "ports", col: 2, y: 450, h: 70, layer: "core", t: "ports · domain", s: "interfaces and types",
+      files: ["internal/core/ports.go", "internal/core/domain.go"],
+      d: "Entry, Meaning, LookupResult, Dictionary and the interfaces the core depends on.",
+      facts: ["Ports: DictionarySource, Cache, DictionaryCatalog, DictionaryInstaller, HeadwordIndex, Clock.", "Adapters implement these; the core never imports them."] },
+    { id: "idx", col: 3, y: 56, h: 64, layer: "adapt", t: "StarDictHeadwordIndex", s: "streams headwords",
+      files: ["internal/adapters/offline_alternatives.go"],
+      d: "Implements HeadwordIndex by reading the dictionary's index and synonym files in one pass.",
+      facts: ["Work is bounded; a scan that cannot finish returns an error instead of looking complete.", "Synonym targets are verified to exist."] },
+    { id: "cat", col: 3, y: 140, h: 64, layer: "adapt", t: "Catalog · Installer", s: "download and install",
+      files: ["internal/adapters/catalog.go", "internal/adapters/install.go"],
+      d: "Catalog routes the fixed English and Spanish IDs to their Installer. The Installer downloads, verifies and installs a dictionary package.",
+      facts: ["Process and in-process locks prevent concurrent installs.", "Checks package size and SHA-256 before extracting the .tar.zst.", "Extraction validates paths; the install is an atomic rename with a backup restored on failure."] },
+    { id: "offline", col: 3, y: 224, h: 64, layer: "adapt", t: "OfflineDictionary", s: "StarDict reader",
+      files: ["internal/adapters/offline.go"],
+      d: "Implements DictionarySource on top of an installed Wiktionary StarDict dictionary.",
+      facts: ["Opens the dictionary lazily and returns not-found if it is not installed.", "Scans compact indexes with case and accent folding, keeps a small in-memory result cache, and converts HTML definitions to meanings.", "Entries carry Wiktionary attribution and license."] },
+    { id: "online", col: 3, y: 318, h: 64, layer: "adapt", t: "Online providers", s: "English and Spanish",
+      files: ["internal/adapters/provider.go", "internal/adapters/spanish.go"],
+      d: "OnlineDictionary reads the Free Dictionary API (English). SpanishOnlineDictionary reads the Spanish Wiktionary API and parses its HTML.",
+      facts: ["10 second timeout; the English response is capped at 2 MiB.", "Source and license URLs must be http(s) without credentials.", "HTTP 502 maps to ErrSilentUnavailable."] },
+    { id: "mem", col: 3, y: 392, h: 56, layer: "adapt", t: "MemoryCache", s: "in-process tier",
+      files: ["internal/adapters/cache.go"],
+      d: "Implements Cache in memory for the current run.", facts: [] },
+    { id: "disk", col: 3, y: 456, h: 64, layer: "adapt", t: "DiskCache", s: "persistent tier",
+      files: ["internal/adapters/cache.go"],
+      d: "Implements Cache with one JSON file per record.",
+      facts: ["Writes through a temp file and a rename so a failed write cannot damage an existing entry.", "Validates records on read and bounds record size."] },
+    { id: "gh", col: 4, y: 56, h: 64, layer: "ext", t: "GitHub release", s: "xxyzz/wiktionary_stardict",
+      files: ["en-en.tar.zst", "es-es.tar.zst (release 20261018)"],
+      d: "Compiled Wiktionary dictionaries in StarDict format, downloaded on request.", facts: [] },
+    { id: "fs", col: 4, y: 140, h: 110, layer: "ext", t: "StarDict files", s: "XDG data dir / wdict / dictionaries",
+      files: ["~/.local/share/wdict/dictionaries (Linux)"],
+      d: "Installed dictionaries on disk. Written by the Installer, read by the offline lookup and the suggestion index.", facts: [] },
+    { id: "extEn", col: 4, y: 318, h: 64, layer: "ext", t: "Free Dictionary API", s: "api.dictionaryapi.dev",
+      files: ["GET /api/v2/entries/en/{word}"], d: "Online fallback for English.", facts: [] },
+    { id: "extEs", col: 4, y: 392, h: 64, layer: "ext", t: "es.wiktionary.org", s: "MediaWiki api.php",
+      files: ["https://es.wiktionary.org/w/api.php"], d: "Online fallback for Spanish.", facts: [] },
+    { id: "cachefs", col: 4, y: 466, h: 64, layer: "ext", t: "Response cache", s: "user cache dir / wdict / responses",
+      files: ["os.UserCacheDir()/wdict/responses"], d: "Cached online answers, one file per language and normalized query.", facts: [] }
+  ];
+  var EDGES = [
+    ["ui", "i18n", "imports", false],
+    ["ui", "api", "call and events", true],
+    ["api", "wails", "Call.ByName, Events.On", true],
+    ["wails", "app", "bound method calls, Event.Emit", true],
+    ["comp", "app", "constructs and wires", false],
+    ["app", "bil", "Lookup, RetryLanguage", false],
+    ["app", "alt", "FindAlternatives", false],
+    ["app", "dsvc", "List, Download", false],
+    ["bil", "look", "one LookupService per language", false],
+    ["look", "offline", "Find via DictionarySource", false],
+    ["look", "online", "Find via DictionarySource", false],
+    ["look", "mem", "Get, Put via Cache", false],
+    ["look", "disk", "Get, Put via Cache", false],
+    ["alt", "idx", "IterateHeadwords via HeadwordIndex", false],
+    ["dsvc", "cat", "Find, Install", false],
+    ["offline", "fs", "reads .ifo, .idx, .dict", false],
+    ["idx", "fs", "streams .idx and synonyms", false],
+    ["cat", "fs", "atomic install", false],
+    ["cat", "gh", "HTTPS download", false],
+    ["online", "extEn", "HTTPS GET", false],
+    ["online", "extEs", "HTTPS GET", false],
+    ["disk", "cachefs", "JSON files", false]
+  ];
+  var FLOWS = {
+    search: [
+      ["ui>api", "The form calls call('Lookup', query)."],
+      ["api>wails", "lib-api loads the runtime and issues Call.ByName('main.App.Lookup')."],
+      ["wails>app", "App.Lookup cancels the previous search, assigns a SearchID and returns it right away. The work continues in a goroutine."],
+      ["app>bil", "BilingualService starts English and Spanish in parallel. Each language reports separately."],
+      ["bil>look", "For each language the query is validated and a LookupService is built from that language's sources."],
+      ["look>offline", "The installed offline dictionary is tried first. A hit returns with origin offline."],
+      ["look>mem", "On a miss, the memory cache is checked."],
+      ["look>disk", "Then the disk cache. Entries under 365 days old are fresh and get promoted to memory. Fresh online results are written back here."],
+      ["look>online", "Still nothing: the online provider is asked, with a 10 second timeout. If it fails, a stale cached copy is used when one exists."],
+      ["online>extEn", "English goes to the Free Dictionary API."],
+      ["online>extEs", "Spanish goes to es.wiktionary.org."],
+      ["wails>app", "Each outcome comes back as a lookup:result event. The dispatcher drops events from superseded searches and retries."],
+      ["ui>api", "The page receives the outcome through onLookupResult and shows it under its language."]
+    ],
+    alts: [
+      ["wails>app", "A language answers not_found. If its dictionary file exists, App starts the suggestion search independently of the lookup event."],
+      ["app>alt", "FindAlternatives runs for that search and attempt with a 2 second deadline."],
+      ["alt>idx", "Headwords stream from the installed dictionary. Close spellings and possible base forms are ranked."],
+      ["idx>fs", "The index and synonym files are read with bounded work, so candidates are real headwords."],
+      ["api>wails", "The result (ready, unavailable or timed_out) is queued as a lookup-alternatives event. It is dropped if the search has moved on."],
+      ["ui>api", "The page shows 'Possible base forms' and 'Did you mean?' under the missing language."]
+    ],
+    download: [
+      ["ui>api", "The Download button calls call('Download', id)."],
+      ["api>wails", "The call crosses the Wails bridge to main.App.Download."],
+      ["wails>app", "App accepts one download at a time and keeps progress state, readable through Progress()."],
+      ["app>dsvc", "DictionaryService only accepts IDs from the trusted catalog."],
+      ["dsvc>cat", "The catalog routes the ID to the English or Spanish Installer."],
+      ["cat>gh", "The .tar.zst package is downloaded (20 minute limit) and its size and SHA-256 are checked."],
+      ["cat>fs", "Files are extracted to a temp directory with path checks, then renamed into place. A backup is kept until the swap succeeds."],
+      ["ui>api", "When the call returns the page reloads the dictionary list, and the offline source can answer for that language."]
+    ]
+  };
+
+  var NS = "http://www.w3.org/2000/svg";
+  var svg = document.getElementById("svg");
+  var byId = {};
+  NODES.forEach(function (n) { n.x = COLS[n.col].x; n.w = COLS[n.col].w; n.cy = n.y + n.h / 2; n.cx = n.x + n.w / 2; byId[n.id] = n; });
+  var state = { flow: "deps", sel: "app", step: null };
+
+  function el(name, attrs, parent) {
+    var e = document.createElementNS(NS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function txt(s) { return document.createTextNode(s); }
+
+  var defs = el("defs", {}, svg);
+  var m = el("marker", { id: "arr", viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: "7", markerHeight: "7", orient: "auto-start-reverse" }, defs);
+  el("path", { d: "M0 0 L10 5 L0 10 z", fill: "context-stroke" }, m);
+
+  COLS.forEach(function (c, i) {
+    if (i % 2 === 0) el("rect", { x: c.x - 8, y: 0, width: c.w + 16, height: 560, class: "band" }, svg);
+    var t = el("text", { x: c.x, y: 30, class: "colhead" }, svg);
+    t.appendChild(txt(c.name));
+  });
+
+  var edgeLayer = el("g", {}, svg);
+  var nodeLayer = el("g", {}, svg);
+  var edgeEls = {};
+
+  function geom(a, b) {
+    var p1, p2, d;
+    if (a.col !== b.col) {
+      if (a.col < b.col) { p1 = [a.x + a.w, a.cy]; p2 = [b.x, b.cy]; }
+      else { p1 = [a.x, a.cy]; p2 = [b.x + b.w, b.cy]; }
+      var dx = (p2[0] - p1[0]) / 2;
+      d = "M" + p1[0] + " " + p1[1] + " C" + (p1[0] + dx) + " " + p1[1] + " " + (p2[0] - dx) + " " + p2[1] + " " + p2[0] + " " + p2[1];
+    } else {
+      if (a.cy < b.cy) { p1 = [a.cx, a.y + a.h]; p2 = [b.cx, b.y]; }
+      else { p1 = [a.cx, a.y]; p2 = [b.cx, b.y + b.h]; }
+      d = "M" + p1[0] + " " + p1[1] + " L" + p2[0] + " " + p2[1];
+    }
+    return { d: d, mx: (p1[0] + p2[0]) / 2, my: (p1[1] + p2[1]) / 2 };
+  }
+
+  EDGES.forEach(function (e) {
+    var a = byId[e[0]], b = byId[e[1]], g = geom(a, b);
+    var key = e[0] + ">" + e[1];
+    var grp = el("g", { class: "edge" }, edgeLayer);
+    var attrs = { d: g.d, "marker-end": "url(#arr)" };
+    if (e[3]) attrs["marker-start"] = "url(#arr)";
+    el("path", attrs, grp);
+    var badge = el("g", { class: "badge" }, grp);
+    var r = el("rect", { height: 20, rx: 10, y: g.my - 10 }, badge);
+    var t = el("text", { y: g.my + 4, "text-anchor": "middle" }, badge);
+    edgeEls[key] = { g: grp, rect: r, text: t, mx: g.mx, my: g.my, from: e[0], to: e[1], label: e[2] };
+  });
+
+  NODES.forEach(function (n) {
+    var g = el("g", { class: "node", tabindex: "0", role: "button", "data-id": n.id, "aria-label": n.t + ", " + n.s, style: "--c:" + LAYERS[n.layer].c }, nodeLayer);
+    el("rect", { class: "box", x: n.x, y: n.y, width: n.w, height: n.h, rx: 6 }, g);
+    el("rect", { class: "tick", x: n.x, y: n.y + 8, width: 3, height: n.h - 16 }, g);
+    var t = el("text", { class: "t", x: n.x + 12, y: n.cy - (n.h > 70 ? 0 : 2) }, g); t.appendChild(txt(n.t));
+    var s = el("text", { class: "s", x: n.x + 12, y: n.cy + 15 }, g); s.appendChild(txt(n.s));
+    g.addEventListener("click", function () { select(n.id); });
+    g.addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); select(n.id); } });
+    n.g = g;
+  });
+
+  function stepsFor(flow) { return FLOWS[flow] || []; }
+
+  function render() {
+    var steps = stepsFor(state.flow);
+    var stepNums = {};
+    steps.forEach(function (s, i) { (stepNums[s[0]] = stepNums[s[0]] || []).push(i + 1); });
+    var activeEdge = state.step !== null ? steps[state.step][0] : null;
+    var touched = {};
+    Object.keys(edgeEls).forEach(function (k) {
+      var e = edgeEls[k], cls = "edge";
+      if (state.flow === "deps") {
+        if (e.from === state.sel || e.to === state.sel) { cls += " on"; touched[e.from] = touched[e.to] = true; }
+        cls += " hidden-badge";
+      } else if (stepNums[k]) {
+        cls += activeEdge ? (k === activeEdge ? " on" : "") : " on";
+        if (activeEdge && k !== activeEdge) cls += " dim";
+        touched[e.from] = touched[e.to] = true;
+        var label = stepNums[k].join(" · ");
+        e.text.textContent = label;
+        var w = 14 + label.length * 6.5;
+        e.rect.setAttribute("width", w); e.rect.setAttribute("x", e.mx - w / 2);
+        e.text.setAttribute("x", e.mx);
+      } else {
+        cls += " dim hidden-badge";
+      }
+      e.g.setAttribute("class", cls);
+    });
+    NODES.forEach(function (n) {
+      var cls = "node";
+      if (n.id === state.sel) cls += " sel";
+      if (state.flow !== "deps" && !touched[n.id] && n.id !== state.sel) cls += " dim";
+      n.g.setAttribute("class", cls);
+    });
+    document.querySelectorAll(".tab").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.flow === state.flow)); });
+    renderSteps(steps);
+    renderDetail();
+  }
+
+  function renderSteps(steps) {
+    var card = document.getElementById("steps-card");
+    if (state.flow === "deps") { card.hidden = true; return; }
+    card.hidden = false;
+    card.textContent = "";
+    var tab = document.getElementById("tab-" + state.flow);
+    var p = document.createElement("p"); p.className = "eyebrow"; p.textContent = "Flow"; card.appendChild(p);
+    var h = document.createElement("h2"); h.textContent = tab.firstChild.textContent; card.appendChild(h);
+    var ol = document.createElement("ol"); ol.className = "steps"; ol.style.marginTop = "12px";
+    steps.forEach(function (s, i) {
+      var li = document.createElement("li");
+      var b = document.createElement("button"); b.className = "step"; b.type = "button";
+      if (state.step === i) b.setAttribute("aria-current", "true");
+      var n = document.createElement("b"); n.textContent = String(i + 1);
+      var span = document.createElement("span"); span.textContent = s[1];
+      b.appendChild(n); b.appendChild(span);
+      b.addEventListener("click", function () {
+        state.step = state.step === i ? null : i;
+        if (state.step !== null) { var ed = edgeEls[s[0]]; state.sel = ed.to === state.sel ? ed.from : ed.to; if (state.sel === undefined) state.sel = ed.to; }
+        render();
+      });
+      li.appendChild(b); ol.appendChild(li);
+    });
+    card.appendChild(ol);
+  }
+
+  function renderDetail() {
+    var n = byId[state.sel], box = document.getElementById("detail");
+    box.textContent = "";
+    box.style.setProperty("--c", LAYERS[n.layer].c);
+    function add(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; box.appendChild(e); return e; }
+    add("p", "eyebrow", "Component");
+    add("h2", "", n.t);
+    var pl = add("span", "pill", LAYERS[n.layer].name);
+    var files = add("div", "files");
+    n.files.forEach(function (f) { var c = document.createElement("code"); c.textContent = f; files.appendChild(c); });
+    add("p", "", n.d);
+    if (n.facts.length) {
+      add("div", "sub", "Good to know");
+      var ul = add("ul"); n.facts.forEach(function (f) { var li = document.createElement("li"); li.textContent = f; ul.appendChild(li); });
+    }
+    var out = [], inn = [];
+    Object.keys(edgeEls).forEach(function (k) {
+      var e = edgeEls[k];
+      if (e.from === n.id) out.push(e); else if (e.to === n.id) inn.push(e);
+    });
+    function list(title, arr, sym, other) {
+      if (!arr.length) return;
+      add("div", "sub", title);
+      var ul = add("ul", "conn");
+      arr.forEach(function (e) {
+        var li = document.createElement("li");
+        var a = document.createElement("span"); a.className = "arrow"; a.textContent = sym;
+        var b = document.createElement("button"); b.type = "button"; b.className = "link"; b.textContent = byId[e[other]].t;
+        b.addEventListener("click", function () { select(e[other]); });
+        var how = document.createElement("span"); how.className = "how"; how.textContent = e.label;
+        li.appendChild(a); li.appendChild(b); li.appendChild(how); ul.appendChild(li);
+      });
+    }
+    list("Calls or uses", out, "→", "to");
+    list("Used by", inn, "←", "from");
+  }
+
+  function select(id) { state.sel = id; state.step = null; render(); }
+
+  document.querySelectorAll(".tab").forEach(function (b) {
+    b.addEventListener("click", function () { state.flow = b.dataset.flow; state.step = null; render(); });
+  });
+
+  var lg = document.getElementById("legend");
+  Object.keys(LAYERS).forEach(function (k) {
+    var s = document.createElement("span"); s.style.setProperty("--c", LAYERS[k].c);
+    var i = document.createElement("i"); s.appendChild(i); s.appendChild(txt(LAYERS[k].name)); lg.appendChild(s);
+  });
+  var hint = document.createElement("span"); hint.textContent = "Arrows point from caller to callee; double arrows carry calls one way and events back."; lg.appendChild(hint);
+
+  render();
+})();
+</script>
+
+</body>
+</html>
