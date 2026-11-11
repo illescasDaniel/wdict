@@ -148,5 +148,5 @@
 
 - [x] Phonetic pronunciation revisions R3 (limit after flag mapping) and R4 (ignore "dialectal"/"obsolete"; generic UK+US shows no flags) built and graded PASS on 2026-11-11; not committed. Open: G8 (5-run performance medians), real-window check.
 
-- [x] Committed phonetic pronunciation and bumped to v0.7.0 on 2026-11-11 (VERSION, frontend package files, README, CHANGELOG, rebuilt `frontend/build`). Release workflow dispatch and CI result: see the next entry once done.
+- [x] Committed phonetic pronunciation and bumped to v0.7.0 on 2026-11-11 (VERSION, frontend package files, README, CHANGELOG, rebuilt `frontend/build`). Released v0.7.0 on 2026-11-11: CI green, Release workflow succeeded, AppImage `wdict-x86_64.AppImage` attached, and `go install -tags gtk3 github.com/illescasDaniel/wdict@v0.7.0` updated `/home/daniel/go/bin/wdict` (`wdict --version` printed 0.7.0).
 - [ ] Next feature: AI voice for pronunciation (not started).

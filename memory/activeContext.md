@@ -2,7 +2,7 @@
 
 ## Phonetic pronunciation (2026-11-11)
 
-Committed and prepared as v0.7.0 (IPA pronunciations); release is dispatched manually after green CI. Open: grader item G8 (the approved 5-run median performance report was not re-measured; the user has not decided). Not verified: real-window check, flags without a flag font. Next task the user named: an AI voice for pronunciation (start with the `sdd-html-feature` design gate).
+Released as v0.7.0 (IPA pronunciations) and installed locally. Open: grader item G8 (the approved 5-run median performance report was not re-measured; the user has not decided). Not verified: real-window check, flags without a flag font. Next task the user named: an AI voice for pronunciation (start with the `sdd-html-feature` design gate).
 
 ## Current focus
 
