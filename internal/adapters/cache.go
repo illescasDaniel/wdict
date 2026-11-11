@@ -106,6 +106,9 @@ func (c *DiskCache) Get(_ context.Context, k core.CacheKey) (core.CacheRecord, b
 	if len(b) > 2*1024*1024 || json.Unmarshal(b, &item) != nil || item.Version != 1 || item.Record.Key != k || !validCacheEntries(item.Record.Entries, k.Language) || item.Record.FetchedAt.IsZero() {
 		return zero, false, nil
 	}
+	for i := range item.Record.Entries {
+		item.Record.Entries[i].Pronunciations = core.NormalizePronunciations(item.Record.Entries[i].Pronunciations)
+	}
 	return item.Record, true, nil
 }
 

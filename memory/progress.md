@@ -143,3 +143,7 @@
 - [x] Released v0.6.0 on 2026-11-06 (bump `1de1e80`, asset rebuild `ad7cfee`): CI green, Release workflow succeeded, AppImage attached, proxy serves it, and `go install` updated `/home/daniel/go/bin/wdict` to v0.6.0.
 
 - [x] Added `wdict --version`/`-v` and a footer version label for v0.6.1 on 2026-11-09 (Go: `resolveVersion` with tests, ldflags in Taskfile and `build-appimage.sh`; frontend: footer label with 3 tests). Gate green (60 frontend tests, Go tests). Not yet verified in the native window.
+
+- [x] Phonetic pronunciation (IPA) built through `sdd/phonetic-pronunciation.html` on 2026-11-11, revisions R1 to R3 approved in chat (design, spec, architecture, design R2, spec R2, architecture R2, spec R3). Quality gate green; QA matched S1 to S13 and the independent grader returned PASS on R2. The spec R3 change (G7) and the G6 test were fixed after grading and are not re-graded. Not committed. Not verified: real Wails/WebKitGTK window, flags on systems without a flag font, screen readers.
+
+- [x] Phonetic pronunciation revisions R3 (limit after flag mapping) and R4 (ignore "dialectal"/"obsolete"; generic UK+US shows no flags) built and graded PASS on 2026-11-11; not committed. Open: G8 (5-run performance medians), real-window check.

@@ -49,8 +49,10 @@ func (p OnlineDictionary) Find(ctx context.Context, query string, language core.
 		return nil, false, fmt.Errorf("invalid provider body")
 	}
 	var items []struct {
-		Word       string   `json:"word"`
-		SourceURLs []string `json:"sourceUrls"`
+		Word       string          `json:"word"`
+		Phonetic   json.RawMessage `json:"phonetic"`
+		Phonetics  json.RawMessage `json:"phonetics"`
+		SourceURLs []string        `json:"sourceUrls"`
 		License    struct {
 			Name string `json:"name"`
 			URL  string `json:"url"`
@@ -68,6 +70,7 @@ func (p OnlineDictionary) Find(ctx context.Context, query string, language core.
 	entries := make([]core.Entry, 0, len(items))
 	for _, item := range items {
 		entry := core.Entry{Headword: item.Word, Language: language, Source: core.Source{ID: "free-dictionary-api", Name: "Free Dictionary API", Attribution: item.License.Name, LicenseURL: item.License.URL}}
+		entry.Pronunciations = core.NormalizePronunciations(onlinePronunciations(item.Phonetics, item.Phonetic))
 		if len(item.SourceURLs) > 0 {
 			entry.Source.URL = item.SourceURLs[0]
 			entry.Source.AdditionalURLs = append([]string(nil), item.SourceURLs[1:]...)
@@ -91,6 +94,30 @@ func (p OnlineDictionary) Find(ctx context.Context, query string, language core.
 		return nil, false, fmt.Errorf("provider response has no definitions")
 	}
 	return entries, true, nil
+}
+
+// onlinePronunciations reads phonetics[].text in order, and the top-level
+// phonetic only when no item has text. Unexpected shapes yield no values.
+func onlinePronunciations(phonetics, phonetic json.RawMessage) []core.Pronunciation {
+	var items []json.RawMessage
+	var found []core.Pronunciation
+	if json.Unmarshal(phonetics, &items) == nil {
+		for _, raw := range items {
+			var item struct {
+				Text string `json:"text"`
+			}
+			if json.Unmarshal(raw, &item) == nil && strings.TrimSpace(item.Text) != "" {
+				found = append(found, core.Pronunciation{Text: item.Text})
+			}
+		}
+	}
+	if len(found) == 0 {
+		var text string
+		if json.Unmarshal(phonetic, &text) == nil && strings.TrimSpace(text) != "" {
+			found = append(found, core.Pronunciation{Text: text})
+		}
+	}
+	return found
 }
 
 // validSourceURL prevents provider-supplied URLs from becoming unsafe links.

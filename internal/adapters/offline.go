@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"unicode"
@@ -63,7 +64,7 @@ func (d *OfflineDictionary) Find(ctx context.Context, query string, language cor
 			return nil, false, err
 		}
 	}
-	matches, err := scanDictionary(ctx, d.dictionary, d.IFO, query)
+	matches, err := scanIndex(ctx, d.dictionary, d.IFO, query)
 	if err != nil {
 		return nil, false, err
 	}
@@ -77,6 +78,7 @@ func (d *OfflineDictionary) Find(ctx context.Context, query string, language cor
 			return nil, false, err
 		}
 		var meanings []core.Meaning
+		var rawPronunciations []core.Pronunciation
 		word, err := dictionary.Word(m)
 		if err != nil {
 			return nil, false, err
@@ -90,8 +92,10 @@ func (d *OfflineDictionary) Find(ctx context.Context, query string, language cor
 					}
 					extracted, _ := spanishMeanings(document, true)
 					meanings = append(meanings, extracted...)
-				} else {
-					meanings = append(meanings, htmlMeanings(string(data.Data))...)
+					rawPronunciations = append(rawPronunciations, spanishOfflinePronunciations(document)...)
+				} else if document, parseErr := html.Parse(strings.NewReader(string(data.Data))); parseErr == nil {
+					meanings = append(meanings, meaningsFromDocument(document)...)
+					rawPronunciations = append(rawPronunciations, englishOfflinePronunciations(document)...)
 				}
 			} else if text := strings.TrimSpace(data.String()); text != "" {
 				meanings = append(meanings, core.Meaning{Definitions: []string{text}})
@@ -106,7 +110,7 @@ func (d *OfflineDictionary) Find(ctx context.Context, query string, language cor
 				}
 				source.URL = host + url.PathEscape(strings.ReplaceAll(m.Word, " ", "_"))
 			}
-			entries = append(entries, core.Entry{Headword: m.Word, Language: language, Meanings: meanings, Source: source})
+			entries = append(entries, core.Entry{Headword: m.Word, Language: language, Pronunciations: core.NormalizePronunciations(rawPronunciations), Meanings: meanings, Source: source})
 		}
 	}
 	if len(entries) == 0 {
@@ -218,6 +222,9 @@ func foldedMatch(word, key string) bool {
 	return i == len(key)
 }
 
+// scanIndex is a seam so tests can count index scans.
+var scanIndex = scanDictionary
+
 // scanDictionary reads the original StarDict indexes without constructing a
 // multi-million-entry in-memory search index. Alias positions refer to .idx.
 func scanDictionary(ctx context.Context, d *stardict.Stardict, path, query string) ([]*idx.Word, error) {
@@ -297,6 +304,10 @@ func htmlMeanings(raw string) []core.Meaning {
 	if err != nil {
 		return nil
 	}
+	return meaningsFromDocument(doc)
+}
+
+func meaningsFromDocument(doc *html.Node) []core.Meaning {
 	var meanings []core.Meaning
 	var heading string
 	var visit func(*html.Node, bool)
@@ -374,4 +385,95 @@ func nodeText(n *html.Node) string {
 	}
 	walk(n)
 	return strings.Join(strings.Fields(b.String()), " ")
+}
+
+func hasClass(n *html.Node, class string) bool {
+	for _, a := range n.Attr {
+		if a.Key == "class" {
+			for _, c := range strings.Fields(a.Val) {
+				if c == class {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// ownDescendants visits the descendants of a list item that do not belong to a
+// nested list, and stops when visit returns true.
+func ownDescendants(li *html.Node, visit func(*html.Node) bool) {
+	var walk func(*html.Node) bool
+	walk = func(n *html.Node) bool {
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			if c.Type == html.ElementNode && (c.Data == "ul" || c.Data == "ol" || c.Data == "li") {
+				continue
+			}
+			if visit(c) || walk(c) {
+				return true
+			}
+		}
+		return false
+	}
+	walk(li)
+}
+
+var ipaLead = regexp.MustCompile(`(^|\s)IPA:`)
+
+// englishOfflinePronunciations reads the first IPA value of every list item
+// led by the "IPA:" label, labelled by the accent qualifier of the same item.
+// enPR respellings, "Rhymes:" items and items inside a definition list are ignored.
+func englishOfflinePronunciations(doc *html.Node) []core.Pronunciation {
+	var found []core.Pronunciation
+	var visit func(*html.Node)
+	visit = func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == "ol" {
+			return
+		}
+		if n.Type == html.ElementNode && n.Data == "li" && ipaLead.MatchString(nodeText(n)) {
+			var text, label string
+			var hasIPA bool
+			ownDescendants(n, func(c *html.Node) bool {
+				if c.Type != html.ElementNode {
+					return false
+				}
+				if !hasIPA && hasClass(c, "IPA") {
+					hasIPA, text = true, nodeText(c)
+				}
+				if label == "" && hasClass(c, "usage-label-accent") {
+					label = strings.Trim(nodeText(c), "() ")
+				}
+				return false
+			})
+			if hasIPA {
+				found = append(found, core.Pronunciation{Text: text, Label: label})
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			visit(c)
+		}
+	}
+	visit(doc)
+	return found
+}
+
+// spanishOfflinePronunciations reads the IPA values of the "pronunciación (AFI)" list item.
+func spanishOfflinePronunciations(doc *html.Node) []core.Pronunciation {
+	var found []core.Pronunciation
+	var visit func(*html.Node)
+	visit = func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == "li" && strings.HasPrefix(nodeText(n), "pronunciación (AFI)") {
+			ownDescendants(n, func(c *html.Node) bool {
+				if c.Type == html.ElementNode && hasClass(c, "IPA") {
+					found = append(found, core.Pronunciation{Text: nodeText(c)})
+				}
+				return false
+			})
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			visit(c)
+		}
+	}
+	visit(doc)
+	return found
 }

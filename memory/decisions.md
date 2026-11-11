@@ -120,3 +120,19 @@ The version is `-ldflags -X main.version=$(cat VERSION)` when built via Task or 
 ## 2026-11-11: SDD workflow is now `sdd-html-feature`
 
 User decision: features go through the `sdd-html-feature` skill (one page `sdd/<feature>.html`, global install) instead of `sdd-feature` (`specs/`, `wireframes/`, `design/`). Existing `specs/`, `wireframes/`, `design/` stay as history. Rerun the loadout with `--without sdd` (it would otherwise reinstall `sdd-feature` and its AGENTS.md block); the AGENTS.md SDD section no longer carries loadout markers. Loadout 0.6.0 was applied with `--force --without sdd --no-hooks` (Entire hooks left untouched).
+
+## 2026-11-11: Phonetic pronunciation decisions
+
+- Shown as a line under the headword. Accent labels become flag emoji (General American/US 🇺🇸, Received Pronunciation/UK 🇬🇧, Australia 🇦🇺, New Zealand 🇳🇿, Canada 🇨🇦, Ireland 🇮🇪, South Africa 🇿🇦); compound labels split at commas; if any part is unknown the whole label stays as written. The original text is kept in `Pronunciation.LabelTitle` (hover text and accessible name). User chose flags over "US"/"UK" text.
+- The line is shown only on the first card of a word; a later card with the same headword (case-insensitive), same language and identical list shows none (offline English has one card per part of speech). User chose this over repeating it.
+- Spec R3 (user: "map flags first and then check length"): the 32-rune limit applies to the label as shown, after mapping; the original may be up to 128 runes.
+- Offline English extraction: only `<li>` whose own text starts with `IPA:`, skipping `<ol>` (definitions) and Rhymes items. Rejected: any `IPA`-class span (took rhyme and definition IPA, e.g. `diktat`).
+- Old cached text labels are re-mapped to flags on disk-cache read (`DiskCache.Get` normalizes); no cache version bump. `MemoryCache` does not normalize.
+- Verified 2026-11-11 by tests, QA in Chromium with a stub runtime and the saved fixtures in `internal/adapters/testdata/pronunciation`; not verified in the real window.
+
+## 2026-11-11: Phonetic pronunciation, revision R4 (found with "vegetable")
+
+- The qualifier words "dialectal" and "obsolete" are ignored when mapping an accent label to flags (other non-accent words such as "rhotic" and merger names stay as text). A label that maps to both 🇬🇧 and 🇺🇸 is the generic form and shows no label. User: "Approved, start the build. Yes ignore the obsolete too". Reason: the real offline entry lists "Received Pronunciation, General American, Canada", "UK, dialectal", "US, Canada, dialectal"; the earlier rule flagged the common form and left the other two as text.
+- Source counts (my own scan of the installed English dictionary 2026-11-11, not independently checked): about 4,500 UK+US labels, "dialectal" 252 uses, "obsolete" 346.
+- Real fixture: `internal/adapters/testdata/pronunciation/offline_en_vegetable.html`.
+- Open: the approved 5-run median performance report was not re-measured for R3/R4 (grader G8); the user has not yet accepted or asked for it.

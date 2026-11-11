@@ -21,11 +21,18 @@ type Meaning struct {
 	Definitions  []string
 }
 
+type Pronunciation struct {
+	Text       string
+	Label      string `json:",omitempty"` // flags or source text (C4)
+	LabelTitle string `json:",omitempty"` // original label when replaced by flags
+}
+
 type Entry struct {
-	Headword string
-	Language Language
-	Meanings []Meaning
-	Source   Source
+	Headword       string
+	Language       Language
+	Pronunciations []Pronunciation `json:",omitempty"`
+	Meanings       []Meaning
+	Source         Source
 }
 
 type LookupRequest struct {

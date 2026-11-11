@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Phonetic pronunciation · wdict</title>
+<style>
+/* Tokens. Light by default; dark follows the system. Colour never carries meaning alone: every colour has a text label. */
+:root{color-scheme:light;--ink:#172b3a;--muted:#405766;--line:#b8c8ce;--accent:#126451;--paper:#fff;--wash:#edf4f3;--page:#f4f7f8;--link:#075a80;--focus:#a34b00;
+--c-teal:#14b8a6;--c-vio:#8b5cf6;--c-pink:#ec4899;--c-amb:#f59e0b;--c-grn:#22c55e;--c-blue:#3b82f6;--c-fail:#f43f5e}
+@media screen and (prefers-color-scheme:dark){:root{color-scheme:dark;--ink:#e4edf1;--muted:#a7bbc5;--line:#34505c;--accent:#4fe0b6;--paper:#16232b;--wash:#1b2d36;--page:#0d171c;--link:#84cff5;--focus:#ffb36b}}
+*{box-sizing:border-box}body{margin:0;background:var(--page);color:var(--ink);font:1rem/1.6 system-ui,sans-serif}
+a{color:var(--link)}a:focus-visible,button:focus-visible,select:focus-visible,summary:focus-visible,.scroll:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+header,main,footer{max-width:68rem;margin:auto;padding:1.5rem}header{padding-top:2.5rem}
+h1{font-size:clamp(1.9rem,6vw,3rem);line-height:1.1;margin:.5rem 0 1rem;background:linear-gradient(90deg,color-mix(in srgb,var(--c-teal) 55%,var(--ink)),var(--c-vio) 55%,var(--c-pink));-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800}
+h2{line-height:1.25;color:color-mix(in srgb,var(--sc,var(--c-teal)) 60%,var(--ink))}p,li{max-width:75ch}code{overflow-wrap:anywhere}
+.badge{display:inline-block;border:1px solid var(--c-teal);background:color-mix(in srgb,var(--c-teal) 18%,transparent);color:color-mix(in srgb,var(--c-teal) 35%,var(--ink));border-radius:2rem;padding:.2rem .7rem;font-size:.9rem;font-weight:650}
+.note{border-left:4px solid var(--c-teal);padding:.7rem 1rem;background:color-mix(in srgb,var(--c-teal) 10%,transparent)}
+section{background:var(--paper);border:1px solid var(--line);border-left:5px solid var(--sc,var(--c-teal));border-radius:.75rem;padding:clamp(1rem,3vw,2rem);margin-bottom:1.2rem;scroll-margin-top:1rem}
+.gate{border-left-color:var(--c-amb)}.src,.hdr{font-size:.85rem;opacity:.8;margin:.3rem 0}
+.rep{margin:2rem 0 1rem;padding-bottom:.3rem;border-bottom:3px solid var(--c-teal)}
+nav.sub{display:flex;flex-wrap:wrap;gap:.6rem;margin:0 0 1rem}nav.sub a{text-decoration:none;font-weight:600;padding:.15rem .6rem;border-radius:2rem;background:color-mix(in srgb,var(--c-blue) 14%,transparent)}
+/* Tabs: without JavaScript every panel stays visible. */
+.tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:1.5rem}
+.tabs button{font:inherit;font-weight:700;cursor:pointer;padding:.5rem 1rem;border-radius:.6rem .6rem 0 0;border:2px solid var(--line);border-bottom:0;background:color-mix(in srgb,var(--c-blue) 8%,var(--paper));color:var(--ink)}
+.tabs button[aria-selected=true]{background:var(--paper);border-color:var(--c-teal);box-shadow:inset 0 4px 0 var(--c-teal)}
+.st{font-size:.72rem;font-weight:650;padding:.05rem .5rem;border-radius:2rem;margin-left:.3rem;border:1.5px solid var(--cc)}
+.st.ok{--cc:var(--c-grn);background:color-mix(in srgb,var(--c-grn) 16%,transparent)}.st.wait{--cc:var(--c-amb);background:color-mix(in srgb,var(--c-amb) 18%,transparent)}.st.todo{--cc:var(--c-vio);border-style:dashed}
+/* Chips: text label plus colour and line style. */
+.chip{display:inline-block;font-size:.8rem;font-weight:650;padding:.05rem .6rem;border-radius:2rem;border:1.5px solid var(--cc);background:color-mix(in srgb,var(--cc) 16%,transparent);margin:0 .4rem .3rem 0}
+.chip.chg{--cc:var(--c-amb)}.chip.ex{--cc:var(--c-blue)}.chip.new{--cc:var(--c-grn)}.chip.def{--cc:var(--c-vio);border-style:dashed}.chip.fail{--cc:var(--c-fail);border-style:dashed}
+.scroll{overflow:auto}table{border-collapse:collapse;width:100%;text-align:left;font-size:.95rem}th,td{padding:.6rem;border-bottom:1px solid var(--line);vertical-align:top;min-width:6rem}
+thead th{border-bottom:2px solid color-mix(in srgb,var(--sc,var(--c-teal)) 60%,transparent)}caption{text-align:left;font-weight:650;padding:.5rem 0}
+details{border-top:1px solid var(--line);padding:.6rem 0}summary{cursor:pointer;font-weight:650}pre{overflow:auto;white-space:pre-wrap;background:color-mix(in srgb,var(--c-teal) 6%,var(--paper));padding:1rem;border-radius:.4rem}
+.gwt{border-left:4px solid var(--c-vio);padding-left:.8rem;margin:.4rem 0;border-top:0}
+label{display:block;font-weight:650}select{font:inherit;padding:.5rem;max-width:100%;margin:.5rem 0}.sim{border:1px solid var(--c-vio);background:color-mix(in srgb,var(--c-vio) 8%,transparent);padding:.8rem 1rem;border-radius:.4rem}.simnote{font-size:.85rem;opacity:.8}
+.hero{border:1px solid var(--line,#8884);border-radius:.6rem;padding:.6rem .8rem;margin:.6rem 0}.hero figcaption,.hero .cap{font-weight:650;font-size:.85em;margin:0 0 .3rem}
+.mock{border:1px solid var(--line);border-radius:.6rem;padding:.7rem 1rem;margin:.5rem 0;background:var(--paper);max-width:28rem}.mock .mw{font-size:1.4rem;font-weight:700}.mock .mp{font-family:"Noto Sans","DejaVu Sans",system-ui,sans-serif;color:var(--muted);margin:.1rem 0 .4rem;overflow-wrap:anywhere}.mock .md{font-size:.95rem}
+.hero{border:1px solid var(--border,var(--line,#8884));border-radius:6px;padding:6px 10px;margin:6px 0}.hero .cap{font-weight:650;font-size:.85em;margin:0 0 4px}.uis{display:flex;flex-wrap:wrap;gap:8px}.ui{flex:1 1 15rem;border:1px solid var(--border,var(--line,#8884));border-radius:8px;padding:6px 12px}.ui h3{font-size:1.05em;margin:2px 0}.ui h4{font-size:.9em;margin:6px 0 2px}.ui .ipa{font-family:"Noto Sans","DejaVu Sans",system-ui,sans-serif;opacity:.85;margin:2px 0;overflow-wrap:anywhere}.ui .def{margin:2px 0}.ui .srcl{font-size:.8em;opacity:.7;margin:4px 0 0}
+/* Diagrams */
+.dg{display:block;width:100%;color:var(--ink);max-width:none}.dg .t{font-size:11px;fill:currentColor}.dg .h{font-size:12px;font-weight:650;fill:currentColor}.dg .tag{font-size:10px;font-weight:700;fill:currentColor}.dg .f{font-size:11px;font-weight:700;fill:color-mix(in srgb,var(--c-fail) 70%,var(--ink))}
+.dg .hd{fill:color-mix(in srgb,var(--c-teal) 22%,var(--paper));stroke:var(--c-teal);stroke-width:2}.dg .fr{fill:color-mix(in srgb,var(--c-fail) 7%,transparent);stroke:var(--c-fail);stroke-width:1.5;stroke-dasharray:6 3}
+.dg .n{fill:var(--paper);stroke:currentColor;stroke-width:1.5}.dg .n.ex{fill:color-mix(in srgb,var(--c-blue) 14%,var(--paper));stroke:var(--c-blue)}.dg .n.chg{fill:color-mix(in srgb,var(--c-amb) 20%,var(--paper));stroke:var(--c-amb);stroke-width:3.5}
+.dg .n.new{fill:color-mix(in srgb,var(--c-grn) 16%,var(--paper));stroke:var(--c-grn);stroke-width:2}.dg .n.def{fill:color-mix(in srgb,var(--c-vio) 12%,var(--paper));stroke:var(--c-vio);stroke-width:2;stroke-dasharray:5 3}
+@media(max-width:38rem){header,main,footer{padding:1rem}}
+@media print{body{background:#fff;color:#000;font-size:10pt}.tabs,nav.sub{display:none}.tabpanel[hidden]{display:block!important}section{break-inside:avoid}details>*{display:block!important}details::details-content{content-visibility:visible;display:block}h1{color:#000;background:none}}
+@media (max-width:600px){table.cards,table.cards tbody,table.cards tr,table.cards td,table.cards th{display:block;min-width:0}table.cards caption{display:block}table.cards thead{position:absolute;clip:rect(0 0 0 0);width:1px;height:1px;overflow:hidden}table.cards tr{border:1px solid var(--line,#8884);border-radius:6px;margin:6px 0;padding:4px 8px}table.cards td,table.cards th{border-bottom:0;padding:.15rem 0;overflow-wrap:anywhere}table.cards td::before{content:attr(data-label) ": ";font-weight:650}table.cards th[scope=row]{font-size:1.05em}}
+@media (max-width:600px){.dg{min-width:34rem}}
+</style>
+<!-- Compact copy of the look for inline chat rendering. Inert in the page (media "not all"); scripts/inline_view.py enables it. Uses the host theme variables when present. -->
+<style data-inline media="not all">
+:root{--teal:#14b8a6;--vio:#8b5cf6;--amb:#f59e0b;--grn:#22c55e;--blue:#3b82f6;--fail:#f43f5e;--c-teal:var(--teal);--c-vio:var(--vio);--c-pink:#ec4899;--c-amb:var(--amb);--c-grn:var(--grn);--c-blue:var(--blue);--c-fail:var(--fail)}
+html,body{background:transparent;color:var(--foreground,inherit);font:14px/1.5 var(--font-sans,system-ui);margin:0}*{box-sizing:border-box}code,pre{font-family:var(--font-mono,monospace);font-size:12px}
+pre{white-space:pre-wrap;background:var(--code-background,transparent);border:1px solid var(--border,#8884);border-radius:6px;padding:8px}
+section{border:1px solid var(--border,#8884);border-left:5px solid var(--sc,var(--c-teal));border-radius:8px;padding:6px 14px;margin:8px 0;background:var(--card,transparent)}
+h2{font-size:15px;margin:6px 0;color:color-mix(in srgb,var(--sc,var(--c-teal)) 65%,var(--foreground,currentColor))}h3{font-size:13px;margin:8px 0 4px}
+.chip{display:inline-block;font-size:11px;font-weight:650;padding:0 8px;border-radius:99px;border:1.5px solid var(--cc);background:color-mix(in srgb,var(--cc) 15%,transparent);margin:0 4px 3px 0}
+.chg{--cc:var(--amb)}.ex{--cc:var(--blue)}.new{--cc:var(--grn)}.def{--cc:var(--vio);border-style:dashed}.fail{--cc:var(--fail);border-style:dashed}
+table{border-collapse:collapse;width:100%;font-size:12.5px}td,th{padding:4px 6px;border-bottom:1px solid var(--border,#8884);text-align:left;vertical-align:top}caption{text-align:left;font-weight:650}
+.gate{border-left-color:var(--amb)}.src,.hdr{font-size:12px;opacity:.8;margin:3px 0}.badge{display:inline-block;border:1px solid var(--teal);border-radius:99px;padding:0 8px;font-size:12px;font-weight:650}
+.hero{border:1px solid var(--border,#8884);border-radius:6px;padding:6px 10px;margin:6px 0}.hero .cap{font-weight:650;font-size:12px;margin:0 0 4px}.hero{border:1px solid var(--border,var(--line,#8884));border-radius:6px;padding:6px 10px;margin:6px 0}.hero .cap{font-weight:650;font-size:.85em;margin:0 0 4px}.uis{display:flex;flex-wrap:wrap;gap:8px}.ui{flex:1 1 15rem;border:1px solid var(--border,var(--line,#8884));border-radius:8px;padding:6px 12px}.ui h3{font-size:1.05em;margin:2px 0}.ui h4{font-size:.9em;margin:6px 0 2px}.ui .ipa{font-family:"Noto Sans","DejaVu Sans",system-ui,sans-serif;opacity:.85;margin:2px 0;overflow-wrap:anywhere}.ui .def{margin:2px 0}.ui .srcl{font-size:.8em;opacity:.7;margin:4px 0 0}.scroll{overflow:auto}details{margin:3px 0}summary{cursor:pointer;font-weight:650}.gwt{border-left:3px solid var(--vio);padding-left:8px}.big>summary{font-size:14px;padding:6px 0}
+.note{border-left:4px solid var(--teal);padding:4px 10px;background:color-mix(in srgb,var(--teal) 10%,transparent)}.simnote{font-size:12px;opacity:.75}
+.dg{display:block;color:var(--foreground,inherit);max-width:100%}.dg .t{font-size:11px;fill:currentColor}.dg .h{font-size:12px;font-weight:650;fill:currentColor}.dg .tag{font-size:10px;font-weight:700;fill:currentColor}.dg .f{font-size:11px;font-weight:700;fill:var(--fail)}
+.dg .hd{fill:color-mix(in srgb,var(--teal) 22%,transparent);stroke:var(--teal);stroke-width:2}.dg .fr{fill:color-mix(in srgb,var(--fail) 7%,transparent);stroke:var(--fail);stroke-width:1.5;stroke-dasharray:6 3}
+.dg .n{fill:var(--card,transparent);stroke:currentColor;stroke-width:1.5}.dg .n.ex{fill:color-mix(in srgb,var(--blue) 14%,transparent);stroke:var(--blue)}.dg .n.chg{fill:color-mix(in srgb,var(--amb) 20%,transparent);stroke:var(--amb);stroke-width:3}
+.dg .n.new{fill:color-mix(in srgb,var(--grn) 16%,transparent);stroke:var(--grn);stroke-width:2}.dg .n.def{fill:color-mix(in srgb,var(--vio) 12%,transparent);stroke:var(--vio);stroke-width:2;stroke-dasharray:5 3}
+@media (max-width:600px){table.cards,table.cards tbody,table.cards tr,table.cards td,table.cards th{display:block;min-width:0}table.cards caption{display:block}table.cards thead{position:absolute;clip:rect(0 0 0 0);width:1px;height:1px;overflow:hidden}table.cards tr{border:1px solid var(--line,#8884);border-radius:6px;margin:6px 0;padding:4px 8px}table.cards td,table.cards th{border-bottom:0;padding:.15rem 0;overflow-wrap:anywhere}table.cards td::before{content:attr(data-label) ": ";font-weight:650}table.cards th[scope=row]{font-size:1.05em}}
+@media (max-width:600px){.dg{min-width:34rem}}
+</style>
+</head>
+<body>
+<header>
+<span class="badge">Phonetic pronunciation · revision R4 built, verified (PASS)</span>
+<h1>Phonetic pronunciation</h1>
+<p>Show how a word is pronounced, in IPA, next to each result, for English and Spanish, from offline, saved and online sources.</p>
+<p class="note"><strong>Review only.</strong> One file, one tab per phase. Every interaction is a <strong>Simulation</strong>; no lookup runs. Approval happens in chat, never on this page.</p>
+<!-- All tabs exist from the start and are never removed. Set each status chip to approved, awaiting approval, not started, in progress, blocked, done, n/a, skipped or unavailable (PASS or NEEDS WORK on Verify); a phase that does not apply is n/a with the reason in its glance. Run `inline_view.py --check` before ending a stop. -->
+<div class="tabs" role="tablist" aria-label="Phases">
+<button role="tab" id="t-design" aria-controls="p-design" aria-selected="true" data-p="design">Design <span class="st ok">approved</span></button>
+<button role="tab" id="t-spec" aria-controls="p-spec" aria-selected="false" tabindex="-1" data-p="spec">Spec <span class="st ok">approved</span></button>
+<button role="tab" id="t-arch" aria-controls="p-arch" aria-selected="false" tabindex="-1" data-p="arch">Architecture <span class="st ok">approved</span></button>
+<button role="tab" id="t-build" aria-controls="p-build" aria-selected="false" tabindex="-1" data-p="build">Build <span class="st ok">done</span></button>
+<button role="tab" id="t-verify" aria-controls="p-verify" aria-selected="false" tabindex="-1" data-p="verify">Verify <span class="st ok">PASS</span></button>
+<button role="tab" id="t-appr" aria-controls="p-appr" aria-selected="false" tabindex="-1" data-p="appr">Approvals <span class="st wait">3 of 3 gates</span></button>
+</div>
+</header>
+<main>
+
+<!-- ============ DESIGN ============ -->
+<div role="tabpanel" id="p-design" aria-labelledby="t-design" class="tabpanel">
+<nav class="sub skip-inline" aria-label="Design sections"><a href="#d-glance">At a glance</a><a href="#d-data">Source data</a><a href="#d-flow">Flow</a><a href="#d-paths">Explore paths</a><a href="#d-fail">Failures</a><a href="#d-dec">Decisions</a><a href="#d-scope">Scope</a></nav>
+<section id="d-glance" aria-labelledby="d-glance-t" style="--sc:var(--c-teal)"><h2 id="d-glance-t">At a glance</h2>
+<p><span class="chip chg">changed: entry shape (adds pronunciations)</span><span class="chip chg">changed: three source adapters</span><span class="chip chg">changed: result view</span><span class="chip ex">existing: caches, lookup order</span><span class="chip fail">F1 no pronunciation</span><span class="chip fail">F2 invalid text</span><span class="chip fail">F3 old cached entry</span><span class="chip fail">F4 many variants</span><span class="chip fail">F5 extraction fails</span></p>
+<div class="hero"><p class="cap">Revision R2, how it would look (Simulation, sample text): flags for accents, and the line only on the first card of a word</p>
+<div class="uis"><article class="ui"><h3>English · hello</h3><p class="ipa">🇺🇸 /hɛˈloʊ/ · 🇬🇧 /həˈləʊ/ · Northumbria /haˈlaʊ/</p><h4>Interjection (first card)</h4><p class="def">A greeting used when meeting someone.</p><h4>Noun (second card: no line)</h4><p class="def">An instance of saying hello.</p><h4>Verb (third card: no line)</h4><p class="def">To greet with “hello”.</p></article>
+<article class="ui"><h3>English · read</h3><p class="ipa">🇬🇧🇦🇺🇳🇿 /ɹiːd/ · 🇺🇸🇨🇦 /ɹid/ · Early Modern /rɛːd/</p><h4>Verb</h4><p class="def">To look at and understand written words.</p><p class="srcl">Labels that are not a known country stay as text.</p></article>
+<article class="ui"><h3>Spanish · hola</h3><p class="ipa">[ˈola]</p><h4>Interjección</h4><p class="def">Expresión de saludo.</p></article></div>
+<p>Text equivalent: accents are shown as country flags (for example 🇺🇸 for General American, 🇬🇧 for Received Pronunciation; a compound label such as “UK, Australia, New Zealand” becomes three flags). A label with no known country, such as Northumbria or Early Modern, stays as text. For a word shown on several cards (offline English has one card per part of speech), the pronunciation line appears only on the first card; the other cards look as they do today. Hovering a flag shows the source’s original label.</p></div>
+<div class="hero"><p class="cap">How it works: the adapter reads and checks the pronunciation (compact)</p><div class="scroll" tabindex="0" role="region" aria-label="Scrollable diagram"><svg class="dg" viewBox="0 0 640 74" role="img" aria-labelledby="hg-t hg-d"><title id="hg-t">Pronunciation in brief</title><desc id="hg-d">The result screen asks the source adapter for a word. The adapter reads the entry from the dictionary source, extracts and checks the pronunciation, and returns the entry with at most three pronunciations; on any problem F1 to F5 it returns the entry without them.</desc><defs><marker id="arh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<rect class="n chg" x="8" y="10" width="150" height="50" rx="8"/><text class="h" x="18" y="30">Result screen</text><text class="tag" x="18" y="48">CHANGED</text>
+<rect class="n chg" x="245" y="10" width="170" height="50" rx="8"/><text class="h" x="255" y="30">Source adapter</text><text class="tag" x="255" y="48">CHANGED · extract, check, cap 3</text>
+<rect class="n ex" x="500" y="10" width="132" height="50" rx="8"/><text class="h" x="510" y="30">Dictionary source</text><text class="tag" x="510" y="48">EXISTING</text>
+<g stroke="currentColor" stroke-width="1.6" fill="none" marker-end="url(#arh)"><path d="M158 28H245"/><path d="M415 28H500"/></g><path d="M245 52H158" stroke="currentColor" stroke-width="1.6" stroke-dasharray="5 3" fill="none" marker-end="url(#arh)"/><text class="t" x="165" y="68">F1 to F5: entry without pronunciations</text></svg></div>
+<p>Text equivalent: the screen asks the adapter, the adapter reads the existing dictionary source, extracts and checks the pronunciation, and returns the entry with up to three pronunciations. On F1 to F5 it returns the entry without them (dashed line). The full sequence is in the detailed report.</p></div>
+<ul>
+<li><strong>Outcome:</strong> each result shows its IPA pronunciation under the headword, for example <code>hello</code> → <code>/həˈloʊ/</code> (the form you gave; the online English source returns it). Spanish shows what Wiktionary gives, for example <code>hola</code> → <code>[ˈola]</code>. No extra network request: the data already arrives with each source.</li>
+<li><strong>Verified today against real data:</strong> all four sources carry pronunciations, but in four different shapes (table below). Offline English offers several accents for <code>hello</code> (<code>/hɛˈloʊ/</code> US, <code>/həˈləʊ/</code> UK, and more), so the offline word shows <code>/hɛˈloʊ/</code>, not <code>/həˈloʊ/</code>. The online API returns <code>/həˈləʊ/</code> and <code>/həˈloʊ/</code>.</li>
+<li><strong>Failure paths:</strong> F1 to F5 all end the same way: definitions still show, only the pronunciation line is missing or shortened. A pronunciation problem never hides a definition or fails a lookup.</li>
+<li><strong>Decisions to settle (see Open questions):</strong> how many pronunciations and which accents to show (Q1), keep the source’s <code>/ /</code> or <code>[ ]</code> delimiters (Q2), one line per entry rather than per part of speech (Q3), old cached results (Q4), no audio (Q5), and what to show when there is none (Q6).</li>
+<li><strong>Out of scope:</strong> audio playback, non-IPA systems (enPR, respelling), editing or searching by pronunciation.</li>
+</ul>
+<details class="questions" open><summary>Revision R2: 3 changes (approved 2026-11-11)</summary><ol>
+<li><strong>R1. Accents as flags (replaces Q1’s “US/UK” text, your request).</strong> Mapping: General American, US → 🇺🇸; Received Pronunciation, UK → 🇬🇧; Australia 🇦🇺; New Zealand 🇳🇿; Canada 🇨🇦; Ireland 🇮🇪; South Africa 🇿🇦. A compound label is split at commas and each known part becomes a flag; <em>if any part is unknown, the whole label stays as the source writes it</em> (so “Northumbria”, “South Asia”, “Early Modern” stay text). Original label kept as hover text. <em>Caveat:</em> Windows shows flags as two letters (for example “GB”), Linux and macOS show real flags; today only Linux is supported. <em>Recommend: approve with this list; unknown labels stay text.</em></li>
+<li><strong>R2. Line on the first card only (your choice (b) for Q2).</strong> A later card of the same headword in the same language is shown without the line when its list is identical to an earlier card’s. <em>Recommend: this exact rule (same headword, identical list), so differing lists are never hidden.</em></li>
+<li><strong>R3. What this changes in the build:</strong> core label mapping and the hide rule (small), tests for both, then QA and the grader re-run on the new revision (budget resets). No source change before spec re-approval.</li>
+</ol></details>
+<p class="note gate">Design revision R2 approved 2026-11-11 (see Approvals). Revision R4 (a generic pronunciation shows no flags) approved 2026-11-11 with the spec.</p>
+<p class="skip-inline"><a href="#d-data">Detailed report ↓</a></p></section>
+<h2 class="rep">Detailed report</h2>
+
+<section id="d-data" aria-labelledby="d-data-t" style="--sc:var(--c-amb)"><h2 id="d-data-t">What each source actually gives (checked 2026-11-11)</h2>
+<p>Read from the installed offline dictionaries and live responses for <code>hello</code>, <code>read</code> and <code>hola</code>. These shapes are the reason the work is in three adapters, not one.</p>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable source table"><table class="cards"><caption>Pronunciation data per source</caption><thead><tr><th scope="col">Source</th><th scope="col">Where the IPA is</th><th scope="col">Example</th><th scope="col">Accents</th><th scope="col">Notes</th></tr></thead><tbody>
+<tr><th scope="row">Offline English (Wiktionary StarDict)</th><td data-label="Where">HTML inside each part-of-speech section: <code>&lt;span class="IPA nowrap"&gt;</code>, grouped under an accent qualifier</td><td data-label="Example"><code>hello</code>: <code>/hɛˈloʊ/</code> (General American), <code>/həˈləʊ/</code> (Received Pronunciation), also Northumbria, Australia, Canada, South Asia</td><td data-label="Accents">Labelled, often several per word</td><td data-label="Notes">Same list repeats in every part-of-speech section. Also has enPR respelling (<code>hĕ-lō'</code>), which is not IPA.</td></tr>
+<tr><th scope="row">Offline Spanish (Wikcionario StarDict)</th><td data-label="Where">HTML list item <code>pronunciación (AFI)</code> with <code>&lt;span class="IPA"&gt;</code></td><td data-label="Example"><code>hola</code>: <code>[ˈola]</code></td><td data-label="Accents">Usually none</td><td data-label="Notes">Square brackets (phonetic), not slashes.</td></tr>
+<tr><th scope="row">Online English (Free Dictionary API)</th><td data-label="Where">JSON <code>phonetics[].text</code> (and a top-level <code>phonetic</code>, often null)</td><td data-label="Example"><code>hello</code>: <code>/həˈləʊ/</code>, <code>/həˈloʊ/</code>; <code>read</code>: <code>/ɹiːd/</code>, <code>/ɹid/</code></td><td data-label="Accents">Unlabelled</td><td data-label="Notes">Some items carry audio only and no text; items can repeat.</td></tr>
+<tr><th scope="row">Online Spanish (Wikcionario API)</th><td data-label="Where">A table row <code>pronunciación (AFI)</code>, value is plain text in the next cell; no <code>IPA</code> class</td><td data-label="Example"><code>hola</code>: <code>[ˈola]</code></td><td data-label="Accents">Page also holds other languages’ rows</td><td data-label="Notes">Only the Spanish section may be used; the page mixes languages.</td></tr>
+</tbody></table></div></section>
+
+<section id="d-flow" aria-labelledby="d-flow-t" style="--sc:var(--c-blue)"><h2 id="d-flow-t">Where is the pronunciation read and checked?</h2>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable diagram"><svg class="dg" viewBox="0 0 720 250" role="img" aria-labelledby="sq-t sq-d"><title id="sq-t">Pronunciation lookup sequence</title><desc id="sq-d">The screen asks the source adapter for a word. The adapter fetches the entry from the offline dictionary, cache or online source, extracts and checks the pronunciation text, and returns the entry. When no valid pronunciation exists the entry is returned without one, so the definitions still show.</desc>
+<defs><marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<g stroke="currentColor" stroke-opacity=".35" stroke-dasharray="4 4"><path d="M110 40V240"/><path d="M360 40V240"/><path d="M610 40V240"/></g>
+<rect class="hd" x="30" y="8" width="160" height="32" rx="16"/><text class="h" x="110" y="29" text-anchor="middle">Result screen · changed</text>
+<rect class="hd" x="280" y="8" width="160" height="32" rx="16"/><text class="h" x="360" y="29" text-anchor="middle">Source adapter · changed</text>
+<rect class="hd" x="530" y="8" width="160" height="32" rx="16"/><text class="h" x="610" y="29" text-anchor="middle">Dictionary source · existing</text>
+<g stroke="currentColor" stroke-width="1.6" fill="none" marker-end="url(#ar1)"><path d="M110 66H360"/><path d="M360 92H610"/><path d="M610 118H360"/><path d="M360 222H110"/></g>
+<text class="t" x="235" y="60" text-anchor="middle">1 look up “hello”</text><text class="t" x="485" y="86" text-anchor="middle">2 fetch entry</text><text class="t" x="485" y="112" text-anchor="middle">3 entry + IPA text</text><text class="t" x="235" y="216" text-anchor="middle">6 entry + pronunciations</text>
+<text class="t" x="368" y="142">4 extract IPA, drop invalid, dedupe, cap</text>
+<rect class="fr" x="40" y="150" width="650" height="56" rx="6"/><text class="f" x="52" y="166">F1 to F5 · no valid pronunciation or too many</text>
+<text class="t" x="52" y="190">5 keep the definitions; show the pronunciation line only if at least one value is valid</text></svg></div>
+<p>Text equivalent: the adapter, not the screen, reads and checks the pronunciation (step 4), identically for offline, cache and online sources. Any problem in step 4 is handled inside the frame F1 to F5: the entry still goes back with its definitions (step 6), just without, or with fewer, pronunciations.</p>
+</section>
+
+<section id="d-paths" aria-labelledby="d-paths-t" style="--sc:var(--c-vio)"><h2 id="d-paths-t">Explore an outcome</h2>
+<div hidden id="controls"><label for="path">Simulation path</label><select id="path">
+<option value="en-online">Success · online English “hello”</option>
+<option value="en-offline">Success · offline English “hello” (several accents)</option>
+<option value="es">Success · Spanish “hola”</option>
+<option value="f1">F1 · source has no pronunciation</option>
+<option value="f2">F2 · invalid pronunciation text</option>
+<option value="f3">F3 · old cached entry</option>
+<option value="f4">F4 · many variants</option>
+<option value="f5">F5 · extraction fails</option></select>
+<div class="mock" aria-live="polite"><div class="mw" id="mw"></div><div class="mp" id="mp"></div><div class="md" id="md"></div></div>
+<p class="sim" id="outcome" role="status" aria-live="polite" aria-atomic="true"></p></div>
+<noscript><p>The selector needs JavaScript; every outcome is listed below without it.</p></noscript>
+<details open><summary>Success · online English “hello”</summary><p>Headword <strong>hello</strong>, then <code>/həˈləʊ/ · /həˈloʊ/</code> (unlabelled, from the API), then the definitions.</p></details>
+<details open><summary>Success · offline English “hello”</summary><p>Headword, then up to three accent-labelled values: <code>🇺🇸 /hɛˈloʊ/ · 🇬🇧 /həˈləʊ/ · Northumbria /haˈlaʊ/</code>. The three come from the first three accents in the dictionary’s own order (Q1).</p></details>
+<details open><summary>Success · Spanish “hola”</summary><p>Headword, then <code>[ˈola]</code> exactly as Wikcionario writes it, then the definitions.</p></details>
+<details open><summary>F1 · source has no pronunciation</summary><p>The entry shows as today: no pronunciation line, no placeholder, no “missing” message.</p></details>
+<details open><summary>F2 · invalid pronunciation text</summary><p>A value that is empty, over 64 characters, or contains markup or control characters is dropped silently; valid siblings still show. Nothing is rendered as HTML.</p></details>
+<details open><summary>F3 · old cached entry</summary><p>A result saved by an earlier version has no pronunciations. It shows as today and gains them when it is next refreshed from the source. No forced refetch.</p></details>
+<details open><summary>F4 · many variants</summary><p>A word with many accents (<code>hello</code> has six) shows at most three; duplicates are merged. The cap is stated once in the Spec.</p></details>
+<details open><summary>F5 · extraction fails</summary><p>The source’s markup changed or cannot be parsed for pronunciation. The lookup still succeeds with definitions only; the failure is not shown to the reader.</p></details>
+<p class="simnote">Simulation: no lookup runs. The selector and card above use the sample text on this page only.</p>
+</section>
+
+<section id="d-fail" aria-labelledby="d-fail-t" style="--sc:var(--c-fail)"><h2 id="d-fail-t">Failure inventory</h2>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable failure table"><table class="cards"><caption>Stable failure IDs; never renumber</caption><thead><tr><th scope="col">ID</th><th scope="col">Trigger</th><th scope="col">Visible result</th><th scope="col">State after</th><th scope="col">Recovery</th></tr></thead><tbody>
+<tr><th scope="row">F1</th><td data-label="Trigger">The source has no pronunciation for the word (common for phrases and rare words)</td><td data-label="Visible result">No pronunciation line; definitions as today</td><td data-label="State after">Entry stored without pronunciations</td><td data-label="Recovery">None needed; appears if the source adds one at the next refresh</td></tr>
+<tr><th scope="row">F2</th><td data-label="Trigger">A value is empty, over 64 characters, or contains markup or control characters</td><td data-label="Visible result">That value is not shown; valid values still are</td><td data-label="State after">Only valid values stored</td><td data-label="Recovery">None; nothing is reported to the reader</td></tr>
+<tr><th scope="row">F3</th><td data-label="Trigger">A saved result written before this feature is read back</td><td data-label="Visible result">No pronunciation line</td><td data-label="State after">Cache record unchanged; still valid</td><td data-label="Recovery">Gains pronunciations at its next normal refresh</td></tr>
+<tr><th scope="row">F4</th><td data-label="Trigger">More than the maximum number of distinct values</td><td data-label="Visible result">The first three in source order</td><td data-label="State after">Only those three stored</td><td data-label="Recovery">None</td></tr>
+<tr><th scope="row">F5</th><td data-label="Trigger">Markup or JSON shape has changed so extraction cannot find or parse the pronunciation</td><td data-label="Visible result">Definitions only; no error</td><td data-label="State after">Entry stored without pronunciations</td><td data-label="Recovery">Fix the extractor; refresh on the next cache expiry</td></tr>
+</tbody></table></div></section>
+
+<section id="d-dec" aria-labelledby="d-dec-t" style="--sc:var(--c-amb)"><h2 id="d-dec-t">Proposed decisions</h2>
+<p>Proposals only; nothing is approved until you say so in chat.</p>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable decisions table"><table><caption>Five decision areas</caption><thead><tr><th scope="col">Area</th><th scope="col">Proposal</th><th scope="col">Needs review</th></tr></thead><tbody>
+<tr><th scope="row">Success criteria</th><td>For every source that holds an IPA value for the word, the entry shows 1 to 3 distinct values under the headword, as the source writes them. For <code>hello</code> the online English result contains <code>/həˈloʊ/</code>. Definitions are unchanged.</td><td>Q1 (how many, which accents), Q2 (delimiters), Q3 (per entry or per part of speech).</td></tr>
+<tr><th scope="row">Failure handling and recovery</th><td>F1 to F5 never fail or hide a lookup; at worst the line is absent. No error text for pronunciation problems.</td><td>Confirm “silent” is right (Q6): the alternative is a small “pronunciation unavailable” hint.</td></tr>
+<tr><th scope="row">Performance and resource budget</th><td>No new request and no new dictionary scan; extraction reuses the HTML already parsed per entry. Each entry carries at most 3 values of at most 64 characters. No latency target is proposed: I will measure offline English lookups before and after and report the difference rather than invent a threshold.</td><td>Agree that “not measurably slower” is the bar, with the measurement shown in Verify.</td></tr>
+<tr><th scope="row">Trust boundary and validation</th><td>Source text is untrusted. It is reduced to plain text, validated (F2) in the adapter and rendered as text only, never as HTML.</td><td>None.</td></tr>
+<tr><th scope="row">Compatibility and rollout</th><td>Additive optional field on the entry. The disk cache keeps its format version; old files stay readable (F3). The frontend model gains an optional list. Proposed as a minor release (0.7.0) that also needs <code>frontend/build</code> rebuilt, as for any UI change.</td><td>Q4 (do not purge old caches); confirm version.</td></tr>
+</tbody></table></div></section>
+
+<section id="d-scope" aria-labelledby="d-scope-t" style="--sc:var(--c-teal)"><h2 id="d-scope-t">Scope and open questions</h2>
+<p><strong>In scope:</strong> IPA text for English and Spanish, from offline, cached and online sources, shown in the result view. <strong>Out of scope:</strong> audio playback, non-IPA notations (enPR, respelling), searching by pronunciation, translating between accents, new languages.</p>
+<ol>
+<li><strong>Q1. How many pronunciations, and which?</strong> <em>Recommend: up to 3 per entry, in the source’s own order, with the accent label when the source gives one (offline English). For <code>hello</code> offline that is US, UK, Northumbria; online shows two unlabelled values. Alternatives: first only, or US plus UK only.</em></li>
+<li><strong>Q2. Delimiters.</strong> English sources write <code>/…/</code> (phonemic), Spanish writes <code>[…]</code> (phonetic). <em>Recommend: show exactly what the source writes; add slashes only if the source gave none.</em></li>
+<li><strong>Q3. Placement.</strong> Offline English repeats the same list in every part-of-speech section. <em>Recommend: one deduplicated line per entry, under the headword.</em> Exception: words such as <code>read</code> (online: two different pronunciations for two entries) get each entry’s own line, because they are already separate entries.</li>
+<li><strong>Q4. Old cached results.</strong> <em>Recommend: leave them; they pick up pronunciations when they next refresh (up to 365 days), no purge.</em> Alternative: ignore old cache records once so pronunciations appear sooner, at the cost of extra online requests.</li>
+<li><strong>Q5. Audio.</strong> The online sources include audio links. <em>Recommend: out of scope here; a separate feature.</em></li>
+<li><strong>Q6. Missing pronunciation.</strong> <em>Recommend: silent (nothing shown).</em></li>
+</ol>
+<p>If an answer adds a failure path, I will add its ID and walkthrough before asking again.</p></section>
+<section id="d-checks" aria-labelledby="d-checks-t" style="--sc:var(--c-blue)"><h2 id="d-checks-t">Checks run on this page</h2>
+<ul><li><strong>Source data (ran 2026-11-11):</strong> read the installed offline English and Spanish StarDict entries for <code>hello</code> and <code>hola</code> with a throwaway script; fetched live Free Dictionary API responses for <code>hello</code> and <code>read</code> and the Wikcionario parse response for <code>hola</code>. No project file was changed.</li>
+<li><strong>Not verified:</strong> pronunciation markup for words other than these three, phrases, and Spanish words with several pronunciations; whether the Wikcionario online table row is the same for every Spanish word; the frontend’s current result layout (the sample card on this page is a mock, not the real screen); performance, which will be measured in the build.</li>
+<li><strong>Page checks:</strong> <code>inline_view.py --check</code> reported 0 errors and 0 warnings. Diagram text equivalents and failure IDs (F1 to F5 appear in the glance, simulation and inventory) were checked by reading. <strong>Browser checks did not run</strong> (tabs, keyboard, 320 px width, dark mode, print, console); the file has no remote assets.</li></ul></section>
+</div>
+
+<!-- ============ SPEC ============ -->
+<div role="tabpanel" id="p-spec" aria-labelledby="t-spec" class="tabpanel">
+<section id="s-glance" aria-labelledby="s-glance-t" style="--sc:var(--c-teal)"><h2 id="s-glance-t">At a glance</h2>
+<p class="note skip-inline"><strong>This tab is the spec</strong> and the single source of truth. Design approved 2026-11-11; revision R2 (flags, first card only) approved the same day. Spec revision R2 (C1, C4, C8, S2, S10, new S12 and S13) was approved 2026-11-11.</p>
+<ul>
+<li><strong>What changes (contracts C1 to C8, revision R2 in C1, C4, C8):</strong> every entry gains up to 3 validated pronunciations (text, accent label shown as flags with the original as hover text); one new line under the result title, shown on the first card of a word only; three extractors (offline English and Spanish HTML, online English JSON, online Spanish HTML); old cached results keep working. No new request, no new dictionary scan, no cache version change.</li>
+<li><strong>Failures covered:</strong> <span class="chip fail">F1</span> S5 <span class="chip fail">F2</span> S6 <span class="chip fail">F3</span> S7 <span class="chip fail">F4</span> S8 <span class="chip fail">F5</span> S9. Success paths: S1 online English, S2 offline English, S3 offline Spanish, S4 online Spanish. UI: S10. Cost: S11. Revision R2: S12 first card only, S13 flag mapping.</li>
+<li><strong>Verification:</strong> Go unit tests with saved real fixtures for each source (adapters, validation, cache round trip), frontend component tests (line, labels, text-only rendering, EN/ES label), and one real-browser check at desktop and 360 px width. No test is marked done on manual checks alone.</li>
+<li><strong>Decisions to approve:</strong> the five areas below with observable thresholds. Performance is measured and reported, not gated: no latency number is approved because none was measured yet.</li>
+</ul>
+<details class="questions" open><summary>Spec revision R4: 3 changes (approved) (found with the real word “vegetable”)</summary><ol>
+<li><strong>Found problem.</strong> Real “vegetable” shows <code>🇬🇧🇺🇸🇨🇦 /ˈvɛd͡ʒ.tə.bəl/ · UK, dialectal /ˈvɛd͡ʒ.ə.tə.bəl/ · US, Canada, dialectal /ˈvɛt͡ʃ.tə.bəl/</code>: the first item is common to all accents but is flagged, and “dialectal” (not an accent) blocks the flags on the other two.</li>
+<li><strong>C4a: qualifier words are not accents.</strong> The words “dialectal” and “obsolete” are ignored when mapping (kept in the hover text). <em>Approved with “obsolete” added (252 and 346 uses in the installed dictionary); other non-accent words (“rhotic”, merger names) stay as text.</em></li>
+<li><strong>C4b: generic form gets no flags.</strong> When a label maps to both 🇬🇧 and 🇺🇸 (Received Pronunciation or UK together with General American or US), the pronunciation is the common one: shown with no label. About 4,500 labels in the installed dictionary are of this kind (for example “Received Pronunciation, General American”, “UK, US”). <em>Recommend: approve; extra flags in such a label (for example Canada) are not shown.</em></li>
+<li><strong>Result for “vegetable” (S14).</strong> <code>/ˈvɛd͡ʒ.tə.bəl/ · 🇬🇧 /ˈvɛd͡ʒ.ə.tə.bəl/ · 🇺🇸🇨🇦 /ˈvɛt͡ʃ.tə.bəl/</code> (the first three in source order; the Australia and India items fall past the cap of 3). This is a Design change too (a line item without a flag), so design and spec are re-approved together.</li>
+</ol></details>
+<p class="note gate">Spec revision R4 approved 2026-11-11 (see Approvals).</p></section>
+<h2 class="rep">Detailed report</h2>
+
+<section id="s-contracts" aria-labelledby="s-contracts-t" style="--sc:var(--c-teal)"><h2 id="s-contracts-t">Contracts and decisions</h2>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable contracts table"><table class="cards"><caption>Contracts</caption><thead><tr><th scope="col">ID</th><th scope="col">Contract</th></tr></thead><tbody>
+<tr><th scope="row">C1</th><td data-label="Contract"><strong>Data.</strong> <code>core.Entry</code> gains an optional ordered list <code>Pronunciations</code>; each item has <code>Text</code> (string), <code>Label</code> (string, may be empty; flags or the source’s text, see C4) and <code>LabelTitle</code> (string, the original source label when <code>Label</code> was replaced; empty otherwise). An entry with none has an empty list. Definitions, sources and headword are unchanged.</td></tr>
+<tr><th scope="row">C2</th><td data-label="Contract"><strong>Validation (F2), applied in the adapter and again when a saved result is read.</strong> Trim, collapse inner whitespace; drop the item if <code>Text</code> is empty, longer than 64 characters (runes), or contains <code>&lt;</code>, <code>&gt;</code> or any control character. <code>Label</code> follows the same character rules. The 32-character limit applies to the label as shown, after the flag mapping of C4 (a flag counts as 2 characters); the original text kept in <code>LabelTitle</code> may be up to 128 characters, otherwise the label is not mapped. An invalid label is blanked, the text is kept.</td></tr>
+<tr><th scope="row">C3</th><td data-label="Contract"><strong>Order, merge, cap (F4).</strong> Keep source order. Two items with the same <code>Text</code> merge into the first. At most 3 items per entry, after validation and merge.</td></tr>
+<tr><th scope="row">C4</th><td data-label="Contract"><strong>Delimiters and labels (Q2, Q7).</strong> <code>Text</code> is kept as the source writes it, including <code>/…/</code> or <code>[…]</code>. If it starts with neither, it is wrapped in <code>/…/</code>. <strong>Accent labels become flags (design revision R2):</strong> General American and US → 🇺🇸; Received Pronunciation and UK → 🇬🇧; Australia 🇦🇺; New Zealand 🇳🇿; Canada 🇨🇦; Ireland 🇮🇪; South Africa 🇿🇦 (matched case-insensitively after trimming). A label with commas is split at the commas; when every part is known the label becomes the flags in order (for example “UK, Australia, New Zealand” → 🇬🇧🇦🇺🇳🇿), and when any part is unknown the whole label stays as the source writes it (Northumbria, South Asia, Early Modern). <strong>Revision R4 (approved):</strong> the qualifier words “dialectal” and “obsolete” are ignored when mapping (a label of only qualifier words stays as text; approved in chat: “obsolete” is ignored too); when the mapped flags include both 🇬🇧 and 🇺🇸 the pronunciation is generic and the shown label is empty (and so is <code>LabelTitle</code>). When a label is replaced, the original is kept in <code>LabelTitle</code>. Only IPA values are taken: enPR and other respellings are ignored.</td></tr>
+<tr><th scope="row">C5</th><td data-label="Contract"><strong>Sources.</strong> Offline English: <code>IPA</code>-class values in the entry HTML, label from the accent qualifier on the same list item, same values repeated in other part-of-speech entries count once (C3; offline English has one entry per part of speech, so the list is per entry and repeats on each card). Offline Spanish: the <code>IPA</code>-class value of the “pronunciación (AFI)” item. Online English: <code>phonetics[].text</code> values in order, skipping items with no text; the top-level <code>phonetic</code> only if no item has text; labels empty. Online Spanish: the “pronunciación (AFI)” row of the Spanish section only, never rows of other languages (Q8).</td></tr>
+<tr><th scope="row">C6</th><td data-label="Contract"><strong>No extra work.</strong> Extraction reuses the HTML or JSON already fetched or parsed for definitions. An online lookup makes the same number of requests as today (one); an offline lookup performs no additional dictionary scan.</td></tr>
+<tr><th scope="row">C7</th><td data-label="Contract"><strong>Cache (F3).</strong> The disk record format version stays 1. The new field is optional and omitted when empty. A record without it is read as valid, has no pronunciations and is not refetched early. Values read from disk are validated by C2; an invalid value is dropped, the record is kept.</td></tr>
+<tr><th scope="row">C8</th><td data-label="Contract"><strong>Display.</strong> When an entry has pronunciations, one paragraph appears directly under the result title and above the first part of speech: items in order, separated by “ · ”, each prefixed by its label and a space when it has one. Text only (never HTML); when <code>LabelTitle</code> is set it is the hover text of the label. <strong>First card only (R2):</strong> within one displayed result, a later card with the same headword (case-insensitive) and language whose list (every <code>Text</code> and <code>Label</code>, in order) equals an earlier card’s shows no pronunciation paragraph; a differing list is always shown. The paragraph has an accessible name “Pronunciation” (EN) or “Pronunciación” (ES) following the interface language. No paragraph when the list is empty. Long lines wrap, with no horizontal scroll at 360 px.</td></tr>
+</tbody></table></div>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable decisions table"><table class="cards"><caption>The five decisions, as thresholds</caption><thead><tr><th scope="col">Area</th><th scope="col">Decision (observable)</th><th scope="col">Checked by</th></tr></thead><tbody>
+<tr><th scope="row">Success criteria</th><td data-label="Decision">With the fixtures of S1 to S4, each entry returns exactly the pronunciations listed in the scenario, in that order; <code>hello</code> online contains <code>/həˈloʊ/</code>; definitions are byte-for-byte what the current code returns for the same fixtures.</td><td data-label="Checked by">S1 to S4, existing lookup tests unchanged</td></tr>
+<tr><th scope="row">Failure handling and recovery</th><td data-label="Decision">F1 to F5 never change the lookup status (still found), never add an error message and never alter definitions. Recovery is the normal refresh.</td><td data-label="Checked by">S5 to S9</td></tr>
+<tr><th scope="row">Performance and resource budget</th><td data-label="Decision">No new request, no new scan (C6). At most 3 values of at most 64 characters per entry. Time: median of 5 warm offline English lookups of <code>hello</code>, before and after, is reported in the Verify tab; no pass/fail number is approved because none was measured yet.</td><td data-label="Checked by">S11, Verify tab measurement</td></tr>
+<tr><th scope="row">Trust boundary and validation</th><td data-label="Decision">Source text is untrusted: validated by C2 on extraction and on cache read, rendered as text by the frontend.</td><td data-label="Checked by">S6, S10</td></tr>
+<tr><th scope="row">Compatibility and rollout</th><td data-label="Decision">Additive field; old caches readable (C7); no migration. Frontend assets rebuilt and committed with the code. Version bump is a release decision outside this feature.</td><td data-label="Checked by">S7, <code>go tool task test</code>, rebuilt <code>frontend/build</code></td></tr>
+</tbody></table></div></section>
+
+<section id="s-q" aria-labelledby="s-q-t" style="--sc:var(--c-amb)"><h2 id="s-q-t">Open questions for spec approval</h2>
+<ol>
+<li><strong>Q7. Accent labels.</strong> The offline source writes “General American” and “Received Pronunciation”; the approved mock shows “US” and “UK”. <em>Recommend: map exactly those two to US and UK, show every other label as the source writes it (max 32 characters).</em></li>
+<li><strong>Q8. Online Spanish shape.</strong> Only <code>hola</code> was checked. <em>Recommend: build and test against saved real responses for at least five Spanish words; where the shape differs, that word shows no pronunciation (F5) and I report it, rather than guess.</em></li>
+</ol></section>
+
+<section id="s-scen" aria-labelledby="s-scen-t" style="--sc:var(--c-vio)"><h2 id="s-scen-t">Acceptance scenarios</h2>
+<details class="gwt" id="s1"><summary><strong>S1</strong> · Online English success</summary><p><strong>Given</strong> an online response for <code>hello</code> with three <code>phonetics</code> items: audio only, <code>/həˈləʊ/</code>, <code>/həˈloʊ/</code>,<br><strong>When</strong> the word is looked up,<br><strong>Then</strong> the entry has pronunciations <code>/həˈləʊ/</code> then <code>/həˈloʊ/</code> with empty labels, and a response with no text anywhere but a top-level <code>phonetic</code> uses that value.</p></details>
+<details class="gwt" id="s2"><summary><strong>S2</strong> · Offline English with accents (C3, C4, C5)</summary><p><strong>Given</strong> an offline <code>hello</code> entry whose three part-of-speech entries each carry the accents General American <code>/hɛˈloʊ/</code>, Received Pronunciation <code>/həˈləʊ/</code>, Northumbria <code>/haˈlaʊ/</code> and more, plus enPR respelling,<br><strong>When</strong> it is looked up,<br><strong>Then</strong> each entry has exactly <code>🇺🇸 /hɛˈloʊ/</code>, <code>🇬🇧 /həˈləʊ/</code>, <code>Northumbria /haˈlaʊ/</code> (with <code>LabelTitle</code> “General American” and “Received Pronunciation” on the first two), no duplicates and no enPR value.</p></details>
+<details class="gwt" id="s3"><summary><strong>S3</strong> · Offline Spanish</summary><p><strong>Given</strong> the offline <code>hola</code> entry with “pronunciación (AFI)” <code>[ˈola]</code>,<br><strong>When</strong> it is looked up,<br><strong>Then</strong> the entry has one pronunciation <code>[ˈola]</code>, brackets kept, no label.</p></details>
+<details class="gwt" id="s4"><summary><strong>S4</strong> · Online Spanish, Spanish section only (Q8)</summary><p><strong>Given</strong> a saved online response for <code>hola</code> whose page also has pronunciation rows for other languages,<br><strong>When</strong> it is looked up,<br><strong>Then</strong> the entry has only the Spanish value <code>[ˈola]</code>.</p></details>
+<details class="gwt" id="s5"><summary><strong>S5</strong> · No pronunciation in the source (F1)</summary><p><strong>Given</strong> a phrase entry whose source has no pronunciation,<br><strong>When</strong> it is looked up and shown,<br><strong>Then</strong> the list is empty, the definitions are as today, and no pronunciation paragraph, placeholder or message appears.</p></details>
+<details class="gwt" id="s6"><summary><strong>S6</strong> · Invalid values (F2, C2)</summary><p><strong>Given</strong> values that are empty, 65 characters long, contain <code>&lt;b&gt;</code>, or contain a control character, next to one valid value,<br><strong>When</strong> they are extracted, and when a saved record containing them is read,<br><strong>Then</strong> only the valid value remains; and a value with markup given directly to the screen is shown as visible text, with no element created.</p></details>
+<details class="gwt" id="s7"><summary><strong>S7</strong> · Old and new cache records (F3, C7)</summary><p><strong>Given</strong> a saved record written before this feature (no field), and a new record with pronunciations,<br><strong>When</strong> each is read from memory and from disk,<br><strong>Then</strong> the old one is returned as a valid result without pronunciations and without an online request; the new one round-trips unchanged; the record version is still 1.</p></details>
+<details class="gwt" id="s8"><summary><strong>S8</strong> · Many variants (F4, C3)</summary><p><strong>Given</strong> an entry with five distinct values and one repeated value,<br><strong>When</strong> it is extracted,<br><strong>Then</strong> the first three distinct values are kept in source order.</p></details>
+<details class="gwt" id="s9"><summary><strong>S9</strong> · Extraction fails (F5)</summary><p><strong>Given</strong> an entry whose pronunciation markup or JSON is not in the expected shape,<br><strong>When</strong> it is looked up,<br><strong>Then</strong> the result is still found with its definitions, the pronunciation list is empty, and no error is returned or shown.</p></details>
+<details class="gwt" id="s10"><summary><strong>S10</strong> · Display (C8)</summary><p><strong>Given</strong> entries with labelled, unlabelled and no pronunciations and each interface language,<br><strong>When</strong> the results are shown,<br><strong>Then</strong> the paragraph sits under the title and above the first part of speech with the approved separator and labels (flags, hover text), its accessible name follows the language, it is absent when empty, and at 360 px it wraps without horizontal scroll.</p></details>
+<details class="gwt" id="s14"><summary><strong>S14</strong> · Qualifiers and generic form (C4, revision R4)</summary><p><strong>Given</strong> the real offline entry “vegetable” with accent labels “Received Pronunciation, General American, Canada”, “UK, dialectal”, “US, Canada, dialectal”, “Australia, New Zealand” and “North India”, and the labels “UK, US” and “dialectal”,<br><strong>When</strong> they are normalized (also a second time) and shown,<br><strong>Then</strong> the first three items show <code>/ˈvɛd͡ʒ.tə.bəl/ · 🇬🇧 /ˈvɛd͡ʒ.ə.tə.bəl/ · 🇺🇸🇨🇦 /ˈvɛt͡ʃ.tə.bəl/</code> with the originals as hover text for the flagged ones; “UK, US” gives no label; “dialectal” alone stays as text.</p></details>
+<details class="gwt" id="s12"><summary><strong>S12</strong> · Line on the first card only (C8, design R2)</summary><p><strong>Given</strong> three <code>hello</code> cards with identical lists, then a <code>read</code> card list and a second <code>read</code> card with a different list,<br><strong>When</strong> the results are shown,<br><strong>Then</strong> only the first <code>hello</code> card shows the line, the first <code>read</code> card shows its line, and the second <code>read</code> card also shows its (different) line.</p></details>
+<details class="gwt" id="s13"><summary><strong>S13</strong> · Flag mapping (C4, design R2)</summary><p><strong>Given</strong> labels “General American”, “Received Pronunciation”, “UK, Australia, New Zealand”, “General American, Canada”, “Northumbria”, “Early Modern” and “UK, Narnia”, plus “UK, Australia, New Zealand, Ireland, South Africa” (49 characters),<br><strong>When</strong> they are normalized (also a second time),<br><strong>Then</strong> they become 🇺🇸, 🇬🇧, 🇬🇧🇦🇺🇳🇿, 🇺🇸🇨🇦, “Northumbria”, “Early Modern” and “UK, Narnia” (unknown part keeps the whole text), and the 49-character compound becomes 🇬🇧🇦🇺🇳🇿🇮🇪🇿🇦 (limit checked after mapping), with the original in <code>LabelTitle</code> whenever replaced, and the second pass gives the same result.</p></details>
+<details class="gwt" id="s11"><summary><strong>S11</strong> · No extra requests or scans (C6)</summary><p><strong>Given</strong> a counting fake HTTP client and an offline dictionary,<br><strong>When</strong> a word is looked up online and offline,<br><strong>Then</strong> the online lookup makes exactly one request and the offline lookup reads the dictionary index as many times as before the change.</p></details>
+</section>
+<section id="s-trace" aria-labelledby="s-trace-t" style="--sc:var(--c-amb)"><h2 id="s-trace-t">Traceability</h2>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable traceability table"><table><caption>Design path to scenario to verification</caption><thead><tr><th scope="col">Design path or UI state</th><th scope="col">Scenario</th><th scope="col">Planned verification</th><th scope="col">Actual test and code</th></tr></thead><tbody>
+<tr><th scope="row">Success: online English</th><td>S1</td><td>Go test, saved real JSON fixture</td><td><span class="chip new">done</span> pronunciation_test.go (hello, read, audio-only) · provider.go</td></tr>
+<tr><th scope="row">Success: offline English</th><td>S2</td><td>Go test, real entry HTML trimmed to a fixture</td><td><span class="chip new">done</span> pronunciation_test.go (3 real hello entries) · offline.go englishOfflinePronunciations</td></tr>
+<tr><th scope="row">Success: offline Spanish</th><td>S3</td><td>Go test, real entry HTML fixture</td><td><span class="chip new">done</span> pronunciation_test.go (hola, casa, perro) · offline.go</td></tr>
+<tr><th scope="row">Success: online Spanish</th><td>S4</td><td>Go test, saved real response (5 words)</td><td><span class="chip new">done</span> pronunciation_test.go (5 saved responses) · spanish.go</td></tr>
+<tr><th scope="row">F1</th><td>S5</td><td>Go test and frontend test</td><td><span class="chip new">done</span> pronunciation_test.go, pronunciation.test.js</td></tr>
+<tr><th scope="row">F2</th><td>S6</td><td>Go test (extract and cache read), frontend test</td><td><span class="chip new">done</span> core/pronunciation_test.go, pronunciation_test.go · core/pronunciation.go, cache.go</td></tr>
+<tr><th scope="row">F3</th><td>S7</td><td>Go test, memory and disk cache</td><td><span class="chip new">done</span> pronunciation_test.go, core/pronunciation_test.go · cache.go</td></tr>
+<tr><th scope="row">F4</th><td>S8</td><td>Go test</td><td><span class="chip new">done</span> core/pronunciation_test.go</td></tr>
+<tr><th scope="row">F5</th><td>S9</td><td>Go test, malformed fixtures</td><td><span class="chip new">done</span> pronunciation_test.go (malformed JSON, rows, markup) · provider.go, spanish.go</td></tr>
+<tr><th scope="row">Result card with pronunciation line</th><td>S10</td><td>Frontend component test; real-browser check at desktop and 360 px (manual until run)</td><td><span class="chip new">done</span> pronunciation.test.js · +page.svelte; real-browser 360 px check by QA (manual, stub runtime)</td></tr>
+<tr><th scope="row">Revision R4: qualifiers and generic form</th><td>S14</td><td>Go unit test (core), saved real “vegetable” fixture through the offline adapter</td><td><span class="chip new">done</span> <code>internal/core/pronunciation_test.go</code> (S14 table); <code>internal/adapters/pronunciation_test.go</code> (real vegetable fixture); <code>core/pronunciation.go</code></td></tr>
+<tr><th scope="row">Design R2: first card only</th><td>S12</td><td>Frontend component test</td><td><span class="chip new">done</span> <code>frontend/src/routes/pronunciation.test.js</code> (S12 and language case); <code>+page.svelte</code> <code>pronunciationFor</code></td></tr>
+<tr><th scope="row">Design R2: flag mapping</th><td>S13</td><td>Go unit test (core), frontend hover text test</td><td><span class="chip new">done</span> <code>internal/core/pronunciation_test.go</code>; <code>core/pronunciation.go</code>; hover test in <code>pronunciation.test.js</code></td></tr>
+<tr><th scope="row">No extra requests or scans</th><td>S11</td><td>Go test with counting client; timing measured in Verify</td><td><span class="chip new">done</span> pronunciation_test.go (counting client, scan counter) · offline.go scanIndex</td></tr>
+</tbody></table></div>
+<p>Every design path and failure ID F1 to F5 maps to a scenario. Rows stay pending until a test and code exist; manual-only checks are labelled manual.</p></section>
+<section id="s-checks" aria-labelledby="s-checks-t" style="--sc:var(--c-blue)"><h2 id="s-checks-t">Checks run on this page</h2>
+<ul><li><code>inline_view.py --check</code>: see the result in the chat report; all failure IDs F1 to F5 appear in the glance and the traceability table (read, not machine-checked).</li>
+<li><strong>Not verified:</strong> the contract wording against the real code (struct and validator names are chosen in Architecture); online Spanish pronunciation for words other than <code>hola</code> (Q8); the 64 and 32 character limits against real data, which I have not scanned; browser checks of this page did not run.</li></ul></section>
+</div>
+
+<!-- ============ ARCHITECTURE ============ -->
+<div role="tabpanel" id="p-arch" aria-labelledby="t-arch" class="tabpanel">
+<section id="a-glance" aria-labelledby="a-glance-t" style="--sc:var(--c-teal)"><h2 id="a-glance-t">At a glance</h2>
+<p><span class="chip new">new: core.Pronunciation + normalizer</span><span class="chip chg">changed: core.Entry</span><span class="chip chg">changed: 4 extractors</span><span class="chip chg">changed: cache read</span><span class="chip chg">changed: result view + 2 strings</span><span class="chip ex">existing: lookup order, ports</span><span class="chip def">deferred: audio</span></p>
+<div class="hero"><p class="cap">Dependencies: arrows point from the user of a thing to the thing it uses</p><div class="scroll" tabindex="0" role="region" aria-label="Scrollable diagram"><svg class="dg" viewBox="0 0 640 150" role="img" aria-labelledby="ah-t ah-d"><title id="ah-t">Dependency map</title><desc id="ah-d">The result view reads Entry.Pronunciations from the lookup result. Four source adapters (offline English and Spanish, online English, online Spanish) and the disk cache each call one new core function, NormalizePronunciations, which returns at most three checked pronunciations. The lookup order and the dictionary ports do not change. Audio is deferred.</desc><defs><marker id="aah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<rect class="n chg" x="10" y="10" width="150" height="40" rx="6"/><text class="h" x="20" y="35">+page.svelte (view)</text>
+<rect class="n ex" x="10" y="95" width="150" height="40" rx="6"/><text class="h" x="20" y="120">core lookup (unchanged)</text>
+<rect class="n chg" x="250" y="10" width="170" height="40" rx="6"/><text class="h" x="260" y="35">Adapters ×4 + DiskCache</text>
+<rect class="n new" x="250" y="95" width="170" height="40" rx="6"/><text class="h" x="260" y="120">core.NormalizePronunciations</text>
+<rect class="n chg" x="490" y="52" width="140" height="40" rx="6"/><text class="h" x="500" y="77">core.Entry</text>
+<rect class="n def" x="490" y="105" width="140" height="30" rx="6"/><text class="t" x="500" y="124">audio (deferred)</text>
+<path d="M160 30H250" stroke="currentColor" fill="none" marker-end="url(#aah)"/><path d="M335 50V95" stroke="currentColor" fill="none" marker-end="url(#aah)"/><path d="M420 30H455V60H490" stroke="currentColor" fill="none" marker-end="url(#aah)"/><path d="M160 115H250" stroke="currentColor" fill="none" marker-end="url(#aah)"/></svg></div><p class="src">Text equivalent: the view, adapters and cache all end up using one new core function and the extended Entry; nothing else changes.</p></div>
+<ul>
+<li><strong>Revision R2 delta (new, needs your approval):</strong> (1) <code>Pronunciation</code> gains <code>LabelTitle string</code> (<code>omitempty</code>, the original source label when <code>Label</code> was replaced by flags); (2) <code>NormalizePronunciations</code> also maps labels to flags per C4 (one unexported lookup table in <code>core/pronunciation.go</code>, idempotent on re-read); (3) the view hides a later card’s line when headword and list equal an earlier card’s, through one small helper in <code>+page.svelte</code>, and shows <code>LabelTitle</code> as hover text. No other file, port or adapter signature changes; adapters still pass raw labels. Old cached records with text labels are re-mapped on read, so they gain flags with no migration.</li>
+<li><strong>Public shape:</strong> <code>core.Pronunciation{Text, Label, LabelTitle}</code>; <code>Entry.Pronunciations []Pronunciation</code> (optional, <code>omitempty</code>); one pure function <code>core.NormalizePronunciations([]Pronunciation) []Pronunciation</code> that implements C2 to C4 (trim, validate, merge, cap 3, delimiters, flag labels). No new port or interface: the existing <code>Find</code> and cache ports already carry <code>Entry</code>.</li>
+<li><strong>Where each source plugs in:</strong> offline English and Spanish read the IPA span while parsing the HTML they already parse; online English adds <code>phonetics</code> and <code>phonetic</code> to the JSON it already decodes; online Spanish reads the “pronunciación (AFI)” row inside the Spanish section. Each hands its raw values to the one normalizer.</li>
+<li><strong>Cache:</strong> on read, entries go through the same normalizer; an invalid pronunciation is dropped, the record is kept (the existing check still rejects a record only for bad definitions). Version stays 1.</li>
+<li><strong>Plan for the revision (the first build already exists):</strong> 1 core: <code>LabelTitle</code>, flag mapping, tests (S13); 2 frontend: hover text, first-card rule, tests (S12); 3 rebuild <code>frontend/build</code>, quality gate, then QA and an independent grader on the new revision (budget resets).</li>
+</ul>
+<p class="note gate">Architecture revision R2 approved 2026-11-11 (see Approvals).</p></section>
+<h2 class="rep">Detailed report</h2>
+
+<section id="a-iface" aria-labelledby="a-iface-t" style="--sc:var(--c-vio)"><h2 id="a-iface-t">Interface changes (signatures only)</h2>
+<pre>// internal/core/domain.go  (changed)
+type Pronunciation struct {
+    Text  string
+    Label      string `json:",omitempty"` // flags or source text (C4)
+    LabelTitle string `json:",omitempty"` // R2: original label when replaced
+}
+type Entry struct {
+    Headword       string
+    Language       Language
+    Pronunciations []Pronunciation `json:",omitempty"` // new, optional
+    Meanings       []Meaning
+    Source         Source
+}
+
+// internal/core/pronunciation.go  (new, pure, no I/O)
+// NormalizePronunciations applies C2 (validate), C3 (order, merge, cap 3) and
+// C4 (delimiters, flag labels, LabelTitle); idempotent. It never returns an error: bad items are dropped.
+func NormalizePronunciations(raw []Pronunciation) []Pronunciation</pre>
+<p>Adapter-side extraction stays private (unexported helpers in each adapter file), so no new exported API: <code>offline.go</code> (IPA span plus <code>usage-label-accent</code> qualifier; enPR ignored), <code>offline.go</code> Spanish branch (<code>pronunciación (AFI)</code> list item), <code>provider.go</code> (<code>phonetics[].text</code>, fallback <code>phonetic</code>; audio-only items skipped), <code>spanish.go</code> (table row <code>pronunciación (AFI)</code> inside the <code>h2 id="Español"</code> section only). <code>cache.go</code>: <code>Get</code> normalizes every entry's pronunciations after decoding; <code>validCacheEntries</code> is unchanged.</p></section>
+
+<section id="a-files" aria-labelledby="a-files-t" style="--sc:var(--c-amb)"><h2 id="a-files-t">Every file the plan touches or adds</h2>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable table"><table class="cards"><caption>Files</caption><thead><tr><th scope="col">File</th><th scope="col">Status</th><th scope="col">Purpose</th></tr></thead><tbody>
+<tr><th scope="row">internal/core/domain.go</th><td data-label="Status">changed</td><td data-label="Purpose">Pronunciation type, Entry field</td></tr>
+<tr><th scope="row">internal/core/pronunciation.go</th><td data-label="Status">new</td><td data-label="Purpose">NormalizePronunciations</td></tr>
+<tr><th scope="row">internal/core/pronunciation_test.go</th><td data-label="Status">new</td><td data-label="Purpose">S6, S8, S13 flag mapping and idempotence, boundaries (64 and 32 runes)</td></tr>
+<tr><th scope="row">internal/adapters/offline.go, provider.go, spanish.go</th><td data-label="Status">changed</td><td data-label="Purpose">four extractors (S1 to S5, S9)</td></tr>
+<tr><th scope="row">internal/adapters/cache.go</th><td data-label="Status">changed</td><td data-label="Purpose">normalize on read (S7)</td></tr>
+<tr><th scope="row">internal/adapters/*_test.go (offline_format, provider, spanish, cache)</th><td data-label="Status">changed</td><td data-label="Purpose">per-source and cache scenarios</td></tr>
+<tr><th scope="row">internal/adapters/testdata/pronunciation/*</th><td data-label="Status">new</td><td data-label="Purpose">saved real responses: online English (<code>hello</code>, <code>read</code>, audio-only), online Spanish (at least 5 words, Q8), offline HTML snippets; no network in tests</td></tr>
+<tr><th scope="row">frontend/src/routes/+page.svelte</th><td data-label="Status">changed</td><td data-label="Purpose">the line, in both entry renderings (S10)</td></tr>
+<tr><th scope="row">frontend/src/language.js</th><td data-label="Status">changed</td><td data-label="Purpose">key <code>pronunciation</code>: “Pronunciation” / “Pronunciación”</td></tr>
+<tr><th scope="row">frontend/src/routes/pronunciation.test.js</th><td data-label="Status">changed (R2)</td><td data-label="Purpose">component tests: line, flags and hover text, text-only rendering, hidden when empty, first-card-only (S12)</td></tr>
+<tr><th scope="row">frontend/bindings (Wails), frontend/build</th><td data-label="Status">regenerated</td><td data-label="Purpose">Entry shape reaches the UI; build assets are committed per README</td></tr>
+</tbody></table></div></section>
+
+<section id="a-trust" aria-labelledby="a-trust-t" style="--sc:var(--c-fail)"><h2 id="a-trust-t">Ownership, trust boundary and differences from the design</h2>
+<ul>
+<li><strong>Ownership:</strong> <code>core</code> owns the type and every validation rule; adapters only extract raw strings; the view only prints text. No adapter decides length, count or labels.</li>
+<li><strong>Trust boundary:</strong> every source string is untrusted. It is validated in core on extraction and again on cache read; the view renders it as text (Svelte interpolation, never <code>{@html}</code>).</li>
+<li><strong>Difference 1:</strong> offline English entries are one per part of speech, so the same line repeats in each card (wording fix to C3 and S2; behaviour per entry unchanged).</li>
+<li><strong>Difference 2:</strong> the cache keeps a record when only its pronunciations are invalid (design F2 and C7 say values are validated on read; this is how).</li>
+<li><strong>Test approach:</strong> core unit tests from S6 to S8; adapter tests against saved real fixtures (S1 to S5, S9, S11 by asserting no extra request through a counting client); cache round trip with an old record and a new one (S7); frontend component tests (S10); one real-browser check at desktop and 360 px during QA.</li>
+<li><strong>Migration order:</strong> core type, then adapters and cache (parallel, they only need the type), then frontend, then regenerate bindings and build. Nothing to migrate on disk.</li>
+</ul></section>
+
+<section id="a-checks" aria-labelledby="a-checks-t" style="--sc:var(--c-blue)"><h2 id="a-checks-t">Checks run on this page</h2>
+<ul><li>Interfaces are read from the code (<code>internal/core/domain.go</code>, <code>cache.go</code> <code>validCacheEntries</code>, adapters, <code>+page.svelte</code> result cards); nothing was compiled or changed.</li>
+<li><strong>Not verified:</strong> exact selectors for the offline Spanish and online Spanish extractors (shape confirmed only for <code>hola</code>); the Wails binding regeneration command (taken from the README, not run); no browser check of this page.</li></ul></section>
+</div>
+
+<!-- ============ BUILD ============ -->
+<div role="tabpanel" id="p-build" aria-labelledby="t-build" class="tabpanel">
+<section id="b-glance" aria-labelledby="b-glance-t" style="--sc:var(--c-teal)"><h2 id="b-glance-t">At a glance</h2>
+<ul>
+<li><strong>Revision R4 built</strong> (qualifier words “dialectal” and “obsolete” ignored; a label with both UK and US flags shows no label; S14 with the real “vegetable” entry saved as a fixture), after R3 (limit after mapping) and R2 (flags, first card only).</li>
+<li><strong>Revision R2 built</strong> from the approved design, spec and architecture revisions: <code>LabelTitle</code> and flag mapping in <code>core.NormalizePronunciations</code> (S13), the first-card-only rule and flag hover text in the result view (S12), old cached text labels re-mapped on read, <code>frontend/build</code> rebuilt.</li>
+<li><strong>Quality gate:</strong> <code>go tool task test</code> passed: svelte-check 0 errors and 0 warnings, 70 frontend tests, Go packages ok.</li>
+<li><strong>Deviations from the plan:</strong> Go tests for R2 were written together with the code, not seen failing first; <code>MemoryCache</code> is still not normalized on read; the offline <code>scanIndex</code> seam from the first build remains.</li>
+</ul>
+<p class="note gate"><strong>Next:</strong> QA and the independent grader ran on this revision; see the Verify tab.</p></section>
+<h2 class="rep">Detailed report</h2>
+<section id="b-checks" aria-labelledby="b-checks-t" style="--sc:var(--c-blue)"><h2 id="b-checks-t">Checks run on this page</h2><p>Traceability in the Spec tab now lists the actual tests and code. <code>inline_view.py --check</code> is run after each edit. Not verified: formatting with prettier for <code>.svelte</code> files (the project's existing files already warn).</p></section>
+</div>
+
+<!-- ============ VERIFY ============ -->
+<div role="tabpanel" id="p-verify" aria-labelledby="t-verify" class="tabpanel">
+<section id="v-glance" aria-labelledby="v-glance-t" style="--sc:var(--c-teal)"><h2 id="v-glance-t">Verification report</h2>
+<p><span class="chip new">grader: PASS</span><span class="chip new">QA: matches</span><span class="chip chg">4 grader items fixed, not re-graded</span></p>
+<ul>
+<li><strong>Verdict (grader, verbatim):</strong> Verdict: PASS</li>
+<li><strong>QA result (tester, verbatim):</strong> Result: S13, S14 and regressions S2, S10, S12 match the spec when run against the real installed English dictionary and the built frontend. The Go suite passes, there are no console errors, and no stray separator or space appears for the unflagged item.</li>
+</ul>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable scorecard"><table class="cards"><caption>Scorecard (revision R4)</caption><thead><tr><th scope="col">Item</th><th scope="col">Result</th></tr></thead><tbody>
+<tr><th scope="row">Build gate (go tool task test)</th><td data-label="Result">passed (70 frontend tests, Go ok, fresh run by the grader)</td></tr>
+<tr><th scope="row">QA scenarios</th><td data-label="Result">S13, S14, S2, S10, S12 matched on real data; no defects (the full S1 to S13 run was on the previous revision)</td></tr>
+<tr><th scope="row">Grade: scenarios and failures mapped</th><td data-label="Result">PASS</td></tr>
+<tr><th scope="row">Grade: five decision areas</th><td data-label="Result">PARTIAL (G8, performance wording)</td></tr>
+<tr><th scope="row">Grade: architecture</th><td data-label="Result">PASS</td></tr>
+<tr><th scope="row">Grade: test quality</th><td data-label="Result">PARTIAL (G9, G12; fixed)</td></tr>
+<tr><th scope="row">Grade: design fidelity</th><td data-label="Result">PASS</td></tr>
+<tr><th scope="row">Grade: scope and records</th><td data-label="Result">PARTIAL (G10; fixed)</td></tr>
+<tr><th scope="row">Grade: accessibility, maintainability</th><td data-label="Result">PARTIAL (G11, memory bank; fixed)</td></tr>
+</tbody></table></div>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable findings"><table class="cards"><caption>Findings</caption><thead><tr><th scope="col">ID</th><th scope="col">Finding</th><th scope="col">Label</th><th scope="col">Severity</th><th scope="col">Status</th></tr></thead><tbody>
+<tr><th scope="row">G8</th><td data-label="Finding">The approved performance report (median of 5 warm offline English hello lookups, before and after) was not re-measured; only the first build's 3-run numbers exist</td><td data-label="Label">requirement</td><td data-label="Severity">partial</td><td data-label="Status">open: your decision (accept the deviation, or I measure the 5-run medians)</td></tr>
+<tr><th scope="row">G9</th><td data-label="Finding">No test could fail for the 128-character raw label rule</td><td data-label="Label">implementation</td><td data-label="Severity">low</td><td data-label="Status">fixed after grading (over-128 and exactly-128 cases; mutation checked), not re-graded</td></tr>
+<tr><th scope="row">G10</th><td data-label="Finding">Page records stale for R4 (badge, traceability, Build, Verify)</td><td data-label="Label">implementation</td><td data-label="Severity">partial</td><td data-label="Status">fixed (this page), not re-graded</td></tr>
+<tr><th scope="row">G11</th><td data-label="Finding">Memory bank had nothing on R4</td><td data-label="Label">implementation</td><td data-label="Severity">partial</td><td data-label="Status">fixed after grading, not re-graded</td></tr>
+<tr><th scope="row">G12</th><td data-label="Finding">The vegetable fixture test did not assert at least one entry</td><td data-label="Label">implementation</td><td data-label="Severity">low</td><td data-label="Status">fixed after grading, not re-graded</td></tr>
+</tbody></table></div>
+<ul>
+<li><strong>Performance:</strong> not re-measured for R4 (it adds only map lookups over at most 3 items). First build, offline English <code>hello</code>: main 258.4, 243.6, 254.2 ms against 258.2, 256.6, 246.6 ms.</li>
+<li><strong>Not verified:</strong> the real Wails/WebKitGTK window; a real mouse tooltip; flags on systems without a flag font; screen-reader output; 320 px width; live API drift; whether the R4 tests were seen failing first; the counts quoted for the installed dictionary (about 4,500 generic labels; 252 and 346 uses) come from my own scan and were not independently checked.</li>
+<li><strong>Budget:</strong> revision R4: QA 1, grader 1; fix round 1 of 2 used (G9, G10, G11, G12); no re-spawn. Models: QA general-purpose, grader <code>code-grader</code>.</li>
+</ul>
+<p class="note gate"><strong>Handoff:</strong> nothing is committed or published. Decide G8 (accept, or measure the 5-run medians), then reply with what you want next (for example “commit”).</p>
+</section>
+<h2 class="rep">Detailed report</h2>
+<section id="v-checks" aria-labelledby="v-checks-t" style="--sc:var(--c-blue)"><h2 id="v-checks-t">Checks run on this page</h2><p>The grader's and QA's lines above are pasted from their reports. The full agent tables are in the transcript, not copied here. <code>inline_view.py --check</code> run after the edit.</p></section>
+</div>
+
+<!-- ============ APPROVALS ============ -->
+<div role="tabpanel" id="p-appr" aria-labelledby="t-appr" class="tabpanel">
+<section id="appr" aria-labelledby="appr-t" style="--sc:var(--c-grn)"><h2 id="appr-t">Approvals</h2>
+<p class="note">Record only approvals actually received in chat, with the date, the tab content approved (hash or short description) and the user’s words. A page control never approves a gate. Later edits to status labels or traceability are not re-approvals; a change to behaviour, scope or contracts reopens the gate that owns it. Hashes identify what was approved, not what the page shows today.</p>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable approvals table"><table><caption>Gate approvals</caption><thead><tr><th scope="col">Gate</th><th scope="col">Date</th><th scope="col">Approved artifact</th><th scope="col">Approval in chat</th></tr></thead><tbody>
+<tr><th scope="row">Design</th><td>2026-11-11</td><td>Design tab as shown, with Q1 to Q6 answered by the recommendations</td><td>“design approved too with your recommendations for the questions”</td></tr><tr><th scope="row">Spec</th><td>2026-11-11</td><td>Spec tab as shown (C1 to C8, S1 to S11), with Q7 and Q8 answered by the recommendations</td><td>“spec approved”</td></tr><tr><th scope="row">Architecture</th><td>2026-11-11</td><td>Architecture tab as shown, including the C3/S2 wording fix (per entry)</td><td>“approved”</td></tr><tr><th scope="row">Design revision R2</th><td>2026-11-11</td><td>Design tab revision R2 (flags for accents, line on the first card only)</td><td>“design review approved”</td></tr><tr><th scope="row">Spec revision R2</th><td>2026-11-11</td><td>Spec tab revision R2 (C1, C4, C8, S2, S10, S12, S13); Q7 and Q8 unchanged</td><td>“spec revision approved”</td></tr><tr><th scope="row">Spec revision R3 (G7)</th><td>2026-11-11</td><td>C2: the 32-character label limit applies after flag mapping; S13 gains a long compound case (after R4 the example is “UK, Australia, New Zealand, Ireland, South Africa”, 49 characters, because the earlier 40-character example became a generic label)</td><td>“map flags first and then check length”</td></tr><tr><th scope="row">Design and spec revision R4</th><td>2026-11-11</td><td>Design and Spec revision R4: qualifier words “dialectal” and “obsolete” ignored when mapping; a label with both UK and US flags is generic and shows no flags; S14</td><td>“Approved, start the build. Yes ignore the obsolete too”</td></tr><tr><th scope="row">Architecture revision R2</th><td>2026-11-11</td><td>Architecture tab revision R2 (LabelTitle, flag table in NormalizePronunciations, first-card hide helper, read-time re-mapping)</td><td>“architecture revision approved”</td></tr><tr><th scope="row">Automatic verification</th><td>2026-11-11</td><td>QA and grade run after the build unless the user replied <code>no QA</code> or <code>no grade</code></td><td></td></tr>
+</tbody></table></div></section>
+</div>
+</main>
+<footer>Single-file SDD review · no network dependencies · no live backend</footer>
+<script>
+'use strict';
+const tabs=Array.from(document.querySelectorAll('[role=tab]'));
+const panels=Array.from(document.querySelectorAll('.tabpanel'));
+function act(p,focus,keep){tabs.forEach(t=>{const on=t.dataset.p===p;t.setAttribute('aria-selected',on);t.tabIndex=on?0:-1;document.getElementById('p-'+t.dataset.p).hidden=!on;if(on&&focus)t.focus();});if(!keep){try{history.replaceState(null,'','#p-'+p)}catch(_){}}}
+tabs.forEach((t,i)=>{t.addEventListener('click',()=>act(t.dataset.p));t.addEventListener('keydown',ev=>{const k={ArrowRight:1,ArrowLeft:-1}[ev.key];if(ev.key==='Home'){ev.preventDefault();act(tabs[0].dataset.p,1)}else if(ev.key==='End'){ev.preventDefault();act(tabs[tabs.length-1].dataset.p,1)}else if(k){ev.preventDefault();act(tabs[(i+k+tabs.length)%tabs.length].dataset.p,1)}});});
+function fromHash(){const id=location.hash.slice(1);const el=id&&document.getElementById(id);const pan=el&&el.closest('.tabpanel');act(pan?pan.id.slice(2):(tabs.find(t=>t.getAttribute('aria-selected')==='true')||tabs[0]).dataset.p,false,!!pan);if(el&&pan){for(let d=el.closest('details');d;d=d.parentElement&&d.parentElement.closest('details'))d.open=true;el.scrollIntoView();}}
+fromHash();window.addEventListener('hashchange',fromHash);
+</script>
+<script>
+'use strict';
+const S={
+'en-online':{w:'hello',p:'/həˈləʊ/ · /həˈloʊ/',d:'interjection: used as a greeting.',o:'Success: two unlabelled values from the API, shown under the headword.'},
+'en-offline':{w:'hello',p:'🇺🇸 /hɛˈloʊ/ · 🇬🇧 /həˈləʊ/ · Northumbria /haˈlaʊ/',d:'interjection: used as a greeting.',o:'Success: first three accents in dictionary order, labelled; more exist and are not shown (F4 cap).'},
+'es':{w:'hola',p:'[ˈola]',d:'interjección: expresión de saludo.',o:'Success: value shown exactly as Wikcionario writes it, square brackets kept.'},
+'f1':{w:'good morning',p:'',d:'phrase: a greeting used in the morning.',o:'F1: no pronunciation line and no placeholder; definitions as today.'},
+'f2':{w:'hello',p:'/hɛˈloʊ/',d:'interjection: used as a greeting.',o:'F2: one value contained markup and was dropped silently; the valid one still shows.'},
+'f3':{w:'hello',p:'',d:'interjection: used as a greeting.',o:'F3: saved before this feature, so no pronunciation yet; it appears after the next normal refresh.'},
+'f4':{w:'hello',p:'🇺🇸 /hɛˈloʊ/ · 🇬🇧 /həˈləʊ/ · Northumbria /haˈlaʊ/',d:'interjection: used as a greeting.',o:'F4: six accents exist; only the first three show, duplicates merged.'},
+'f5':{w:'hello',p:'',d:'interjection: used as a greeting.',o:'F5: pronunciation could not be extracted; the lookup still succeeds with definitions only, no error shown.'}};
+const sel=document.getElementById('path'),out=document.getElementById('outcome'),mw=document.getElementById('mw'),mp=document.getElementById('mp'),md=document.getElementById('md');
+function show(){const s=S[sel.value];mw.textContent=s.w;mp.textContent=s.p;mp.hidden=!s.p;md.textContent=s.d;out.textContent=s.o;}
+const ctl=document.getElementById('controls');if(ctl&&sel&&out){ctl.hidden=false;sel.addEventListener('change',show);show();}
+</script>
+
+<script>
+'use strict';
+const details=Array.from(document.querySelectorAll('details'));let prior=[];
+window.addEventListener('beforeprint',()=>{panels.forEach(p=>{p.hidden=false;});prior=details.map(d=>d.open);details.forEach(d=>{d.open=true;});});
+window.addEventListener('afterprint',()=>{details.forEach((d,i)=>{d.open=prior[i]??true;});const s=tabs.find(t=>t.getAttribute('aria-selected')==='true');if(s)act(s.dataset.p);});
+</script>
+</body>
+</html>

@@ -86,7 +86,7 @@ func (p SpanishOnlineDictionary) Find(ctx context.Context, query string, languag
 		return nil, false, errors.New("unrecognized Spanish entry")
 	}
 	source := core.Source{ID: "spanish-wiktionary", Name: "Wikcionario", URL: "https://es.wiktionary.org/wiki/" + url.PathEscape(strings.ReplaceAll(data.Parse.Title, " ", "_")), Attribution: "Wiktionary contributors; definitions extracted and formatting changed by wdict", LicenseURL: "https://creativecommons.org/licenses/by-sa/4.0/"}
-	return []core.Entry{{Headword: data.Parse.Title, Language: language, Meanings: meanings, Source: source}}, true, nil
+	return []core.Entry{{Headword: data.Parse.Title, Language: language, Pronunciations: core.NormalizePronunciations(spanishOnlinePronunciations(root)), Meanings: meanings, Source: source}}, true, nil
 }
 
 // spanishMeanings extracts numbered definition lists from Spanish source HTML.
@@ -221,4 +221,70 @@ func hasSpanishMarker(n *html.Node) bool {
 		}
 	}
 	return false
+}
+
+// spanishOnlinePronunciations reads the "pronunciación (AFI)" table rows of the
+// Spanish section only; the page also holds the rows of other languages.
+func spanishOnlinePronunciations(root *html.Node) []core.Pronunciation {
+	var found []core.Pronunciation
+	active := false
+	var visit func(*html.Node)
+	visit = func(n *html.Node) {
+		if n.Type == html.ElementNode {
+			if n.Data == "h2" {
+				active = false
+				for _, a := range n.Attr {
+					if a.Key == "id" && a.Val == "Español" {
+						active = true
+					}
+				}
+			}
+			if active && n.Data == "tr" {
+				var cells []*html.Node
+				for c := n.FirstChild; c != nil; c = c.NextSibling {
+					if c.Type == html.ElementNode && c.Data == "td" {
+						cells = append(cells, c)
+					}
+				}
+				if len(cells) == 2 && strings.HasPrefix(strings.Join(strings.Fields(spanishNodeText(cells[0])), " "), "pronunciación (AFI)") {
+					found = append(found, spanishCellValues(cells[1])...)
+				}
+				return
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			visit(c)
+		}
+	}
+	visit(root)
+	return found
+}
+
+// spanishCellValues splits a cell at line breaks, skipping the audio button.
+func spanishCellValues(cell *html.Node) []core.Pronunciation {
+	var values []core.Pronunciation
+	var current strings.Builder
+	flush := func() {
+		if text := strings.TrimSpace(current.String()); text != "" {
+			values = append(values, core.Pronunciation{Text: text})
+		}
+		current.Reset()
+	}
+	var walk func(*html.Node)
+	walk = func(n *html.Node) {
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			switch {
+			case c.Type == html.TextNode:
+				current.WriteString(c.Data)
+			case c.Type == html.ElementNode && c.Data == "br":
+				flush()
+			case c.Type == html.ElementNode && hasClass(c, "ext-phonos"):
+			default:
+				walk(c)
+			}
+		}
+	}
+	walk(cell)
+	flush()
+	return values
 }

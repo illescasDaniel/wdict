@@ -1,5 +1,9 @@
 # Active context
 
+## Phonetic pronunciation (2026-11-11)
+
+Built through R4 and green but uncommitted; page `sdd/phonetic-pronunciation.html` holds the spec, approvals and Verify report. Next step: the user decides G8 (accept the missing 5-run median performance report or ask for it) and whether to commit (run `memory-wrapup` first). Not verified: real-window check, flags without a flag font.
+
 ## Current focus
 
 v0.6.0 is released (2026-11-06; lookup alternatives and interface-language result ordering). v0.6.1 (2026-11-09) adds `wdict --version`/`-v` (ldflags `main.version`, falling back to the `go install` module version, then `dev`) and a muted version label at the end of the footer via `App.Version()`. The user noticed v0.6.0 had no way to show its version. Release process: bump version files, rebuild `frontend/build` with `npm run build --prefix frontend`, wait for green CI, then dispatch the Release workflow (it creates the tag; never push `v*` by hand), then `go install -tags gtk3 github.com/illescasDaniel/wdict@vX.Y.Z`.

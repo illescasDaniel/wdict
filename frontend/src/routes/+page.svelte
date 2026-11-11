@@ -3,6 +3,34 @@
   import { createLanguageController } from "../language.js";
   let languageController = createLanguageController();
   let interfaceLanguage = "en";
+  function pronunciationItems(entry) {
+    return (
+      Array.isArray(entry.Pronunciations) ? entry.Pronunciations : []
+    ).filter((item) => item && item.Text);
+  }
+  function pronunciationKey(entry) {
+    return JSON.stringify(
+      pronunciationItems(entry).map((item) => [item.Text, item.Label || ""]),
+    );
+  }
+  // Items to show for a card; empty when an earlier card of the same result has
+  // the same headword (case-insensitive), language and identical list.
+  function pronunciationFor(entries, index) {
+    const entry = entries[index];
+    const items = pronunciationItems(entry);
+    if (!items.length) return [];
+    const key = pronunciationKey(entry);
+    const headword = String(entry.Headword).toLowerCase();
+    const repeated = entries
+      .slice(0, index)
+      .some(
+        (earlier) =>
+          String(earlier.Headword).toLowerCase() === headword &&
+          earlier.Language === entry.Language &&
+          pronunciationKey(earlier) === key,
+      );
+    return repeated ? [] : items;
+  }
   $: t = (key, options) => {
     interfaceLanguage;
     return languageController.translate(key, options);
@@ -326,10 +354,21 @@
     {#if status}<div class="notice" role="status">{t(status)}</div>{/if}
     {#each languageOrder as language}
       {#if results[language]?.Status === "found"}
-        {#each results[language].Entries as entry}<article>
+        {#each results[language].Entries as entry, index}<article>
             <h2>
               {t(language === "en" ? "english" : "spanish")} · {entry.Headword}
             </h2>
+            {#if pronunciationFor(results[language].Entries, index).length}<p
+              class="pronunciation"
+              role="group"
+              aria-label={t("pronunciation")}
+            >
+              {#each pronunciationFor(results[language].Entries, index) as item, position}{#if position}{" · "}{/if}{#if item.Label}{#if item.LabelTitle}<span
+                      role="img"
+                      title={item.LabelTitle}
+                      aria-label={item.LabelTitle}>{item.Label}</span
+                    >{:else}{item.Label}{/if}{" "}{/if}{item.Text}{/each}
+            </p>{/if}
             <p class="hint">
               {results[language].Stale
                 ? t("staleResult")
@@ -438,7 +477,7 @@
       {/if}
     {/each}
     {#if !Object.values(results).some((v) => v?.Status === "found") && entries.length}
-      {#each entries as entry}<article>
+      {#each entries as entry, index}<article>
           <h2>
             {entry.Language === "en"
               ? t("english") + " · "
@@ -446,6 +485,17 @@
                 ? t("spanish") + " · "
                 : ""}{entry.Headword}
           </h2>
+          {#if pronunciationFor(entries, index).length}<p
+            class="pronunciation"
+            role="group"
+            aria-label={t("pronunciation")}
+          >
+            {#each pronunciationFor(entries, index) as item, position}{#if position}{" · "}{/if}{#if item.Label}{#if item.LabelTitle}<span
+                    role="img"
+                    title={item.LabelTitle}
+                    aria-label={item.LabelTitle}>{item.Label}</span
+                  >{:else}{item.Label}{/if}{" "}{/if}{item.Text}{/each}
+          </p>{/if}
           {#each entry.Meanings as meaning}<ol>
               {#each meaning.Definitions as definition}<li>
                   {definition}
@@ -834,6 +884,13 @@
   a:focus-visible {
     outline: 3px solid var(--focus);
     outline-offset: 3px;
+  }
+  .pronunciation {
+    margin: 0 0 0.75rem;
+    font-family:
+      "Noto Sans", "DejaVu Sans", "Segoe UI", "Arial Unicode MS", system-ui,
+      sans-serif;
+    overflow-wrap: anywhere;
   }
   .hint,
   .source {

@@ -26,6 +26,7 @@ export const resources = {
       onlineResult: "Online result",
       savedResult: "Saved result",
       source: "Source",
+      pronunciation: "Pronunciation",
       license: "License",
       moreInformation: "More information",
       missingAttribution:
@@ -99,6 +100,7 @@ export const resources = {
       onlineResult: "Resultado en línea",
       savedResult: "Resultado guardado",
       source: "Fuente",
+      pronunciation: "Pronunciación",
       license: "Licencia",
       moreInformation: "Más información",
       missingAttribution:
