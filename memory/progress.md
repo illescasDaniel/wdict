@@ -147,3 +147,6 @@
 - [x] Phonetic pronunciation (IPA) built through `sdd/phonetic-pronunciation.html` on 2026-11-11, revisions R1 to R3 approved in chat (design, spec, architecture, design R2, spec R2, architecture R2, spec R3). Quality gate green; QA matched S1 to S13 and the independent grader returned PASS on R2. The spec R3 change (G7) and the G6 test were fixed after grading and are not re-graded. Not committed. Not verified: real Wails/WebKitGTK window, flags on systems without a flag font, screen readers.
 
 - [x] Phonetic pronunciation revisions R3 (limit after flag mapping) and R4 (ignore "dialectal"/"obsolete"; generic UK+US shows no flags) built and graded PASS on 2026-11-11; not committed. Open: G8 (5-run performance medians), real-window check.
+
+- [x] Committed phonetic pronunciation and bumped to v0.7.0 on 2026-11-11 (VERSION, frontend package files, README, CHANGELOG, rebuilt `frontend/build`). Release workflow dispatch and CI result: see the next entry once done.
+- [ ] Next feature: AI voice for pronunciation (not started).

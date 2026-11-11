@@ -2,7 +2,7 @@
 
 ## Phonetic pronunciation (2026-11-11)
 
-Built through R4 and green but uncommitted; page `sdd/phonetic-pronunciation.html` holds the spec, approvals and Verify report. Next step: the user decides G8 (accept the missing 5-run median performance report or ask for it) and whether to commit (run `memory-wrapup` first). Not verified: real-window check, flags without a flag font.
+Committed and prepared as v0.7.0 (IPA pronunciations); release is dispatched manually after green CI. Open: grader item G8 (the approved 5-run median performance report was not re-measured; the user has not decided). Not verified: real-window check, flags without a flag font. Next task the user named: an AI voice for pronunciation (start with the `sdd-html-feature` design gate).
 
 ## Current focus
 
