@@ -13,7 +13,7 @@ A project's own `CLAUDE.md` / `AGENTS.md` overrides anything here (paths, qualit
 | Rules the agent must always follow | `CLAUDE.md` / `AGENTS.md` | the user (you propose) |
 | Current state: focus, gate status, blockers, next step | `memory/activeContext.md`, `memory/progress.md` (agemem's memory bank) | you only |
 | Dated facts that stay true: decisions + why, bug causes, gotchas, preferences | `memory/decisions.md`, plus durable notes through agemem (`project_memory_capture` → `project_memory_remember`) | you only |
-| What a feature does | `specs/<feature>/SPEC.md`, `wireframes/`, `design/<feature>/DESIGN.md` — `sdd-feature` skill | you, after user approval |
+| What a feature does | `sdd/<feature>.html` (Design, Spec, Architecture, Build, Verify, Approvals tabs) — `sdd-html-feature` skill | you, after user approval |
 
 Never put current state in durable notes, or rules in either memory. A significant decision gets both a
 `memory/decisions.md` entry and a one-fact durable note. Use whichever of these the project has; if the agemem tools
@@ -39,7 +39,7 @@ They report memory candidates and friction back to you; you decide what to recor
 
 | Request | Workflow |
 |---|---|
-| New feature or user-facing change | **SDD** (below) if the project's `CLAUDE.md` / `AGENTS.md` adopts the Phase Gate Protocol, or the user asks for the `sdd-feature` skill. Never skip or batch a gate. Otherwise, follow the structural-change row below. |
+| New feature or user-facing change | **SDD** (below) if the project's `CLAUDE.md` / `AGENTS.md` adopts the Phase Gate Protocol, or the user asks for the `sdd-html-feature` skill. Never skip or batch a gate. Otherwise, follow the structural-change row below. |
 | Bug fix | `project_memory_recall` the area first. Fix it yourself or via `coder`, with a regression test. After two failed attempts, ask `architect` for a root-cause analysis instead of a third guess. Record symptom → cause → fix as a durable note. |
 | Structural change (refactor, migration, performance, new dependency) | `architect` plan if it spans several modules or the approach isn't obvious → `coder`s → you review the diff. Record the decision. In an SDD project, a change in behaviour goes through SDD. |
 | Small, local change or a question | Do it yourself. |
@@ -47,21 +47,21 @@ They report memory candidates and friction back to you; you decide what to recor
 
 ## SDD phases → agents
 
-Applies whenever SDD is in use (see Routing). Gates are between you and the user. Approval only counts when the user gives it in chat; never delegate past an
-unapproved gate. Record the gate status in `memory/activeContext.md` (e.g. "dark-mode: Phase 1, awaiting spec
-approval") so a new session can resume.
+Applies whenever SDD is in use (see Routing); the `sdd-html-feature` skill defines each phase and its page tabs. Gates are
+between you and the user. Approval only counts when the user gives it in chat; never delegate past an unapproved gate.
+Record the gate status in `memory/activeContext.md` (e.g. "dark-mode: Spec tab, awaiting spec approval") so a new
+session can resume.
 
 | Phase | Who | Notes |
 |---|---|---|
-| 0 Design | you; `architect` may draft the `DESIGN.md` content (flows, failure branches `F<n>`, data model, contracts) for a non-trivial system track | Pick the track: UI (`wireframes/`), system (`design/<feature>/DESIGN.md`) or both for fullstack, and say which. Needs back-and-forth with the user. Run `design_preview.py --check` on the design; unchecked diagrams are reported at the gate. **One gate** for both tracks. |
-| 1 Spec | `architect` proposes the five design decisions (success criteria, failure handling, performance budget, trust boundary, compatibility & rollout) and the scenarios (one per `F<n>` failure branch of the design), for anything non-trivial; you discuss them with the user, then write `SPEC.md` and run `spec_check.py` | **Gate.** |
-| 2 Architecture | `architect` designs domain types and interfaces, plus the Phase 3–4 plan (steps, which are parallel); a `coder` or you writes the interfaces | **Gate:** show the interfaces and a plan summary. |
-| 3 Tests | `coder`: one test per scenario; confirm they fail for the right reason | |
-| 4 Implementation | `coder` per plan step, in parallel when they touch different files; `utility` runs the full quality gate | Code must match the approved wireframe and `DESIGN.md`; changing either needs re-approval. Coders don't weaken or delete tests; if a test is wrong, they report it. Spec flaw → back to Phase 1. Update `memory/` at milestones. |
-| 5 Grade | `code-grader` with the spec path(s) and diff base (it reads the wireframe and design the spec links); FAILs → `coder` with the findings verbatim; max 2 rounds; a structural finding → `architect` | Show the scorecard verbatim. |
+| Design | you; `architect` may draft flows, failure branches `F<n>`, data model and contracts for a non-trivial design | Fill the Design tab of `sdd/<feature>.html`. Needs back-and-forth with the user. Run `inline_view.py --check`, render the tab, stop. **Gate.** |
+| Spec | `architect` proposes the five design decisions and the scenarios `S<n>` (one per `F<n>` failure branch), for anything non-trivial; you discuss them with the user, then fill the Spec tab | **Gate.** |
+| Architecture | `architect` designs domain types and interfaces, plus the build plan (steps, which are parallel); a `coder` or you writes the interfaces | **Gate:** render the Architecture tab. |
+| Build | `coder` per plan step: tests first (one per scenario, confirm they fail for the right reason), then implementation, in parallel when steps touch different files; `utility` runs the full quality gate | Code must match the approved page; changing it needs re-approval. Coders don't weaken or delete tests; if a test is wrong, they report it. Spec flaw → back to the Spec gate. Update `memory/` at milestones. |
+| Verify | QA agent, then read-only grader, spawned automatically per the skill's `agents/qa-tester.md` and `agents/code-grader.md` (the grader is independent of `code-grader` here, but project conventions still apply); FAILs → `coder` with the findings verbatim; max 2 shared fix rounds; a structural finding → `architect` | Paste the verdict lines verbatim into the Verify tab. |
 
-Once a phase's artifacts are on disk (wireframe, `SPEC.md`, interfaces), briefs point to those files instead of
-restating them: the files are the shared context.
+Once a phase's content is in the page, briefs point to `sdd/<feature>.html` instead of restating it: the page is the
+shared context.
 
 ## Writing briefs
 
@@ -105,3 +105,8 @@ Delegation has a cost: a one-command task with short output, or an edit you can 
 Before ending a turn with unfinished work: `progress.md` checkboxes accurate; run `project_memory_index` if source or docs changed, `activeContext.md` names the exact next
 step (and the gate status). Commit or push only when the user asks; memory updates go in the same commit or a
 `memory:` commit.
+
+**Memory wrap-up:** when a task is finished, and before any push, suggest the `memory-wrapup` skill in one line and run
+it once the user agrees (it works agemem's pending queue: `project_memory_pending`, then resolve or dismiss each item
+once). Do it before delegating a commit to `utility`; subagents never write memory. For an ordinary commit, just bring
+`activeContext.md` and `progress.md` up to date. If the skill or the agemem tools are missing, skip it.

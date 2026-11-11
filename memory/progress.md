@@ -27,6 +27,8 @@
 
 ## Done
 
+- [x] 2026-11-11: updated to agentic-loadout 0.6.0 (agemem 0.3.0, `memory-wrapup` skill, refreshed agents/workflow, memory rules in AGENTS.md) and replaced the `sdd-feature` skill with the global `sdd-html-feature` skill (AGENTS.md and `.agents/development-workflow.md` updated; old skill removed).
+
 - [x] User approved the lookup-alternatives memory-limit amendment (`src:bb20bbd7cfc98225d3b0`).
 
 - [x] User approved the final lookup-alternatives amendment (`src:6dce82b0c9d386831cec`).

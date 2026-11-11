@@ -116,3 +116,7 @@ The Release workflow (`workflow_dispatch`, input version) validates `VERSION`, c
 ## 2026-11-09 — Version reporting
 
 The version is `-ldflags -X main.version=$(cat VERSION)` when built via Task or the AppImage script; `go install ...@vX.Y.Z` falls back to build info (leading `v` trimmed); anything else reports `dev`. The footer label comes from the Go `App.Version()` binding, hidden when unavailable. User asked for this after finding no way to see the installed version (v0.6.0 had no flag).
+
+## 2026-11-11: SDD workflow is now `sdd-html-feature`
+
+User decision: features go through the `sdd-html-feature` skill (one page `sdd/<feature>.html`, global install) instead of `sdd-feature` (`specs/`, `wireframes/`, `design/`). Existing `specs/`, `wireframes/`, `design/` stay as history. Rerun the loadout with `--without sdd` (it would otherwise reinstall `sdd-feature` and its AGENTS.md block); the AGENTS.md SDD section no longer carries loadout markers. Loadout 0.6.0 was applied with `--force --without sdd --no-hooks` (Entire hooks left untouched).

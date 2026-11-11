@@ -5,7 +5,7 @@
       "args": [
         "--python",
         "3.12",
-        "agemem@0.2.2",
+        "agemem@0.3.0",
         "mcp"
       ]
     },

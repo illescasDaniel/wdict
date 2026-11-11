@@ -3,7 +3,8 @@ name: coder-small
 description: Small-model implementation engineer for bounded, well-specified work.
 model: haiku
 disallowedTools: NotebookEdit, mcp__agemem__project_memory_capture, mcp__agemem__project_memory_remember,
-  mcp__agemem__project_memory_index, mcp__agemem__project_memory_maintain
+  mcp__agemem__project_memory_index, mcp__agemem__project_memory_maintain, mcp__agemem__project_memory_resolve,
+  mcp__agemem__project_memory_dismiss
 color: blue
 effort: high
 ---
