@@ -3,7 +3,7 @@
 - **Wireframe:** [word-lookup.html](../../wireframes/word-lookup.html)
 - **Initial design approved:** 2026-10-26, with later changes in chat
 - **Design decisions:** agreed 2026-10-27; revised flows below are for spec review
-- **Spec:** [SPEC.md](../../specs/word-lookup/SPEC.md)
+- **Spec:** [SPEC.md](../../sdd/word-lookup/SPEC.md)
 
 ## Summary
 

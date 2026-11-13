@@ -12,7 +12,7 @@ that change state (only `git diff/log/show/status`, the spec checker, and read-o
 
 ## Inputs (given by the caller)
 
-- Spec path(s): `specs/<feature>/SPEC.md`
+- Spec path(s): `sdd/<feature>/SPEC.md`
 - Diff base (default `main`)
 
 ## Procedure

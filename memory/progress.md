@@ -143,7 +143,7 @@
 
 - [x] Listed repository MCP and hook configuration on 2026-10-26.
 
-- [x] Approved and implemented result order that follows the interface language (2026-11-06): spec amendment in `specs/footer-language/SPEC.md`, two frontend tests, `$:` ordering in `+page.svelte`, rebuilt `frontend/build`. Quality gate and independent review passed; not committed.
+- [x] Approved and implemented result order that follows the interface language (2026-11-06): spec amendment in `sdd/footer-language/SPEC.md`, two frontend tests, `$:` ordering in `+page.svelte`, rebuilt `frontend/build`. Quality gate and independent review passed; not committed.
 
 - [x] Released v0.6.0 on 2026-11-06 (bump `1de1e80`, asset rebuild `ad7cfee`): CI green, Release workflow succeeded, AppImage attached, proxy serves it, and `go install` updated `/home/daniel/go/bin/wdict` to v0.6.0.
 

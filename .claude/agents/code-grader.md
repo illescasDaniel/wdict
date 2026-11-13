@@ -14,7 +14,7 @@ that change state (only `git diff/log/show/status`, the spec checker, and read-o
 
 ## Inputs (given by the caller)
 
-- Spec path(s): `sdd/<feature>.html` (legacy: `specs/<feature>/SPEC.md`)
+- Spec path(s): `sdd/<feature>.html` (legacy: `sdd/<feature>/SPEC.md`)
 - Diff base (default `main`)
 
 ## Procedure
