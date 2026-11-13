@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.7.1] - 2026-11-13
+
+- Fix duplicated offline results: the same entry no longer appears once per matching synonym alias when the dictionary lists aliases repeatedly or an alias matches the word itself (for example `dogfood`).
+
 ## [0.7.0] - 2026-11-11
 
 - Show IPA pronunciations under the headword from the offline English and Spanish dictionaries and the online sources. Accent names appear as flags (with the original name on hover), the line shows on the first card of a word only, and a generic pronunciation has no flag.
