@@ -42,6 +42,7 @@
     document.documentElement.lang = interfaceLanguage;
   }
   import { call, onLookupResult, onLookupAlternatives } from "../lib-api.js";
+  import { createPlaybackController } from "./playback.js";
   import {
     readAppearance,
     saveAppearance,
@@ -98,6 +99,11 @@
     buffered = {},
     progress = null,
     downloadActive = false,
+    voices = [],
+    voiceProgress = null,
+    voiceDownloadActive = false,
+    voiceError = "",
+    voiceErrorID = "",
     refreshSeq = 0,
     error = "",
     errorID = "",
@@ -107,8 +113,16 @@
   async function refresh() {
     const id = ++refreshSeq;
     try {
-      const nextDictionaries = await call("Dictionaries");
-      const nextProgress = await call("Progress");
+      const [nextDictionaries, nextProgress] = await Promise.all([
+        call("Dictionaries"),
+        call("Progress"),
+      ]);
+      // Voice-pack information is auxiliary: a failure here must not turn
+      // into the dictionary metadata error.
+      const [voicesOutcome, voiceProgressOutcome] = await Promise.allSettled([
+        call("ListVoices"),
+        call("VoiceProgress"),
+      ]);
       if (id !== refreshSeq) return;
       dictionaries = nextDictionaries;
       metadataError = "";
@@ -118,6 +132,15 @@
         nextProgress?.State === "installing"
       )
         progress = nextProgress;
+      if (Array.isArray(voicesOutcome.value)) voices = voicesOutcome.value;
+      if (voiceProgressOutcome.value !== undefined) {
+        if (
+          !voiceDownloadActive ||
+          voiceProgressOutcome.value?.State === "downloading" ||
+          voiceProgressOutcome.value?.State === "installing"
+        )
+          voiceProgress = voiceProgressOutcome.value;
+      }
     } catch (e) {
       if (id !== refreshSeq) return;
       metadataError = "metadataUnavailable";
@@ -181,7 +204,12 @@
     }).catch(() => {});
     eventReady = Promise.all([lookupReady, alternativesReady]).then(([ok]) => ok);
     let timer = setInterval(() => {
-      if (progress?.State === "downloading" || progress?.State === "installing")
+      if (
+        progress?.State === "downloading" ||
+        progress?.State === "installing" ||
+        voiceProgress?.State === "downloading" ||
+        voiceProgress?.State === "installing"
+      )
         refresh();
     }, 500);
     return () => {
@@ -241,6 +269,7 @@
     activeSearch = "";
     buffered = {};
     results = {};
+    playback.reset();
     alternatives = {};
     attempts = { en: 1, es: 1 };
     pendingAlternatives = {};
@@ -305,6 +334,44 @@
       await refresh();
     }
   }
+  // Voice-pack download (C7 of the piper-voices page): mirrors the dictionary
+  // download pattern with its own separate progress state, so the two kinds
+  // cannot interleave. Blocked packs never start a download.
+  function voiceState(pack) {
+    if (pack.Installed) return "installed";
+    if (
+      voiceProgress?.DictionaryID === pack.ID &&
+      voiceProgress?.State === "downloading"
+    )
+      return "downloading";
+    if (
+      voiceProgress?.DictionaryID === pack.ID &&
+      voiceProgress?.State === "installing"
+    )
+      return "installing";
+    return "notInstalled";
+  }
+  async function downloadVoice(pack) {
+    if (voiceDownloadActive) return;
+    voiceDownloadActive = true;
+    voiceError = "";
+    voiceErrorID = pack.ID;
+    voiceProgress = {
+      DictionaryID: pack.ID,
+      State: "downloading",
+      BytesRead: 0,
+      TotalBytes: pack.SizeBytes,
+    };
+    try {
+      await call("DownloadVoicePack", pack.ID);
+      voiceDownloadActive = false;
+      await refresh();
+    } catch {
+      voiceDownloadActive = false;
+      voiceError = "voiceInstallationFailed";
+      await refresh();
+    }
+  }
   function safeLink(url) {
     try {
       let u = new URL(url);
@@ -312,6 +379,38 @@
     } catch {
       return "";
     }
+  }
+  // Pronunciation playback (C7): one always-shown button per transcription
+  // item; the controller owns the newest-wins play state and the F5 fallback.
+  const playback = createPlaybackController({ call });
+  function playbackKey(entry, entryIndex, position) {
+    return `${entryIndex}:${position}:${entry.Headword}:${entry.Language ?? ""}`;
+  }
+  function playName(t, item) {
+    return item.LabelTitle
+      ? `${t("playPronunciation")} — ${item.LabelTitle}`
+      : t("playPronunciation");
+  }
+  function playTitle(t, entry, item, voice) {
+    if (!item.AudioURL) {
+      // C5 of the piper-voices page: a Piper result names the natural voice.
+      if (voice?.Source === "piper") return `Piper · ${voice.Voice}`;
+      return voice?.Voice ? `eSpeak-NG · ${voice.Voice}` : "eSpeak-NG";
+    }
+    return `${t("recordingSource")} · ${entry.Source.Name}${
+      entry.Source.Attribution ? ` · ${entry.Source.Attribution}` : ""
+    }`;
+  }
+  function playItem(entry, entryIndex, position, language, item) {
+    playback.play(playbackKey(entry, entryIndex, position), {
+      Text: item.Text,
+      Label: item.Label || "",
+      LabelTitle: item.LabelTitle || "",
+      Language: language,
+      AudioURL: item.AudioURL || "",
+      SkipRecording: false,
+      Headword: entry.Headword,
+    });
   }
 </script>
 
@@ -367,7 +466,23 @@
                       role="img"
                       title={item.LabelTitle}
                       aria-label={item.LabelTitle}>{item.Label}</span
-                    >{:else}{item.Label}{/if}{" "}{/if}{item.Text}{/each}
+                    >{:else}{item.Label}{/if}{" "}{/if}{item.Text}<button
+                      class="play-button"
+                      class:playing={$playback.playing ===
+                        playbackKey(entry, index, position)}
+                      type="button"
+                      aria-label={playName(t, item)}
+                      title={playTitle(t, entry, item, $playback.voices[playbackKey(entry, index, position)])}
+                      onclick={() =>
+                        playItem(entry, index, position, language, item)
+                      }><svg viewBox="0 0 24 24" aria-hidden="true"
+                      ><path d="M8 5v14l11-7z" /></svg
+                    ></button>{#if $playback.message?.key ===
+                      playbackKey(entry, index, position)}<span
+                      class="playback-message"
+                      role="alert">{$playback.message.text ||
+                        t("playbackFailed")}</span
+                    >{/if}{/each}
             </p>{/if}
             <p class="hint">
               {results[language].Stale
@@ -494,7 +609,28 @@
                     role="img"
                     title={item.LabelTitle}
                     aria-label={item.LabelTitle}>{item.Label}</span
-                  >{:else}{item.Label}{/if}{" "}{/if}{item.Text}{/each}
+                  >{:else}{item.Label}{/if}{" "}{/if}{item.Text}<button
+                    class="play-button"
+                    class:playing={$playback.playing ===
+                      playbackKey(entry, index, position)}
+                    type="button"
+                    aria-label={playName(t, item)}
+                    title={playTitle(t, entry, item, $playback.voices[playbackKey(entry, index, position)])}
+                    onclick={() =>
+                      playItem(
+                        entry,
+                        index,
+                        position,
+                        entry.Language === "es" ? "es" : "en",
+                        item,
+                      )}><svg viewBox="0 0 24 24" aria-hidden="true"
+                    ><path d="M8 5v14l11-7z" /></svg
+                  ></button>{#if $playback.message?.key ===
+                    playbackKey(entry, index, position)}<span
+                    class="playback-message"
+                    role="alert">{$playback.message.text ||
+                      t("playbackFailed")}</span
+                  >{/if}{/each}
           </p>{/if}
           {#each entry.Meanings as meaning}<ol>
               {#each meaning.Definitions as definition}<li>
@@ -601,7 +737,53 @@
         {t("continueLookup")}
       </p>{:else if !metadataError}<p role="status">
         {t("loadingMetadata")}
-      </p>{/if}{/if}
+      </p>{/if}
+    {#if voices.length}
+      <article>
+        <div class="title">
+          <h2>{t("naturalVoices")}</h2>
+          <span class="badge">{t("piperOptional")}</span>
+        </div>
+        {#each voices as pack}
+          <div class="voice-pack">
+            <div class="title">
+              <h3>{pack.Name}</h3>
+              <span class="badge">{t(voiceState(pack))}</span>
+            </div>
+            <p class="hint">
+              {t("downloadLabel")}: {(pack.SizeBytes / 1000000).toFixed(0)} MB
+            </p>
+            {#if voiceProgress?.DictionaryID === pack.ID &&
+              voiceProgress?.State === "downloading"}<progress
+                aria-label={t("voiceDownload")}
+                max={voiceProgress.TotalBytes}
+                value={voiceProgress.BytesRead}
+              ></progress>
+              <p class="hint">
+                {t("progress", {
+                  read: (voiceProgress.BytesRead / 1000000).toFixed(1),
+                  total: (voiceProgress.TotalBytes / 1000000).toFixed(0),
+                })}
+              </p>{:else if voiceProgress?.DictionaryID === pack.ID &&
+                voiceProgress?.State === "installing"}<p class="notice">
+                {t("checking")}
+              </p>{:else if voiceError && voiceErrorID === pack.ID}<button
+                onclick={() => downloadVoice(pack)}>{t("tryAgain")}</button
+              >{:else if !pack.Installed}<button
+                disabled={!!pack.Blocked}
+                onclick={() => downloadVoice(pack)}
+                >{t("downloadLabel")}</button
+              >{/if}
+            {#if !pack.Installed && pack.Blocked}<p class="hint">
+                {pack.Blocked}
+              </p>{/if}
+            {#if voiceError && voiceErrorID === pack.ID}<p class="error" role="alert">
+                {t(voiceError)}
+              </p>{/if}
+          </div>
+        {/each}
+      </article>
+    {/if}{/if}
 </main>
 <footer>
   <div class="footer-inner">
@@ -892,6 +1074,32 @@
       sans-serif;
     overflow-wrap: anywhere;
   }
+  button.play-button {
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    margin-left: 4px;
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--accent);
+    vertical-align: middle;
+  }
+  button.play-button svg {
+    width: 12px;
+    height: 12px;
+    fill: currentColor;
+  }
+  button.play-button.playing {
+    background: var(--accent);
+    color: var(--button-text);
+  }
+  .playback-message {
+    font-family: system-ui, sans-serif;
+    font-size: 13px;
+    color: var(--error-text);
+  }
   .hint,
   .source {
     font-size: 13px;
@@ -936,6 +1144,14 @@
     align-items: start;
     justify-content: space-between;
     gap: 10px;
+  }
+  .voice-pack {
+    border-top: 1px solid var(--rule);
+    margin-top: 14px;
+    padding-top: 14px;
+  }
+  .voice-pack p {
+    margin-bottom: 10px;
   }
   .badge {
     font-size: 12px;

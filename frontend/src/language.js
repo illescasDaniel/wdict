@@ -3,7 +3,7 @@ import { createInstance } from "i18next";
 export const resources = {
   en: {
     translation: {
-      offlineDictionaries: "Offline dictionaries",
+      offlineDictionaries: "Offline content",
       backLookup: "← Look up",
       heading: "Look up a word",
       intro: "Find English and Spanish definitions for words and phrases.",
@@ -27,6 +27,9 @@ export const resources = {
       savedResult: "Saved result",
       source: "Source",
       pronunciation: "Pronunciation",
+      playPronunciation: "Play pronunciation",
+      recordingSource: "Recording",
+      playbackFailed: "Pronunciation playback failed. Try again.",
       license: "License",
       moreInformation: "More information",
       missingAttribution:
@@ -63,6 +66,8 @@ export const resources = {
       ready: "Ready to use offline.",
       installationFailed:
         "Couldn’t install the dictionary. Check your connection and available storage, then try again.",
+      voiceInstallationFailed:
+        "Couldn’t install the voice pack. Check your connection and available storage, then try again.",
       continueLookup: "You can continue looking up words while it downloads.",
       loadingMetadata: "Loading dictionary information…",
       language: "Language",
@@ -70,11 +75,14 @@ export const resources = {
       system: "System",
       light: "Light",
       dark: "Dark",
+      naturalVoices: "Natural voices",
+      piperOptional: "Piper · optional",
+      voiceDownload: "Natural voices download",
     },
   },
   es: {
     translation: {
-      offlineDictionaries: "Diccionarios sin conexión",
+      offlineDictionaries: "Contenido sin conexión",
       backLookup: "← Buscar",
       heading: "Buscar una palabra",
       intro:
@@ -101,6 +109,10 @@ export const resources = {
       savedResult: "Resultado guardado",
       source: "Fuente",
       pronunciation: "Pronunciación",
+      playPronunciation: "Reproducir la pronunciación",
+      recordingSource: "Grabación",
+      playbackFailed:
+        "No se pudo reproducir la pronunciación. Vuelve a intentarlo.",
       license: "Licencia",
       moreInformation: "Más información",
       missingAttribution:
@@ -140,6 +152,8 @@ export const resources = {
       ready: "Listo para usar sin conexión.",
       installationFailed:
         "No se pudo instalar el diccionario. Comprueba tu conexión y el espacio disponible y vuelve a intentarlo.",
+      voiceInstallationFailed:
+        "No se pudo instalar el paquete de voz. Comprueba tu conexión y el espacio disponible y vuelve a intentarlo.",
       continueLookup: "Puedes seguir buscando palabras mientras se descarga.",
       loadingMetadata: "Cargando información de los diccionarios…",
       language: "Idioma",
@@ -147,6 +161,9 @@ export const resources = {
       system: "Sistema",
       light: "Claro",
       dark: "Oscuro",
+      naturalVoices: "Voces naturales",
+      piperOptional: "Piper · opcional",
+      voiceDownload: "Descarga de voces naturales",
     },
   },
 };

@@ -133,12 +133,12 @@ describe('interface language', () => {
 			return {};
 		});
 		render(Page);
-		await fireEvent.click(screen.getByRole('button', { name: 'Offline dictionaries' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Offline content' }));
 		const original = (await screen.findByText('Unable to load dictionary information.')).textContent;
 		// when
 		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
 		// then
-		await screen.findByRole('heading', { name: 'Diccionarios sin conexión' });
+		await screen.findByRole('heading', { name: 'Contenido sin conexión' });
 		expect(screen.queryByText(original)).toBeNull();
 		expect(screen.getByRole('alert').textContent).toBe('No se pudo cargar la información de los diccionarios.');
 		call.mockImplementation(async (method) => method === 'Dictionaries' ? [dictionary] : {});
@@ -182,14 +182,14 @@ describe('interface language', () => {
 	it('given_dictionaries_view_when_switching_to_spanish_and_back_then_the_same_view_remains_open', async () => {
 		// given
 		render(Page);
-		await userEvent.click(screen.getByRole('button', { name: 'Offline dictionaries' }));
+		await userEvent.click(screen.getByRole('button', { name: 'Offline content' }));
 		await screen.findByText('English dictionary');
 		// when
 		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
-		await screen.findByRole('heading', { name: 'Diccionarios sin conexión' });
+		await screen.findByRole('heading', { name: 'Contenido sin conexión' });
 		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Idioma' }), 'en');
 		// then
-		await screen.findByRole('heading', { name: 'Offline dictionaries' });
+		await screen.findByRole('heading', { name: 'Offline content' });
 		expect(screen.getByText('English dictionary')).toBeTruthy();
 	});
 
@@ -239,7 +239,7 @@ describe('interface language', () => {
 			return null;
 		});
 		render(Page);
-		await userEvent.click(screen.getByRole('button', { name: 'Offline dictionaries' }));
+		await userEvent.click(screen.getByRole('button', { name: 'Offline content' }));
 		await screen.findByText('English dictionary');
 		await userEvent.click(screen.getByRole('button', { name: 'Download' }));
 		await screen.findByText('Couldn’t install the dictionary. Check your connection and available storage, then try again.');
@@ -272,7 +272,7 @@ describe('interface language', () => {
 			return Promise.resolve(null);
 		});
 		render(Page);
-		await fireEvent.click(screen.getByRole('button', { name: 'Offline dictionaries' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Offline content' }));
 		await screen.findByText('English dictionary');
 		await fireEvent.click(screen.getByRole('button', { name: 'Download' }));
 		expect(screen.getByRole('progressbar', { name: 'Dictionary download' })).toBeTruthy();
@@ -280,7 +280,7 @@ describe('interface language', () => {
 		// when
 		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
 		// then
-		await screen.findByRole('heading', { name: 'Diccionarios sin conexión' });
+		await screen.findByRole('heading', { name: 'Contenido sin conexión' });
 		expect(screen.getByRole('progressbar')).toBeTruthy();
 		expect(call.mock.calls.filter(([method]) => method === 'Download')).toHaveLength(downloadCalls);
 		finish();

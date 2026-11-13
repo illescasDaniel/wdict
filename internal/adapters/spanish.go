@@ -260,15 +260,20 @@ func spanishOnlinePronunciations(root *html.Node) []core.Pronunciation {
 	return found
 }
 
-// spanishCellValues splits a cell at line breaks, skipping the audio button.
+// spanishCellValues splits a cell at line breaks, keeping each value's own
+// phonos audio reference (C2): a link inside an ext-phonos span attaches to
+// the value it is next to, resolved to an https file URL.
 func spanishCellValues(cell *html.Node) []core.Pronunciation {
 	var values []core.Pronunciation
 	var current strings.Builder
+	pending, currentAudio := "", ""
+	currentText := func() string { return strings.TrimSpace(current.String()) }
 	flush := func() {
-		if text := strings.TrimSpace(current.String()); text != "" {
-			values = append(values, core.Pronunciation{Text: text})
+		if text := currentText(); text != "" {
+			values = append(values, core.Pronunciation{Text: text, AudioURL: currentAudio})
 		}
 		current.Reset()
+		currentAudio = ""
 	}
 	var walk func(*html.Node)
 	walk = func(n *html.Node) {
@@ -279,6 +284,14 @@ func spanishCellValues(cell *html.Node) []core.Pronunciation {
 			case c.Type == html.ElementNode && c.Data == "br":
 				flush()
 			case c.Type == html.ElementNode && hasClass(c, "ext-phonos"):
+				if url := phonosAudioURL(c); url != "" {
+					switch {
+					case currentText() != "" && currentAudio == "":
+						currentAudio = url // audio next to the value being read
+					case currentText() == "" && pending == "":
+						pending = url // audio printed before its value
+					}
+				}
 			default:
 				walk(c)
 			}
@@ -286,5 +299,54 @@ func spanishCellValues(cell *html.Node) []core.Pronunciation {
 	}
 	walk(cell)
 	flush()
+	// flush above drops a trailing audio without text; hand the pending audio
+	// to the value that follows it instead.
+	for i, v := range values {
+		if v.AudioURL == "" && pending != "" {
+			values[i].AudioURL = pending
+			pending = ""
+			continue
+		}
+		break
+	}
 	return values
+}
+
+// phonosAudioURL returns the first usable download link inside a phonos span:
+// an absolute https URL, or a scheme-relative one resolved to https. Relative
+// or non-https links are unusable and yield no URL.
+func phonosAudioURL(span *html.Node) string {
+	var find func(*html.Node) (string, bool)
+	find = func(n *html.Node) (string, bool) {
+		if n.Type == html.ElementNode && n.Data == "a" {
+			for _, a := range n.Attr {
+				if a.Key == "href" {
+					return a.Val, true
+				}
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			if href, ok := find(c); ok {
+				return href, ok
+			}
+		}
+		return "", false
+	}
+	href, ok := find(span)
+	if !ok {
+		return ""
+	}
+	parsed, err := url.Parse(href)
+	if err != nil {
+		return ""
+	}
+	switch {
+	case parsed.Scheme == "https" && parsed.Host != "":
+		return href
+	case parsed.Scheme == "" && parsed.Host != "":
+		parsed.Scheme = "https"
+		return parsed.String()
+	default:
+		return ""
+	}
 }

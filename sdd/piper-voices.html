@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Natural voices (Piper) · SDD</title>
+<style>
+/* Tokens. Light by default; dark follows the system. Colour never carries meaning alone: every colour has a text label. */
+:root{color-scheme:light;--ink:#172b3a;--muted:#405766;--line:#b8c8ce;--accent:#126451;--paper:#fff;--wash:#edf4f3;--page:#f4f7f8;--link:#075a80;--focus:#a34b00;
+--c-teal:#14b8a6;--c-vio:#8b5cf6;--c-pink:#ec4899;--c-amb:#f59e0b;--c-grn:#22c55e;--c-blue:#3b82f6;--c-fail:#f43f5e}
+@media screen and (prefers-color-scheme:dark){:root{color-scheme:dark;--ink:#e4edf1;--muted:#a7bbc5;--line:#34505c;--accent:#4fe0b6;--paper:#16232b;--wash:#1b2d36;--page:#0d171c;--link:#84cff5;--focus:#ffb36b}}
+*{box-sizing:border-box}body{margin:0;background:var(--page);color:var(--ink);font:1rem/1.6 system-ui,sans-serif}
+a{color:var(--link)}a:focus-visible,button:focus-visible,select:focus-visible,summary:focus-visible,.scroll:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+header,main,footer{max-width:68rem;margin:auto;padding:1.5rem}header{padding-top:2.5rem}
+h1{font-size:clamp(1.9rem,6vw,3rem);line-height:1.1;margin:.5rem 0 1rem;background:linear-gradient(90deg,color-mix(in srgb,var(--c-teal) 55%,var(--ink)),var(--c-vio) 55%,var(--c-pink));-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800}
+h2{line-height:1.25;color:color-mix(in srgb,var(--sc,var(--c-teal)) 60%,var(--ink))}p,li{max-width:75ch}code{overflow-wrap:anywhere}
+.badge{display:inline-block;border:1px solid var(--c-teal);background:color-mix(in srgb,var(--c-teal) 18%,transparent);color:color-mix(in srgb,var(--c-teal) 35%,var(--ink));border-radius:2rem;padding:.2rem .7rem;font-size:.9rem;font-weight:650}
+.note{border-left:4px solid var(--c-teal);padding:.7rem 1rem;background:color-mix(in srgb,var(--c-teal) 10%,transparent)}
+section{background:var(--paper);border:1px solid var(--line);border-left:5px solid var(--sc,var(--c-teal));border-radius:.75rem;padding:clamp(1rem,3vw,2rem);margin-bottom:1.2rem;scroll-margin-top:1rem}
+.gate{border-left-color:var(--c-amb)}.src,.hdr{font-size:.85rem;opacity:.8;margin:.3rem 0}
+.rep{margin:2rem 0 1rem;padding-bottom:.3rem;border-bottom:3px solid var(--c-teal)}
+nav.sub{display:flex;flex-wrap:wrap;gap:.6rem;margin:0 0 1rem}nav.sub a{text-decoration:none;font-weight:600;padding:.15rem .6rem;border-radius:2rem;background:color-mix(in srgb,var(--c-blue) 14%,transparent)}
+.tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:1.5rem}
+.tabs button{font:inherit;font-weight:700;cursor:pointer;padding:.5rem 1rem;border-radius:.6rem .6rem 0 0;border:2px solid var(--line);border-bottom:0;background:color-mix(in srgb,var(--c-blue) 8%,var(--paper));color:var(--ink)}
+.tabs button[aria-selected=true]{background:var(--paper);border-color:var(--c-teal);box-shadow:inset 0 4px 0 var(--c-teal)}
+.st{font-size:.72rem;font-weight:650;padding:.05rem .5rem;border-radius:2rem;margin-left:.3rem;border:1.5px solid var(--cc)}
+.st.ok{--cc:var(--c-grn);background:color-mix(in srgb,var(--c-grn) 16%,transparent)}.st.wait{--cc:var(--c-amb);background:color-mix(in srgb,var(--c-amb) 18%,transparent)}.st.todo{--cc:var(--c-vio);border-style:dashed}
+.chip{display:inline-block;font-size:.8rem;font-weight:650;padding:.05rem .6rem;border-radius:2rem;border:1.5px solid var(--cc);background:color-mix(in srgb,var(--cc) 16%,transparent);margin:0 .4rem .3rem 0}
+.chip.chg{--cc:var(--c-amb)}.chip.ex{--cc:var(--c-blue)}.chip.new{--cc:var(--c-grn)}.chip.def{--cc:var(--c-vio);border-style:dashed}.chip.fail{--cc:var(--c-fail);border-style:dashed}
+.scroll{overflow:auto}table{border-collapse:collapse;width:100%;text-align:left;font-size:.95rem}th,td{padding:.6rem;border-bottom:1px solid var(--line);vertical-align:top;min-width:6rem}
+thead th{border-bottom:2px solid color-mix(in srgb,var(--sc,var(--c-teal)) 60%,transparent)}caption{text-align:left;font-weight:650;padding:.5rem 0}
+details{border-top:1px solid var(--line);padding:.6rem 0}summary{cursor:pointer;font-weight:650}pre{overflow:auto;white-space:pre-wrap;background:color-mix(in srgb,var(--c-teal) 6%,var(--paper));padding:1rem;border-radius:.4rem}
+.gwt{border-left:4px solid var(--c-vio);padding-left:.8rem;margin:.4rem 0;border-top:0}
+label{display:block;font-weight:650}select{font:inherit;padding:.5rem;max-width:100%;margin:.5rem 0}.sim{border:1px solid var(--c-vio);background:color-mix(in srgb,var(--c-vio) 8%,transparent);padding:.8rem 1rem;border-radius:.4rem}.simnote{font-size:.85rem;opacity:.8}
+.hero{border:1px solid var(--line,#8884);border-radius:.6rem;padding:.6rem .8rem;margin:.6rem 0}.hero figcaption,.hero .cap{font-weight:650;font-size:.85em;margin:0 0 .3rem}
+.mockcard{border:1px solid var(--line);border-radius:.6rem;padding:.7rem .9rem;max-width:34rem;background:var(--paper)}
+.mockword{font-weight:700;font-size:1.15rem}
+.mockline{display:flex;flex-wrap:wrap;align-items:center;gap:.45rem;margin-top:.35rem;font-size:.95rem;color:color-mix(in srgb,var(--ink) 85%,var(--muted))}
+.tag{font-size:.75rem;border:1px solid var(--line);border-radius:1rem;padding:.05rem .5rem;color:var(--muted)}
+.dlbtn{display:inline-block;border:1px solid var(--accent);border-radius:.4rem;padding:.15rem .6rem;font-weight:650;background:color-mix(in srgb,var(--accent) 12%,transparent);color:color-mix(in srgb,var(--accent) 70%,var(--ink))}
+.dg{display:block;width:100%;color:var(--ink);max-width:none}.dg .t{font-size:11px;fill:currentColor}.dg .h{font-size:12px;font-weight:650;fill:currentColor}.dg .tag{font-size:10px;font-weight:700;fill:currentColor}.dg .f{font-size:11px;font-weight:700;fill:color-mix(in srgb,var(--c-fail) 70%,var(--ink))}
+.dg .hd{fill:color-mix(in srgb,var(--c-teal) 22%,var(--paper));stroke:var(--c-teal);stroke-width:2}.dg .fr{fill:color-mix(in srgb,var(--c-fail) 7%,transparent);stroke:var(--c-fail);stroke-width:1.5;stroke-dasharray:6 3}
+.dg .n{fill:var(--paper);stroke:currentColor;stroke-width:1.5}.dg .n.ex{fill:color-mix(in srgb,var(--c-blue) 14%,var(--paper));stroke:var(--c-blue)}.dg .n.chg{fill:color-mix(in srgb,var(--c-amb) 20%,var(--paper));stroke:var(--c-amb);stroke-width:3.5}
+.dg .n.new{fill:color-mix(in srgb,var(--c-grn) 16%,var(--paper));stroke:var(--c-grn);stroke-width:2}.dg .n.def{fill:color-mix(in srgb,var(--c-vio) 12%,var(--paper));stroke:var(--c-vio);stroke-width:2;stroke-dasharray:5 3}
+@media(max-width:38rem){header,main,footer{padding:1rem}}
+@media print{body{background:#fff;color:#000;font-size:10pt}.tabs,nav.sub{display:none}.tabpanel[hidden]{display:block!important}section{break-inside:avoid}details>*{display:block!important}details::details-content{content-visibility:visible;display:block}h1{color:#000;background:none}}
+@media (max-width:600px){table.cards,table.cards tbody,table.cards tr,table.cards td,table.cards th{display:block;min-width:0}table.cards caption{display:block}table.cards thead{position:absolute;clip:rect(0 0 0 0);width:1px;height:1px;overflow:hidden}table.cards tr{border:1px solid var(--line,#8884);border-radius:6px;margin:6px 0;padding:4px 8px}table.cards td,table.cards th{border-bottom:0;padding:.15rem 0;overflow-wrap:anywhere}table.cards td::before{content:attr(data-label) ": ";font-weight:650}table.cards th[scope=row]{font-size:1.05em}}
+@media (max-width:600px){.dg{min-width:34rem}}
+</style>
+<style data-inline media="not all">
+:root{--teal:#14b8a6;--vio:#8b5cf6;--amb:#f59e0b;--grn:#22c55e;--blue:#3b82f6;--fail:#f43f5e;--c-teal:var(--teal);--c-vio:var(--vio);--c-pink:#ec4899;--c-amb:var(--amb);--c-grn:var(--grn);--c-blue:var(--blue);--c-fail:var(--fail)}
+html,body{background:transparent;color:var(--foreground,inherit);font:14px/1.5 var(--font-sans,system-ui);margin:0}*{box-sizing:border-box}code,pre{font-family:var(--font-mono,monospace);font-size:12px}
+pre{white-space:pre-wrap;background:var(--code-background,transparent);border:1px solid var(--border,#8884);border-radius:6px;padding:8px}
+section{border:1px solid var(--border,#8884);border-left:5px solid var(--sc,var(--c-teal));border-radius:8px;padding:6px 14px;margin:8px 0;background:var(--card,transparent)}
+h2{font-size:15px;margin:6px 0;color:color-mix(in srgb,var(--sc,var(--c-teal)) 65%,var(--foreground,currentColor))}h3{font-size:13px;margin:8px 0 4px}
+.chip{display:inline-block;font-size:11px;font-weight:650;padding:0 8px;border-radius:99px;border:1.5px solid var(--cc);background:color-mix(in srgb,var(--cc) 15%,transparent);margin:0 4px 3px 0}
+.chg{--cc:var(--amb)}.ex{--cc:var(--blue)}.new{--cc:var(--grn)}.def{--cc:var(--vio);border-style:dashed}.fail{--cc:var(--fail);border-style:dashed}
+table{border-collapse:collapse;width:100%;font-size:12.5px}td,th{padding:4px 6px;border-bottom:1px solid var(--border,#8884);text-align:left;vertical-align:top}caption{text-align:left;font-weight:650}
+.gate{border-left-color:var(--amb)}.src,.hdr{font-size:12px;opacity:.8;margin:3px 0}.badge{display:inline-block;border:1px solid var(--teal);border-radius:99px;padding:0 8px;font-size:12px;font-weight:650}
+.hero{border:1px solid var(--border,#8884);border-radius:6px;padding:6px 10px;margin:6px 0}.hero .cap{font-weight:650;font-size:12px;margin:0 0 4px}.scroll{overflow:auto}details{margin:3px 0}summary{cursor:pointer;font-weight:650}.gwt{border-left:3px solid var(--vio);padding-left:8px}.big>summary{font-size:14px;padding:6px 0}
+.note{border-left:4px solid var(--teal);padding:4px 10px;background:color-mix(in srgb,var(--teal) 10%,transparent)}.simnote{font-size:12px;opacity:.75}
+.dg{display:block;color:var(--foreground,inherit);max-width:100%}.dg .t{font-size:11px;fill:currentColor}.dg .h{font-size:12px;font-weight:650;fill:currentColor}.dg .tag{font-size:10px;font-weight:700;fill:currentColor}.dg .f{font-size:11px;font-weight:700;fill:var(--fail)}
+.dg .hd{fill:color-mix(in srgb,var(--teal) 22%,transparent);stroke:var(--teal);stroke-width:2}.dg .fr{fill:color-mix(in srgb,var(--fail) 7%,transparent);stroke:var(--fail);stroke-width:1.5;stroke-dasharray:6 3}
+.dg .n{fill:var(--card,transparent);stroke:currentColor;stroke-width:1.5}.dg .n.ex{fill:color-mix(in srgb,var(--blue) 14%,transparent);stroke:var(--blue)}.dg .n.chg{fill:color-mix(in srgb,var(--amb) 20%,transparent);stroke:var(--amb);stroke-width:3}
+.dg .n.new{fill:color-mix(in srgb,var(--grn) 16%,transparent);stroke:var(--grn);stroke-width:2}.dg .n.def{fill:color-mix(in srgb,var(--vio) 12%,transparent);stroke:var(--vio);stroke-width:2;stroke-dasharray:5 3}
+@media (max-width:600px){table.cards,table.cards tbody,table.cards tr,table.cards td,table.cards th{display:block;min-width:0}table.cards caption{display:block}table.cards thead{position:absolute;clip:rect(0 0 0 0);width:1px;height:1px;overflow:hidden}table.cards tr{border:1px solid var(--line,#8884);border-radius:6px;margin:6px 0;padding:4px 8px}table.cards td,table.cards th{border-bottom:0;padding:.15rem 0;overflow-wrap:anywhere}table.cards td::before{content:attr(data-label) ": ";font-weight:650}table.cards th[scope=row]{font-size:1.05em}}
+@media (max-width:600px){.dg{min-width:34rem}}
+</style>
+</head>
+<body>
+<header>
+<span class="badge">Natural voices (Piper) · verify: handoff</span>
+<h1>Natural voices for pronunciation</h1>
+<p>An opt-in voice pack adds natural neural voices to pronunciation playback: Piper reads the shown IPA directly, eSpeak-NG stays as the automatic always-works fallback.</p>
+<p class="note"><strong>Review only.</strong> One file, one tab per phase. Every interaction is a <strong>Simulation</strong>; nothing is downloaded or played. Approval happens in chat, never on this page.</p>
+<div class="tabs" role="tablist" aria-label="Phases">
+<button role="tab" id="t-design" aria-controls="p-design" aria-selected="true" data-p="design">Design <span class="st ok">approved</span></button>
+<button role="tab" id="t-spec" aria-controls="p-spec" aria-selected="false" tabindex="-1" data-p="spec">Spec <span class="st ok">approved</span></button>
+<button role="tab" id="t-arch" aria-controls="p-arch" aria-selected="false" tabindex="-1" data-p="arch">Architecture <span class="st ok">approved</span></button>
+<button role="tab" id="t-build" aria-controls="p-build" aria-selected="false" tabindex="-1" data-p="build">Build <span class="st ok">done</span></button>
+<button role="tab" id="t-verify" aria-controls="p-verify" aria-selected="false" tabindex="-1" data-p="verify">Verify <span class="st ok">PASS</span></button>
+<button role="tab" id="t-appr" aria-controls="p-appr" aria-selected="false" tabindex="-1" data-p="appr">Approvals <span class="st wait">3 of 3 gates</span></button>
+</div>
+</header>
+<main>
+
+<!-- ============ DESIGN ============ -->
+<div role="tabpanel" id="p-design" aria-labelledby="t-design" class="tabpanel">
+<nav class="sub skip-inline" aria-label="Design sections"><a href="#d-glance">At a glance</a><a href="#d-flow">Flow</a><a href="#d-paths">Explore paths</a><a href="#d-fail">Failures</a><a href="#d-dec">Decisions</a><a href="#d-scope">Scope</a></nav>
+<section id="d-glance" aria-labelledby="d-glance-t" style="--sc:var(--c-teal)"><h2 id="d-glance-t">At a glance</h2>
+<p><span class="chip new">added: Voices download section (runtime + one voice per language)</span><span class="chip new">added: Piper subprocess synthesis from the shown IPA</span><span class="chip ex">existing: pronunciation playback chain (sdd/audio-pronunciation.html)</span><span class="chip fail">F1 pack missing</span><span class="chip fail">F2 piper fails</span><span class="chip fail">F3 download fails</span><span class="chip fail">F4 no python3</span></p>
+<div class="hero"><p class="cap">Voices section in the offline-dictionaries screen (compact mock · simulation)</p>
+<div class="mockcard">
+<div><span class="mockword">Natural voices</span> <span class="tag">Piper · optional</span></div>
+<div class="mockline">Piper runtime <span class="tag">≈ 120 MB · one-time</span> <span class="dlbtn" role="presentation" aria-hidden="true">Download</span></div>
+<div class="mockline"><span aria-hidden="true">🇬🇧</span> en_GB · alba (medium) <span class="tag">63 MB</span> <span class="dlbtn" role="presentation" aria-hidden="true">Download</span></div>
+<div class="mockline"><span aria-hidden="true">🇺🇸</span> en_US · amy (medium) <span class="tag">63 MB</span> <span class="dlbtn" role="presentation" aria-hidden="true">Download</span></div>
+<div class="mockline"><span aria-hidden="true">🇪🇸</span> es_ES · sharvard (medium) <span class="tag">76 MB</span> <span class="dlbtn" role="presentation" aria-hidden="true">Download</span></div>
+</div>
+<p class="src">Text equivalent: the offline-dictionaries screen gains a "Natural voices" section. The user first downloads the Piper runtime (once), then one voice per language. With a voice installed, play buttons synthesise the shown IPA with a natural voice; without one, today's eSpeak behaviour is unchanged.</p></div>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable diagram" style="margin-top:.4rem"><svg class="dg" viewBox="0 0 520 66" role="img" aria-labelledby="hg-t hg-d"><title id="hg-t">Main path in brief</title><desc id="hg-d">A play click prefers a real recording, then a Piper voice if the pack is installed, then eSpeak, then a copy. Failures never silence the chain.</desc><defs><marker id="arh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs><rect class="n ex" x="8" y="10" width="120" height="44" rx="8"/><text class="h" x="18" y="30">▶ click</text><text class="tag" x="18" y="46">existing chain</text><rect class="n new" x="185" y="10" width="150" height="44" rx="8"/><text class="h" x="195" y="30">Piper (new)</text><text class="tag" x="195" y="46">IPA → voice</text><rect class="n ex" x="392" y="10" width="120" height="44" rx="8"/><text class="h" x="402" y="30">eSpeak</text><text class="tag" x="402" y="46">fallback</text><g stroke="currentColor" stroke-width="1.6" fill="none" marker-end="url(#arh)"><path d="M128 32H185"/><path d="M335 32H392"/></g></svg>
+<p>Text equivalent: the existing playback chain gains a Piper step between recordings and eSpeak. Without the pack (F1) or when Piper fails (F2) the chain falls back exactly as today.</p></div>
+<ul>
+<li><strong>Outcome:</strong> with an opt-in voice pack installed, every IPA transcription plays with a natural neural voice reading the shown transcription directly; nothing changes for users who never download it.</li>
+<li><strong>Verified engine facts (spike, 2026-11-13, this machine):</strong> Piper 1.8 (piper1-gpl) accepts the raw IPA inside <code>[[…]]</code> in plain text — the current voices' phoneme maps are full IPA inventories (166 symbols, incl. ʔ ɾ ɫ), so the shown transcription is spoken with no converter and no fallback for exotic symbols; synthesis latency ≈ 0.35 s per invocation; voices verified: en_GB-alba, en_US-amy, es_ES-sharvard (medium, 63–76 MB each, pinned HF revision, SHA-256 recorded).</li>
+<li><strong>Failure paths:</strong> F1 no pack → eSpeak silently (today's behaviour); F2 Piper fails → eSpeak fallback; F3 download/install failure → failed state with retry in the Voices section; F4 python3 missing → download disabled with an explanatory message.</li>
+<li><strong>Decisions to settle:</strong> runtime install mechanism (Q1: venv+pip vs unpacked wheels), the Spanish voice (Q2), voice picker UI (Q3), cache policy (Q4).</li>
+<li><strong>Out of scope:</strong> voice picker UI, accent-specific voices beyond one per language, cloud TTS, AppImage bundling of the runtime (see Q5 in the detailed report — the runtime is downloaded once instead), non-Linux platforms.</li>
+</ul>
+<details class="questions" open><summary>Open questions (4)</summary><ol>
+<li><strong>Q1.</strong> Runtime install: <code>python3 -m venv</code> + <code>pip install piper-tts==1.8.0</code> inside the app data dir (pip picks wheels matching the system Python; needs python3-venv on Debian; ~120 MB installed) vs a pre-resolved wheel set unpacked to <code>PYTHONPATH</code> (deterministic but fragile across Python versions). <em>Recommend: venv+pip with the piper version pinned.</em></li>
+<li><strong>Q2.</strong> Spanish voice: es_ES-sharvard-medium (Castilian, consistent with the approved Spanish default accent) vs es_MX-ald-medium. <em>Recommend: es_ES.</em></li>
+<li><strong>Q3.</strong> Voice picker UI in v1? <em>Recommend: no — one curated voice per language; a picker can come later.</em></li>
+<li><strong>Q4.</strong> Piper WAV cache: reuse the existing 2 MiB-per-file / 50 MiB LRU audio cache keyed by (transcription, voice). <em>Recommend: yes — one cache, one eviction policy.</em></li>
+</ol></details>
+<p class="note gate">Design approved 2026-11-13 (see Approvals).</p>
+<p class="skip-inline"><a href="#d-flow">Detailed report ↓</a></p></section>
+<h2 class="rep">Detailed report</h2>
+
+<section id="d-flow" aria-labelledby="d-flow-t" style="--sc:var(--c-blue)"><h2 id="d-flow-t">How does a play click use Piper?</h2>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable diagram"><svg class="dg" viewBox="0 0 740 268" role="img" aria-labelledby="sq-t sq-d"><title id="sq-t">Playback chain with Piper</title><desc id="sq-d">The existing chain first: a supplied recording is preferred. New: when a Piper voice pack is installed, the app synthesises the shown IPA with a Piper subprocess and returns the WAV bytes as a data URI. When Piper is unavailable or fails, the existing eSpeak path runs unchanged, ending in audio or a verbatim copy.</desc>
+<defs><marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<g stroke="currentColor" stroke-opacity=".35" stroke-dasharray="4 4"><path d="M100 40V258"/><path d="M300 40V258"/><path d="M520 40V258"/></g>
+<rect class="hd" x="25" y="8" width="150" height="32" rx="16"/><text class="h" x="100" y="29" text-anchor="middle">User</text>
+<rect class="hd" x="235" y="8" width="130" height="32" rx="16"/><text class="h" x="300" y="29" text-anchor="middle">SvelteKit UI · existing</text>
+<rect class="hd" x="425" y="8" width="190" height="32" rx="16"/><text class="h" x="520" y="29" text-anchor="middle">wdict playback chain · chg</text>
+<g stroke="currentColor" stroke-width="1.6" fill="none" marker-end="url(#ar1)">
+<path d="M100 66H300"/><path d="M300 92H520"/><path d="M520 130H610"/><path d="M610 158H520"/><path d="M520 200H300"/><path d="M300 226H100"/></g>
+<text class="t" x="200" y="60" text-anchor="middle">1 play(item)</text>
+<text class="t" x="410" y="86" text-anchor="middle">2 recording? (existing)</text>
+<text class="t" x="410" y="124" text-anchor="middle">3 Piper installed? → run piper subprocess: [[IPA]] → WAV</text>
+<text class="t" x="410" y="152" text-anchor="middle">4 audio bytes → data URI</text>
+<text class="t" x="410" y="194" text-anchor="middle">5 not installed or failed (F1/F2) → existing eSpeak path</text>
+<text class="t" x="200" y="220" text-anchor="middle">6 webview plays; playing state on the button</text>
+<rect class="fr" x="35" y="100" width="540" height="34" rx="6"/><text class="f" x="47" y="116">F1 · pack not installed → eSpeak silently (no error, no message)</text>
+<rect class="fr" x="35" y="168" width="540" height="26" rx="6"/><text class="f" x="47" y="184">F2 · Piper fails (python error, timeout, bad output) → eSpeak fallback</text></svg></div>
+<p>Text equivalent: Piper slots into the existing chain after recordings and before eSpeak. The chain always terminates in sound or a verbatim copy; Piper problems never change what users without the pack see. Download failures (F3) and missing Python (F4) live in the Voices download section, not in playback.</p>
+<p class="hdr">Download flow (Voices section):</p>
+<ul>
+<li>The runtime and each voice are catalog entries like the offline dictionaries: pinned URL, size, SHA-256 (piper-tts 1.8.0 wheel from PyPI, SHA-256 25b4d3f3… verified in the spike; voices at pinned HF revision 6b9cfaac…, SHA-256s recorded: amy cf9ccdec…, alba 1f9da809…, sharvard 234dc4cf…).</li>
+<li>The runtime install runs <code>python3 -m venv</code> + <code>pip install piper-tts==1.8.0</code> inside the app data directory; the package bundles its own espeak-ng phonemisation data, so no system espeak is needed for Piper.</li>
+<li>Progress reporting reuses the existing dictionary-download progress events; a failed or checksum-mismatched download is never installed (existing installer rules).</li>
+</ul></section>
+
+<section id="d-paths" aria-labelledby="d-paths-t" style="--sc:var(--c-vio)"><h2 id="d-paths-t">Explore an outcome</h2>
+<details open><summary>Success · Piper voice plays</summary><p>Runtime + language voice installed. ▶ on 🇬🇧 /ˈnɒl.ɪdʒ/ runs <code>venv/bin/python3 -m piper -m en_GB-alba-medium.onnx -f &lt;wav&gt;</code> with the text <code>[[ˈnɒl.ɪdʒ]]</code> on stdin; the WAV bytes (peak-amplitude-guarded) are cached and played. Hover text gains “Piper · en_GB” when a Piper result is used; the natural voice reads the transcription directly.</p></details>
+<details open><summary>Success · recording plays</summary><p>Unchanged from sdd/audio-pronunciation.html: a supplied recording still wins over any voice. F1 exists exactly as today.</p></details>
+<details open><summary>F1 · pack not installed</summary><p>No runtime or no voice for the language: the chain silently uses the eSpeak path from the audio-pronunciation page (mnemonic IPA → headword fallback). No message, no UI change; the Voices section simply shows the download buttons.</p></details>
+<details open><summary>F2 · Piper fails</summary><p>The subprocess errors, times out or returns non-WAV output. The chain falls back to the existing eSpeak path — the user hears the eSpeak voice as today. Piper failures are logged for diagnostics but never surfaced as errors.</p></details>
+<details open><summary>F3 · download/install fails</summary><p>Network error, checksum mismatch or install error in the Voices section: the entry shows a failed state with a retry, mirroring dictionary-download behaviour. Playback continues with eSpeak.</p></details>
+<details open><summary>F4 · python3 missing</summary><p>The startup probe finds no <code>python3</code> (or venv creation fails, e.g. missing python3-venv on Debian). The runtime row is disabled with copy: “Python 3 is required for natural voices. Install Python 3 and retry.” eSpeak playback is unaffected.</p></details>
+<p class="simnote">Simulation: nothing is downloaded, installed or played. Each state maps to the response or event that causes it.</p>
+</section>
+
+<section id="d-fail" aria-labelledby="d-fail-t" style="--sc:var(--c-fail)"><h2 id="d-fail-t">Failure inventory</h2>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable failure table"><table class="cards"><caption>New failure IDs (page-local); existing F1–F5 of sdd/audio-pronunciation.html remain in force</caption><thead><tr><th scope="col">ID</th><th scope="col">Trigger</th><th scope="col">Visible result</th><th scope="col">State after</th><th scope="col">Recovery</th></tr></thead><tbody>
+<tr><th scope="row">F1</th><td data-label="Trigger">Piper runtime or the language's voice not installed</td><td data-label="Visible result">None — existing eSpeak path plays</td><td data-label="State after">Unchanged</td><td data-label="Recovery">Download the pack in the Voices section</td></tr>
+<tr><th scope="row">F2</th><td data-label="Trigger">Piper subprocess error, timeout or non-WAV output</td><td data-label="Visible result">None — eSpeak fallback plays (logged for diagnostics)</td><td data-label="State after">No partial Piper audio kept</td><td data-label="Recovery">Automatic; persistent failures leave eSpeak in use</td></tr>
+<tr><th scope="row">F3</th><td data-label="Trigger">Runtime or voice download/install/checksum failure</td><td data-label="Visible result">Failed state + retry in the Voices section (existing download copy)</td><td data-label="State after">Nothing installed; previous pack intact</td><td data-label="Recovery">Retry the download</td></tr>
+<tr><th scope="row">F4</th><td data-label="Trigger">python3 absent or venv creation fails</td><td data-label="Visible result">Runtime row disabled: “Python 3 is required for natural voices. Install Python 3 and retry.”</td><td data-label="State after">No runtime installed</td><td data-label="Recovery">Install Python 3 (and python3-venv on Debian), retry</td></tr>
+</tbody></table></div></section>
+
+<section id="d-dec" aria-labelledby="d-dec-t" style="--sc:var(--c-amb)"><h2 id="d-dec-t">Proposed decisions</h2>
+<p>Proposals only; nothing is approved until you say so in chat.</p>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable decisions table"><table><caption>Five decision areas</caption><thead><tr><th scope="col">Area</th><th scope="col">Proposal</th><th scope="col">Needs review</th></tr></thead><tbody>
+<tr><th scope="row">Success criteria</th><td>With the pack installed, IPA transcriptions play via Piper within ~1 s of the click (subprocess ≈ 0.35 s measured; the approved end-to-end number from the audio page is 2 s — met); output is audible (peak-amplitude guard reused); every existing scenario of the audio page still passes (F1–F5 chain intact).</td><td>Confirm the ~1 s Piper budget as a new observable threshold.</td></tr>
+<tr><th scope="row">Failure handling and recovery</th><td>F1–F4 above; Piper problems never surface as errors — the eSpeak fallback is the user-visible behaviour; download failures surface only in the Voices section with retry.</td><td>Confirm that Piper failures are silent (log-only).</td></tr>
+<tr><th scope="row">Performance and resource budget</th><td>Runtime ≈ 120 MB disk once (pip-installed piper-tts 1.8.0 with onnxruntime, numpy and its bundled espeak data); 63–76 MB per voice; WAV cache reuses the existing audio cache (Q4); one Piper subprocess per play, no background work; downloads only on explicit user action.</td><td>Confirm the disk budget is acceptable.</td></tr>
+<tr><th scope="row">Trust boundary and validation</th><td>Runtime and voices are pinned URLs with SHA-256 (PyPI wheel; HF voices at pinned revision), following the existing installer rules (checksum verify, atomic install, previous pack intact). Piper runs as a subprocess writing only WAV bytes; output reaches the webview only as a data URI. Note: the runtime is third-party code (GPLv3, like espeak) trusted via the pinned checksum — recorded for the AppImage license review.</td><td>Confirm the pinned-revision + checksum trust model.</td></tr>
+<tr><th scope="row">Compatibility and rollout</th><td>python3 ≥ 3.9 probed at startup; without it the feature degrades to today's behaviour (F4). No AppImage changes in v1 — <strong>the runtime is downloaded once instead of being bundled</strong> (a refinement of the earlier “bundle the wheel” idea: uniform for AppImage and go-install builds, smaller AppImage; Q5 below). No change to the lookup flow or to users who never download a pack.</td><td>Confirm the no-AppImage-bundling rollout (Q5) and the Debian python3-venv note in docs.</td></tr>
+</tbody></table></div></section>
+
+<section id="d-scope" aria-labelledby="d-scope-t" style="--sc:var(--c-teal)"><h2 id="d-scope-t">Scope and open questions</h2>
+<p><strong>In scope:</strong> Voices download section (runtime + three curated voices); Piper subprocess synthesis from the shown IPA; chain insertion between recordings and eSpeak; WAV caching; F1–F4.</p>
+<p><strong>Out of scope:</strong> voice picker UI, accent-specific voices beyond one per language, cloud TTS, AppImage runtime bundling (v1), non-Linux platforms, offline-dictionary-style background updates of voices.</p>
+<ol>
+<li><strong>Q1.</strong> Runtime install mechanism — venv+pip with piper pinned (recommended: pip picks the right wheels for the system Python; Debian needs python3-venv) vs pre-resolved wheel set (deterministic but Python-version-fragile). <em>Recommend: venv+pip.</em></li>
+<li><strong>Q2.</strong> Spanish voice — es_ES-sharvard-medium (recommended, Castilian) vs es_MX-ald-medium. <em>Recommend: es_ES.</em></li>
+<li><strong>Q3.</strong> Voice picker UI — none in v1 (recommended); one curated voice per language. <em>Recommend: accept.</em></li>
+<li><strong>Q4.</strong> Piper WAV cache — reuse the existing audio cache with its 50 MiB LRU policy (recommended). <em>Recommend: accept.</em></li>
+<li><strong>Q5.</strong> Rollout without AppImage bundling — the runtime is downloaded once via the Voices section (recommended: uniform for AppImage and go-install, smaller AppImage); bundling can be revisited later. <em>Recommend: accept.</em></li>
+</ol>
+<p>If an answer adds a failure path, add its stable ID and walkthrough before asking for approval.</p></section>
+<section id="d-checks" aria-labelledby="d-checks-t" style="--sc:var(--c-blue)"><h2 id="d-checks-t">Checks run on this page</h2><ul>
+<li>Mechanical: <code>inline_view.py --check sdd/piper-voices.html</code> — run 2026-11-13; result: 0 errors, 0 warnings.</li>
+<li>Spike evidence (real, this machine, 2026-11-13): piper-tts 1.8.0 wheel SHA-256 25b4d3f31ff70c8fa7151908e00aaa5650cbdf16bca8fcf21299f3941b89a7d3 (PyPI JSON); voices downloaded at HF revision 6b9cfaacb4fb2e02a9621227e3c1a48bec9710c3 — en_US-amy-medium cf9ccdec…, en_GB-alba-medium 1f9da809…, es_ES-sharvard-medium 234dc4cf…; raw-IPA <code>[[ˈnɒl.ɪdʒ]]</code> synthesis through en_GB-alba: 1.02 s WAV, full volume, no missing-phoneme warnings; es <code>[[ˈola]]</code> through es_ES-sharvard: 0.28 s WAV; per-invocation latency ≈ 0.35 s; espeak-ng phonemisation data confirmed bundled inside the piper package (no system espeak dependency for Piper).</li>
+<li>Not run: a real window session (webview playback of Piper output), pip install on a machine without espeak installed, Debian python3-venv absence case — build-verification items.</li>
+<li>Static inspection only: no browser session ran; diagrams carry text equivalents; no remote assets in the page.</li>
+</ul></section>
+</div>
+
+<!-- ============ SPEC ============ -->
+<div role="tabpanel" id="p-spec" aria-labelledby="t-spec" class="tabpanel">
+<section id="s-glance" aria-labelledby="s-glance-t" style="--sc:var(--c-teal)"><h2 id="s-glance-t">At a glance</h2>
+<ul>
+<li><strong>What changes / contracts:</strong> Voices catalog with pinned URLs and checksums (C1); runtime install (C2); voice install (C3); Piper synthesis subprocess (C4); chain insertion + result contract extension (C5); capabilities (C6); Voices screen surface (C7).</li>
+<li><strong>Failures covered:</strong> <span class="chip fail">F1</span> S2, S3 · <span class="chip fail">F2</span> S4 · <span class="chip fail">F3</span> S5–S7 · <span class="chip fail">F4</span> S8, S10; success S1; cache S9; SkipRecording guard S11; existing audio-page chain regression S2, S3, S11.</li>
+<li><strong>Verification:</strong> Go unit tests with a fake Python/runner and fake HTTP (core), opt-in integration with the real pip install + real Piper voices, frontend vitest for the Voices section states, real-window check by the user/QA.</li>
+<li><strong>Decisions to approve:</strong> the five areas with observable thresholds below; proposed values become approved only with your spec approval.</li>
+</ul>
+<p class="note gate">Spec approved 2026-11-13 (see Approvals).</p></section>
+<h2 class="rep">Detailed report</h2>
+<section id="s-contracts" aria-labelledby="s-contracts-t" style="--sc:var(--c-teal)"><h2 id="s-contracts-t">Contracts and decisions</h2>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable contracts table"><table><caption>Contracts (C1…)</caption><thead><tr><th scope="col">ID</th><th scope="col">Contract</th><th scope="col">Observable threshold / detail</th></tr></thead><tbody>
+<tr><th scope="row">C1</th><td>Voices catalog: code-pinned entries for the runtime (piper-tts 1.8.0, PyPI wheel URL + SHA-256 25b4d3f3…, 25 MiB cap 50 MiB) and three voices at pinned HF revision 6b9cfaac… (en_GB-alba-medium 1f9da809…, en_US-amy-medium cf9ccdec…, es_ES-sharvard-medium 234dc4cf…; download cap 150 MiB per voice).</td><td>No runtime URLs from the frontend; the catalog is code-only, like the dictionary catalog. Checksum mismatch = failed download, nothing installed.</td></tr>
+<tr><th scope="row">C2</th><td>Runtime install: probe <code>python3</code>; create <code>&lt;data&gt;/wdict/piper/venv</code>; <code>pip install piper-tts==1.8.0</code>; record the resolved dependency versions in a manifest file inside the runtime dir. A failed install is recreated from scratch on retry (no partial reuse). Idempotent: an already-installed healthy runtime is a no-op.</td><td>Progress events reuse the existing download-progress pattern; install runs only on explicit user action; no background work.</td></tr>
+<tr><th scope="row">C3</th><td>Voice install: download <code>&lt;id&gt;.onnx</code> + <code>&lt;id&gt;.onnx.json</code> checksummed into <code>&lt;data&gt;/wdict/piper/voices/&lt;id&gt;/</code> atomically (temp + rename); previous pack intact on failure.</td><td>Both files verified before the voice is considered installed.</td></tr>
+<tr><th scope="row">C4</th><td>Piper synthesis: subprocess <code>venv/bin/python3 -m piper -m &lt;voice.onnx&gt; -f &lt;temp wav&gt;</code> with <code>[[&lt;stripped IPA&gt;]]</code> on stdin; output must exist, be RIFF WAV and pass the peak-amplitude audibility guard (≥ 1000); subprocess killed at 10 s; result cached in the existing audio cache keyed by SHA-256 of <code>piper:&lt;voice id&gt;:&lt;ipa&gt;</code>.</td><td>Replays (including offline) come from cache; failed syntheses are never cached; synthesis runs only on a play click.</td></tr>
+<tr><th scope="row">C5</th><td>Chain: recording (existing) → Piper (C4, only when the runtime <em>and</em> the language's voice are installed) → existing eSpeak chain (mnemonics → headword → copy, unchanged). <code>PlayResult.Source</code> gains <code>"piper"</code> with <code>Voice</code> = the voice id; <code>SkipRecording</code> keeps its meaning (skips recordings only).</td><td>The audio-pronunciation page remains authoritative for everything below Piper; its scenarios must keep passing.</td></tr>
+<tr><th scope="row">C6</th><td>Capabilities: at startup (and before enabling downloads) the app probes python3 and the installed runtime/voices; the Voices screen reflects installed / downloadable / failed states.</td><td>A corrupted runtime (venv python missing) counts as not installed; retry recreates it (C2).</td></tr>
+<tr><th scope="row">C7</th><td>Voices screen: new section in the offline-dictionaries screen listing the runtime (disabled with F4 copy when python3 is missing) and the three voices; each shows size, state and Download/Retry; the existing hover/progress copy patterns apply.</td><td>No voice picker (Q3); one curated voice per language.</td></tr>
+</tbody></table></div>
+<h3>Five decisions with observable thresholds</h3>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable decisions table"><table><caption>Approved design decisions made measurable (proposed values need this approval)</caption><thead><tr><th scope="col">Area</th><th scope="col">Observable threshold</th></tr></thead><tbody>
+<tr><th scope="row">Success criteria</th><td>With runtime + voice installed, a Piper synthesis produces audible audio (peak ≥ 1000) that starts playing within ~1 s of the click (measured; subprocess ≈ 0.35 s + app overhead); hover names “Piper · &lt;voice&gt;”; every audio-page scenario keeps passing with no pack installed.</td></tr>
+<tr><th scope="row">Failure handling and recovery</th><td>Piper failures are log-only and always fall back (F2); downloads fail visibly with retry (F3); python3 absence is explained (F4); nothing is ever silently skipped except F1's by-design fallback.</td></tr>
+<tr><th scope="row">Performance and resource budget</th><td>Runtime ≤ 120 MB installed (measured ≈ 120 MB in the spike venv); voice ≤ 150 MiB download cap; download cap on the wheel 50 MiB; Piper subprocess killed at 10 s; WAV cache = existing 50 MiB LRU; no synthesis outside play clicks.</td></tr>
+<tr><th scope="row">Trust boundary and validation</th><td>All downloads pinned + SHA-256-verified (C1); atomic installs (C2/C3); Piper output reaches the webview only as a data URI; the stripped IPA passed to Piper contains only characters the existing pronunciation normalisation allows; the resolved-dependency manifest is written inside the runtime dir for support.</td></tr>
+<tr><th scope="row">Compatibility and rollout</th><td>python3 ≥ 3.9 probed; Debian python3-venv absence degrades to F4 copy; no AppImage changes (Q5); users without a pack see zero behaviour change; version pinned piper-tts==1.8.0 (upgrade = new catalog entry, later).</td></tr>
+</tbody></table></div>
+</section>
+<section id="s-scen" aria-labelledby="s-scen-t" style="--sc:var(--c-vio)"><h2 id="s-scen-t">Acceptance scenarios</h2>
+<details class="gwt" id="ps1"><summary><strong>S1</strong> · Piper voice plays (success)</summary><p><strong>Given</strong> the runtime and the language's voice are installed and the item has no recording URL,<br><strong>When</strong> the user clicks play,<br><strong>Then</strong> Piper synthesises the shown IPA (<code>[[…]]</code>), the WAV passes the audibility guard, is cached, and plays; hover text names “Piper · &lt;voice&gt;”.</p></details>
+<details class="gwt" id="ps2"><summary><strong>S2</strong> · Pack missing → eSpeak (F1, regression guard)</summary><p><strong>Given</strong> no runtime or no voice for the language,<br><strong>When</strong> the user clicks play,<br><strong>Then</strong> the existing eSpeak chain produces audio or the verbatim copy exactly as sdd/audio-pronunciation.html defines; no Piper process is started; no message appears.</p></details>
+<details class="gwt" id="ps3"><summary><strong>S3</strong> · Recording still wins (regression guard)</summary><p><strong>Given</strong> an item with a recording URL and the pack installed,<br><strong>When</strong> the user clicks play,<br><strong>Then</strong> the recording plays (Piper is not started).</p></details>
+<details class="gwt" id="ps4"><summary><strong>S4</strong> · Piper fails → eSpeak (F2)</summary><p><strong>Given</strong> the pack is installed but the Piper subprocess fails (non-zero exit, timeout, empty or non-WAV or silent output),<br><strong>When</strong> the user clicks play,<br><strong>Then</strong> the existing eSpeak chain produces audio or the verbatim copy; the failure is logged, never shown as an error; nothing Piper-produced is cached.</p></details>
+<details class="gwt" id="ps5"><summary><strong>S5</strong> · Runtime install succeeds and is idempotent</summary><p><strong>Given</strong> python3 is available,<br><strong>When</strong> the user starts the runtime download,<br><strong>Then</strong> progress is shown, the venv is created and <code>piper-tts==1.8.0</code> installed with a recorded dependency manifest; repeating the action is a no-op.</p></details>
+<details class="gwt" id="ps6"><summary><strong>S6</strong> · Runtime install fails (F3)</summary><p><strong>Given</strong> the runtime install fails (python3-venv missing, network, pip error),<br><strong>When</strong> the failure occurs,<br><strong>Then</strong> the Voices section shows the failed state with retry and the F4 copy when python3/venv is the cause; no partial runtime is reused by a later retry (full recreate).</p></details>
+<details class="gwt" id="ps7"><summary><strong>S7</strong> · Voice download and checksum (F3)</summary><p><strong>Given</strong> the runtime is installed,<br><strong>When</strong> the user downloads a voice and the network fails or the checksum mismatches,<br><strong>Then</strong> the entry shows the failed state with retry and nothing is installed; a successful retry installs both files atomically and the voice becomes available.</p></details>
+<details class="gwt" id="ps8"><summary><strong>S8</strong> · No python3 (F4)</summary><p><strong>Given</strong> no <code>python3</code> on PATH,<br><strong>When</strong> the Voices section renders,<br><strong>Then</strong> the runtime row is disabled with the copy “Python 3 is required for natural voices. Install Python 3 and retry.” and voice rows are disabled with it; playback unaffected.</p></details>
+<details class="gwt" id="ps9"><summary><strong>S9</strong> · Cache replay</summary><p><strong>Given</strong> a Piper result already cached,<br><strong>When</strong> the user plays the same transcription again (offline),<br><strong>Then</strong> it plays from cache with no subprocess.</p></details>
+<details class="gwt" id="ps10"><summary><strong>S10</strong> · venv creation fails (F4)</summary><p><strong>Given</strong> python3 exists but venv creation fails (missing python3-venv on Debian),<br><strong>When</strong> the runtime install is attempted,<br><strong>Then</strong> the F4 copy appears on the runtime row and nothing partial is reused on retry.</p></details>
+<details class="gwt" id="ps11"><summary><strong>S11</strong> · SkipRecording guard (regression)</summary><p><strong>Given</strong> the frontend re-requests after an audio error with <code>SkipRecording: true</code>,<br><strong>When</strong> the chain runs,<br><strong>Then</strong> recordings are skipped but Piper (installed) is still tried before eSpeak.</p></details>
+</section>
+<section id="s-trace" aria-labelledby="s-trace-t" style="--sc:var(--c-amb)"><h2 id="s-trace-t">Traceability</h2>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable traceability table"><table><caption>Design path to scenario to verification</caption><thead><tr><th scope="col">Design path or state</th><th scope="col">Scenario</th><th scope="col">Planned verification</th><th scope="col">Actual test and code</th></tr></thead><tbody>
+<tr><th scope="row">Success · Piper</th><td>S1</td><td>Go unit (fake python runner) + opt-in integration with the real runtime/voice + audibility guard</td><td><code>playback_test.go:653</code>, <code>piper_test.go:73</code>, <code>piper_real_integration_test.go:23</code> (real chain PASS)</td></tr>
+<tr><th scope="row">F1 regression</th><td>S2, S3</td><td>Go unit: chain order without a pack; existing audio-page tests stay green</td><td><code>playback_test.go:677,713,748</code> (+QA S2/S3)</td></tr>
+<tr><th scope="row">F2</th><td>S4</td><td>Go unit: failing/silent Piper output → eSpeak result, nothing cached</td><td><code>playback_test.go:695</code>, <code>piper_test.go:149,171</code> (+QA S4)</td></tr>
+<tr><th scope="row">F3 runtime</th><td>S5, S6</td><td>Go unit with fake pip/python; real pip install in the integration test</td><td><code>piper_install_test.go:186,218,232</code> (+QA S5 real install)</td></tr>
+<tr><th scope="row">F3 voice</th><td>S7</td><td>Go unit: httptest download + checksum mismatch + atomic install</td><td><code>piper_install_test.go:291,333,353</code> (+QA S7 real download + tamper)</td></tr>
+<tr><th scope="row">F4</th><td>S8, S10</td><td>Go unit: missing python3 / failed venv → capability state + copy</td><td><code>piper_install_test.go:162,177,260</code> (+QA S8 copy verbatim)</td></tr>
+<tr><th scope="row">Cache</th><td>S9</td><td>Go unit: replay from cache, no subprocess</td><td><code>piper_test.go:127</code> (+QA S1 replay byte-equal)</td></tr>
+<tr><th scope="row">SkipRecording</th><td>S11</td><td>Go unit: recordings skipped, Piper still tried</td><td><code>playback_test.go:732</code> (+QA S11)</td></tr>
+<tr><th scope="row">Voices screen states</th><td>S5–S8 UI parts</td><td>Frontend vitest (states, copy, progress)</td><td><code>voices.test.js:66–235</code>, <code>playback.test.js:444</code></td></tr>
+<tr><th scope="row">Real-window playback (Piper + eSpeak)</th><td>S1, S2, S4</td><td>Manual in the real window / QA</td><td><em>manual — pending</em></td></tr>
+</tbody></table></div>
+<p>Keep this table current as tests and code appear. Mark rows whose verification is manual as manual, never “done”, until someone actually did it.</p></section>
+<section id="s-checks" aria-labelledby="s-checks-t" style="--sc:var(--c-blue)"><h2 id="s-checks-t">Checks run on this page</h2><ul>
+<li>Mechanical: <code>inline_view.py --check sdd/piper-voices.html</code> — run 2026-11-13 after filling this tab; result: 0 errors, 0 warnings.</li>
+<li>Traceability audit: every new failure F1–F4 maps to scenarios (F1→S2/S3, F2→S4, F3→S5–S7, F4→S8/S10) and every scenario to a design path; the five decision areas carry observable thresholds.</li>
+<li>Static inspection only: no browser session; checksums in C1 are from the 2026-11-13 spike (PyPI JSON for the wheel; computed locally for the three voice files); real pip/venv and multi-Python-version behaviour are build-verification items.</li>
+</ul></section>
+</div>
+
+<!-- ============ ARCHITECTURE ============ -->
+<div role="tabpanel" id="p-arch" aria-labelledby="t-arch" class="tabpanel">
+<section id="a-glance" aria-labelledby="a-glance-t" style="--sc:var(--c-pink)"><h2 id="a-glance-t">At a glance</h2>
+<ul>
+<li><strong>Assessment:</strong> one new core port pair (<code>Voices</code> for downloads, <code>PiperVoice</code> for synthesis), a new <code>VoicePack</code> type, two new adapters (pack installer, Piper synthesiser) and one core chain change (<code>PronunciationAudioService</code> gains an optional <code>Piper</code> step). Existing boundaries reused unchanged: the dictionary-catalog/installer patterns (pinned URLs, checksum, atomic install, progress events), the audio cache, the download-progress plumbing, <code>validSourceURL</code>-style validation. The audio page's ports (<code>RecordingSource</code>, <code>VoiceSynthesiser</code>) and chain semantics are untouched apart from one optional new field.</li>
+<li><strong>Test approach and order:</strong> behavioural tests first with fakes (core chain with a fake <code>PiperVoice</code>; installer with a fake python/pip runner and fake HTTP; Piper adapter with a fake runner), then opt-in integration (real pip install + real voices — heavy, marked <code>integration</code>), then frontend vitest, then the quality gate; real-window playback is a manual/QA check.</li>
+<li><strong>Differs from design:</strong> nothing behavioural. Architectural detail the design left open: the runtime install reuses the existing single-download-active plumbing shape (its own progress state, separate from dictionary downloads) so the two download kinds can't interleave their progress; the Piper cache key is <code>sha256("piper:&lt;voice id&gt;:&lt;ipa&gt;")</code> inside the existing audio cache directory; <code>PlayResult.Source</code> gains <code>"piper"</code> exactly as the spec's C5 says.</li>
+</ul>
+<p class="note gate">Architecture approved 2026-11-13 (see Approvals).</p></section>
+<h2 class="rep">Detailed report</h2>
+<section id="a-deps" aria-labelledby="a-deps-t" style="--sc:var(--c-blue)"><h2 id="a-deps-t">Dependencies and ownership</h2>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable diagram"><svg class="dg" viewBox="0 0 740 218" role="img" aria-labelledby="dp-t dp-d"><title id="dp-t">Piper dependencies</title><desc id="dp-d">The Voices section calls the new App methods, which own the new voices service for downloads and the extended playback chain for synthesis. Downloads go through the new pack installer; synthesis through the new Piper adapter. The existing eSpeak path, audio cache and dictionaries screen are unchanged except for one optional chain field and one new screen section.</desc>
+<defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<rect class="n chg" x="15" y="18" width="180" height="62" rx="8"/><text class="h" x="25" y="40">Voices section (frontend)</text><text class="t" x="25" y="56">list · download · states</text><text class="tag" x="25" y="72">CHANGED</text>
+<rect class="n chg" x="255" y="18" width="170" height="62" rx="8"/><text class="h" x="265" y="40">App methods (Go)</text><text class="t" x="265" y="56">wiring only</text><text class="tag" x="265" y="72">CHANGED</text>
+<rect class="n new" x="485" y="18" width="235" height="62" rx="8"/><text class="h" x="495" y="40">core.VoiceService / chain</text><text class="t" x="495" y="56">Voices port · Piper step in Play</text><text class="tag" x="495" y="72">NEW / CHANGED</text>
+<rect class="n new" x="290" y="122" width="205" height="58" rx="8"/><text class="h" x="300" y="144">adapters.VoicePacks</text><text class="t" x="300" y="160">pinned catalog · venv+pip · voice files</text><text class="tag" x="300" y="176">NEW</text>
+<rect class="n new" x="535" y="122" width="185" height="58" rx="8"/><text class="h" x="545" y="144">adapters.PiperVoices</text><text class="t" x="545" y="160">subprocess · cache · guard</text><text class="tag" x="545" y="176">NEW</text>
+<rect class="n ex" x="15" y="122" width="200" height="58" rx="8"/><text class="h" x="25" y="144">eSpeak chain · audio cache</text><text class="t" x="25" y="160">unchanged behaviour</text><text class="tag" x="25" y="176">EXISTING</text>
+<g stroke="currentColor" stroke-width="1.6" fill="none" marker-end="url(#ar2)"><path d="M195 49H255"/><path d="M425 49H485"/><path d="M540 80V108H495V122"/><path d="M640 80V122"/><path d="M115 122V80H255"/></g>
+<g transform="translate(14 204)"><rect class="n new" x="0" y="-10" width="12" height="12" rx="3"/><text class="t" x="18" y="0">new</text><rect class="n chg" x="70" y="-10" width="12" height="12" rx="3"/><text class="t" x="88" y="0">changed</text><rect class="n ex" x="160" y="-10" width="12" height="12" rx="3"/><text class="t" x="178" y="0">existing, unchanged</text></g></svg></div>
+<p>Text equivalent: the Voices section (changed) calls new App methods (changed), which delegate to the new voices service and the extended playback chain. Downloads go through the new pack installer; synthesis through the new Piper adapter. The eSpeak chain, audio cache and download plumbing stay as they are.</p>
+<h3>Ownership and trust boundaries</h3>
+<ul>
+<li><strong>core</strong> owns the VoicePack type, the Voices port (list/download) and the chain order (recording → Piper → eSpeak → copy) — pure logic over ports, IO-free and fake-testable.</li>
+<li><strong>adapters</strong> own all I/O: the pinned catalog (URLs + SHA-256, code-only), the installer (python probe, venv+pip with a runner seam, voice file downloads with checksum and atomic rename) and the Piper synthesiser (subprocess with a runner seam, RIFF + peak-amplitude guard, cache).</li>
+<li><strong>main (App)</strong> owns wiring: <code>ListVoices</code>, <code>DownloadVoicePack</code>, <code>VoiceProgress</code> plus the chain field; no business logic.</li>
+<li><strong>frontend</strong> owns the Voices section states and the Piper hover text; it never receives URLs, only pack descriptors and progress.</li>
+<li><strong>Trust boundary:</strong> downloads are pinned + checksummed at the adapter edge (C1); the IPA passed to Piper is the already-normalised transcription text; Piper output reaches the webview only as a data URI; the runtime is third-party code trusted via the pinned checksum (recorded for the license review).</li>
+</ul></section>
+<section id="a-plan" aria-labelledby="a-plan-t" style="--sc:var(--c-grn)"><h2 id="a-plan-t">Interfaces and phased plan</h2>
+<h3>Interface diffs (declarations only; no bodies before the build)</h3>
+<pre>// internal/core/voices.go (new)
+type VoicePackID string
+type VoicePackKind string // "runtime" | "voice"
+type VoicePack struct {
+    ID       VoicePackID
+    Kind     VoicePackKind
+    Name     string   // "Piper runtime", "en_GB · alba (medium)", …
+    Language Language // empty for the runtime
+    SizeBytes int64
+    Source   core.Source // pinned URL + license info
+    Installed bool
+}
+
+// internal/core/ports.go (added)
+// Voices lists and installs the Piper runtime and voice packs.
+type Voices interface {
+    List(ctx context.Context) ([]VoicePack, error)
+    Download(ctx context.Context, id VoicePackID, progress func(DownloadProgress)) error
+}
+
+// PiperVoice synthesises speech from the shown IPA with a neural voice
+// when the pack for the language is installed.
+type PiperVoice interface {
+    Available(language Language) bool
+    Speak(ctx context.Context, language Language, ipa string) (data []byte, err error)
+}
+
+// internal/core/playback_service.go (changed)
+type PronunciationAudioService struct {
+    Recordings RecordingSource
+    Piper      PiperVoice       // optional; nil = never
+    Voices     VoiceSynthesiser // eSpeak fallback (unchanged)
+}
+// Play: recording → Piper (Available(language)) → eSpeak → copy
+
+// internal/adapters/voices_catalog.go (new): pinned entries
+var voiceCatalog = []catalogEntry{ … } // runtime wheel + 3 voices, URLs + SHA-256 + sizes
+
+// internal/adapters/piper_install.go (new)
+type VoicePackInstaller struct {
+    Dir      string        // &lt;data&gt;/wdict/piper
+    Python   string        // default "python3"; injectable for tests
+    Runner   func(...)     // injectable python/pip runner (tests)
+    Client   *http.Client
+}
+// implements core.Voices: List (probe venv python + voice files), Download (runtime: venv+pip; voice: 2 checksummed files, atomic)
+
+// internal/adapters/piper.go (new)
+type PiperVoices struct {
+    Dir    string // same root; finds venv + voices/&lt;id&gt;
+    Client *http.Client
+    Runner func(...)    // injectable subprocess runner (tests)
+    Cache  *AudioCache  // shared cache helper extracted from audio_fetch.go
+}
+// implements core.PiperVoice; cache key sha256("piper:&lt;id&gt;:&lt;ipa&gt;")
+
+// main.go (changed): wiring + App methods
+func (a *App) ListVoices() ([]core.VoicePack, error)
+func (a *App) DownloadVoicePack(id core.VoicePackID) error
+func (a *App) VoiceProgress() core.DownloadProgress</pre>
+<h3>New and changed files</h3>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable file table"><table><caption>Everything the plan implies (including tests and fixtures)</caption><thead><tr><th scope="col">File</th><th scope="col">Status</th><th scope="col">Content</th></tr></thead><tbody>
+<tr><th scope="row"><code>internal/core/voices.go</code></th><td>new</td><td><code>VoicePack</code> type + <code>Voices</code> service (catalog+installer glue, mirrors <code>DictionaryService</code>)</td></tr>
+<tr><th scope="row"><code>internal/core/voices_test.go</code></th><td>new</td><td>service list/download orchestration with fakes</td></tr>
+<tr><th scope="row"><code>internal/core/ports.go</code></th><td>changed</td><td><code>Voices</code>, <code>PiperVoice</code> ports</td></tr>
+<tr><th scope="row"><code>internal/core/playback_service.go</code> + test</th><td>changed</td><td>Piper step in the chain; S1–S4, S11 chain tests</td></tr>
+<tr><th scope="row"><code>internal/adapters/voices_catalog.go</code></th><td>new</td><td>pinned runtime + 3 voice entries (URLs, SHA-256, sizes, license info)</td></tr>
+<tr><th scope="row"><code>internal/adapters/piper_install.go</code> + test</th><td>new</td><td>C2/C3/C6: python probe, venv+pip (runner seam), voice download + checksum + atomic rename, manifest write, list/probe</td></tr>
+<tr><th scope="row"><code>internal/adapters/piper.go</code> + test</th><td>new</td><td>C4: subprocess with runner seam, RIFF + peak guard, cache, 10 s kill</td></tr>
+<tr><th scope="row"><code>internal/adapters/audio_fetch.go</code></th><td>changed</td><td>extract the shared cache helper into <code>audio_cache.go</code> used by both fetch and piper (behaviour unchanged)</td></tr>
+<tr><th scope="row"><code>internal/adapters/piper_real_integration_test.go</code></th><td>new</td><td>opt-in: real pip install into a temp dir + real voice synthesis with the audibility guard</td></tr>
+<tr><th scope="row"><code>main.go</code></th><td>changed</td><td>wiring + the three App methods (own progress state, mirrors the dictionary pattern)</td></tr>
+<tr><th scope="row"><code>frontend/src/routes/+page.svelte</code> (+ tests)</th><td>changed</td><td>Voices section (states: download/progress/failed/installed; F4 copy), Piper hover text</td></tr>
+<tr><th scope="row"><code>frontend/src/language.js</code></th><td>changed</td><td>i18n keys for the Voices section</td></tr>
+<tr><th scope="row"><code>README.md</code></th><td>changed</td><td>Natural voices section: python3/python3-venv note, sizes, licenses (piper GPLv3 + voice licenses), attribution</td></tr>
+</tbody></table></div>
+<p>No migration of stored data: everything lives under a new <code>&lt;data&gt;/wdict/piper/</code> tree; removal = delete the directory. Rollback = revert the frontend section and the chain field; nothing else persists.</p>
+<h3>Phased plan (each phase ends green on its tests)</h3>
+<ol>
+<li><strong>Core chain + types:</strong> <code>voices.go</code>, ports, chain step — tests first (S2/S3/S4/S11 with fakes). Evidence: <code>go test ./internal/core</code>.</li>
+<li><strong>Installer adapter:</strong> catalog entries + <code>piper_install.go</code> tests first (S5–S8, S10 with fake python/pip/HTTP). Evidence: <code>go test ./internal/adapters</code>.</li>
+<li><strong>Piper adapter:</strong> <code>piper.go</code> tests first (S1/S4/S9 subprocess shape, guard, cache). Evidence: adapter tests + opt-in real integration noted if run.</li>
+<li><strong>Wiring:</strong> <code>main.go</code> App methods. Evidence: build + existing tests.</li>
+<li><strong>Frontend:</strong> Voices section tests first → implementation. Evidence: vitest + svelte-check.</li>
+<li><strong>Gate + real checks:</strong> <code>go tool task test</code>; real pip install + voice synthesis in the integration test; real-window download + playback manual/QA; measure the ~1 s budget.</li>
+</ol>
+</section>
+<section id="a-checks" aria-labelledby="a-checks-t" style="--sc:var(--c-blue)"><h2 id="a-checks-t">Checks run on this page</h2><ul>
+<li>Mechanical: <code>inline_view.py --check sdd/piper-voices.html</code> — run 2026-11-13 after filling this tab; result: 0 errors, 0 warnings.</li>
+<li>Static grounding check: no existing <code>voices*.go</code>, <code>piper*.go</code> files in the tree (confirmed); existing <code>catalog.go</code>, <code>install.go</code>, <code>audio_fetch.go</code>, <code>main.go</code> patterns read and reused by reference.</li>
+<li>Static inspection only: no compiler run in this phase; interface names are proposals until the first compile. The spike's runtime facts (wheel layout, venv install, invocation shape) are recorded on the Design tab with sources.</li>
+</ul></section>
+</div>
+
+<!-- ============ BUILD ============ -->
+<div role="tabpanel" id="p-build" aria-labelledby="t-build" class="tabpanel">
+<section id="b-glance" aria-labelledby="b-glance-t" style="--sc:var(--c-grn)"><h2 id="b-glance-t">At a glance</h2>
+<ul>
+<li><strong>Tests first:</strong> all 9 new frontend tests and the core/adapters behavioural tests were written and observed failing before implementation (section absent, hover wrong, chain calls wrong); no existing test weakened; the audio-page tests stay green throughout.</li>
+<li><strong>After:</strong> project quality gate <code>go tool task test</code> from repo root: PASS — svelte-check 0/0, vitest 99/99 (6 files), <code>go test -tags gtk3 ./...</code> ok (re-verified by the orchestrator after the frontend pass); <code>frontend/build</code> regenerated. Heavy integration (real pip install + real voice + real synthesis + cache replay) run once: PASS in 6.6 s (5.0 s install, 1.3 s download, 0.36 s synthesis, peak ≥ 1000).</li>
+<li><strong>Not verified:</strong> real-window Voices section rendering and Piper playback in the webview (manual/QA); the ~1 s end-to-end budget in the real window; real venv-creation failure (Debian python3-venv absent — fakes only); runtime installs are pip-fetched (see the C1/C2 trust note below).</li>
+</ul>
+<p class="note gate"><strong>Next:</strong> QA and the independent grader run automatically on this build (no opt-out recorded).</p></section>
+<h2 class="rep">Detailed report</h2>
+<section id="b-detail" aria-labelledby="b-detail-t" style="--sc:var(--c-blue)"><h2 id="b-detail-t">Evidence</h2>
+<h3>Changed files (Go + frontend)</h3>
+<p>New: <code>internal/core/voices.go</code> (+test; VoicePack, VoiceService), <code>internal/adapters/voices_catalog.go</code> (pinned runtime + 3 voices), <code>internal/adapters/piper_install.go</code> (+test; C2/C3/C6), <code>internal/adapters/piper.go</code> (+test; C4), <code>internal/adapters/piper_real_integration_test.go</code>, <code>internal/adapters/audio_cache.go</code> (shared cache extracted), <code>frontend/src/routes/voices.test.js</code>. Changed: <code>ports.go</code> (Voices, PiperVoice), <code>playback_service.go</code> (+test; Piper step, Source "piper"), <code>audio_fetch.go</code> (delegates to the shared cache), <code>espeak_real_integration_test.go</code> (peak helper moved to production), <code>main.go</code> (+main_test; ListVoices/DownloadVoicePack/VoiceProgress), <code>README.md</code>, <code>+page.svelte</code>, <code>playback.js</code> (+test), <code>language.js</code>, <code>frontend/build</code>.</p>
+<h3>Test → scenario map (highlights)</h3>
+<ul>
+<li><strong>S1</strong>: core chain test (Piper called with stripped IPA, Source "piper", Voice "alba") + adapter subprocess-shape test + real integration; <strong>S2/S3</strong>: chain-order tests (pack missing → eSpeak, recording wins, Piper nil = today) + installer state tests; <strong>S4</strong>: Piper failure → eSpeak, nothing cached; non-WAV/empty/silent → error (peak guard is production code now); <strong>S5–S7</strong>: installer tests (venv→pip→manifest, idempotence, full recreate on retry, atomic voice install, checksum mismatch, cap abort) + frontend Voices states; <strong>S8/S10</strong>: F4 copy verbatim on list + install refusal + frontend disabled rows; <strong>S9</strong>: cache replay, zero subprocesses (+ real replay); <strong>S11</strong>: SkipRecording skips recordings, Piper still tried.</li>
+<li><strong>Catalog values pinned</strong> (verified via HEAD/HF tree, 2026-11-13): wheel 34,131,442 B / SHA-256 25b4d3f3…; alba 63,221,984 B / 1f9da809…; amy 63,221,984 B / cf9ccdec…; sharvard 76,753,841 B / 234dc4cf…; plus per-voice .onnx.json SHA-256s (C3 requires both files verified); model-card licence URLs verified HTTP 200.</li>
+</ul>
+<h3>Approved-contract differences found and resolved in build</h3>
+<ul>
+<li><code>PiperVoice</code> gained <code>Voice(language) string</code> — required to fill <code>PlayResult.Voice</code> per C5; declarations in the Architecture tab were marked proposals until first compile.</li>
+<li><code>.onnx.json</code> SHA-256s/sizes pinned (the spike had not covered them; C3 requires verifying both files).</li>
+<li>Sharvard byte size corrected to the verified 76,753,841 (the spike's brief value was off by 143 B).</li>
+<li>Two-English-voices tie-break: first catalog entry (alba) wins when both en voices are installed — documented in code and tested; the page had not specified it.</li>
+<li><strong>C1/C2 trust note (flagged, no behaviour change):</strong> pip fetches the wheel and its transitive dependencies itself, so the pinned wheel URL/SHA-256/size live in the catalog as the trust record; pip's version pin (<code>==1.8.0</code>) guarantees the same PyPI artifact, but transitive dependency wheels are not checksum-pinned (would need pip hash-checking mode). Surfaced for review; the pragmatic trust model (PyPI immutability for the pinned version) stands unless the user decides otherwise.</li>
+<li>Frontend: F3 failure copy reuses the existing <code>installationFailed</code> i18n key (spec said "existing download copy") — its English text mentions "dictionary"; flagged as a possible copy improvement later. <code>refresh()</code> fetches voices in parallel with dictionaries (keeps the existing language-switch call-count test green).</li>
+<li><code>VoicePack.Blocked</code> field added (user-facing blocked-download copy carrier for C6/C7) — grader finding G6 noted this was missing from this list; recorded here now.</li>
+</ul>
+</section>
+</div>
+
+<!-- ============ VERIFY ============ -->
+<div role="tabpanel" id="p-verify" aria-labelledby="t-verify" class="tabpanel">
+<section id="v-glance" aria-labelledby="v-glance-t" style="--sc:var(--c-vio)"><h2 id="v-glance-t">Verification report</h2>
+<p><span class="chip ok">PASS</span><span class="chip def">fix rounds 2 of 2 used</span></p>
+<ul>
+<li><strong>Verdict (grader, verbatim):</strong> PASS — Every approved contract is implemented and verified at the right layers, with the real pip/HF/Piper chain exercised twice (integration + QA); the delivered runtime exceeds the approved 120 MB disk budget and two record-keeping spots are stale, but these are honestly surfaced findings needing a user decision, not hidden gaps.</li>
+<li><strong>QA result (tester, verbatim):</strong> Result: Every exercised scenario (S1–S5, S7, S8, S11) matched the approved spec at the process level with the real pip/venv runtime, a real checksummed HF voice download and real Piper synthesis; two observations were flagged (installed runtime size, missing F2 logging), no functional defect was found.</li>
+</ul>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable scorecard"><table class="cards"><caption>Scorecard</caption><thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Evidence</th></tr></thead><tbody>
+<tr><th scope="row">Build quality gate</th><td data-label="Result">pass (re-run after each fix: Q2 and G3; grader reproduced PASS)</td><td data-label="Evidence"><code>go tool task test</code>: svelte-check 0/0, vitest 99/99, <code>go test -tags gtk3 ./...</code> ok</td></tr>
+<tr><th scope="row">QA scenarios</th><td data-label="Result">matches 8 · differs 0 · not run 4 (S1-es, S6-real, S10-real, S3-recording real) · extras 1</td><td data-label="Evidence"><code>/tmp/opencode/qa-piper/evidence/</code> (real PyPI install 5.1 s, real HF voice 1.2 s, real synthesis 0.34 s peak 32767)</td></tr>
+<tr><th scope="row">Grade criterion 1 (coverage)</th><td data-label="Result">PASS</td><td data-label="Evidence">scenario map, path:line</td></tr>
+<tr><th scope="row">Grade criterion 2 (decision areas)</th><td data-label="Result">PARTIAL</td><td data-label="Evidence">thresholds honored except the stale ≤120 MB disk budget (G1, user decision)</td></tr>
+<tr><th scope="row">Grade criterion 3 (architecture)</th><td data-label="Result">PASS</td><td data-label="Evidence">ports/adapters/wiring match; VoicePack.Blocked addition recorded (G6 fixed)</td></tr>
+<tr><th scope="row">Grade criterion 4 (test layers)</th><td data-label="Result">PASS</td><td data-label="Evidence">real chain ran twice (integration + QA), not fake-only</td></tr>
+<tr><th scope="row">Grade criterion 5 (production vs design)</th><td data-label="Result">PASS</td><td data-label="Evidence">states/copy verbatim, hover, no-pack unchanged; F3 copy fixed (G3)</td></tr>
+<tr><th scope="row">Grade criterion 6 (records honest)</th><td data-label="Result">PARTIAL</td><td data-label="Evidence">traceability staleness fixed (G2); remaining gaps need user decisions (G1/G4)</td></tr>
+<tr><th scope="row">Grade criterion 7 (a11y and checks)</th><td data-label="Result">PASS</td><td data-label="Evidence">gate + page lint re-run by grader; real webview evidence missing (admitted)</td></tr>
+</tbody></table></div>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable findings table"><table class="cards"><caption>Findings (Q# from QA, G# from the grader)</caption><thead><tr><th scope="col">ID</th><th scope="col">Label</th><th scope="col">Severity</th><th scope="col">Status</th></tr></thead><tbody>
+<tr><th scope="row">Q1 / G1</th><td data-label="Label">requirement</td><td data-label="Severity">medium</td><td data-label="Status">open — installed runtime measures 210 MB vs the approved ≤ 120 MB threshold (spike number stale); needs your decision: amend the budget to the measured size, or slim the install</td></tr>
+<tr><th scope="row">Q2</th><td data-label="Label">implementation</td><td data-label="Severity">low</td><td data-label="Status">fixed (fix round 1, before grading) — Piper failures now logged (<code>log.Printf</code> in the core chain); grader confirmed the fix</td></tr>
+<tr><th scope="row">G2</th><td data-label="Label">requirement (record)</td><td data-label="Severity">low</td><td data-label="Status">fixed — traceability "Actual test and code" column filled (record edit, not a re-approval)</td></tr>
+<tr><th scope="row">G3</th><td data-label="Label">implementation</td><td data-label="Severity">low</td><td data-label="Status">fixed (fix round 2, after grading, not re-graded) — voice packs now use a dedicated <code>voiceInstallationFailed</code> copy (en/es) instead of the dictionary wording</td></tr>
+<tr><th scope="row">G4</th><td data-label="Label">implementation</td><td data-label="Severity">low</td><td data-label="Status">open — F4/Blocked adapter copy is English-only by approved verbatim copy; translating it needs a spec amendment; proposed: accept as v1 English-only and record it</td></tr>
+<tr><th scope="row">G5</th><td data-label="Label">implementation (out-of-spec hardening note)</td><td data-label="Severity">low</td><td data-label="Status">no action — spec's S8 requires only disabled rows (met); direct voice install without python3 is harmless</td></tr>
+<tr><th scope="row">G6</th><td data-label="Label">requirement (record)</td><td data-label="Severity">low</td><td data-label="Status">fixed — Build tab now records the <code>VoicePack.Blocked</code> interface addition</td></tr>
+</tbody></table></div>
+<ul>
+<li><strong>Fixed after grading, not re-graded:</strong> G3 — dedicated <code>voiceInstallationFailed</code> i18n key (en/es), used by the voice-pack failure branch, test expectation updated; quality gate re-run PASS; assets regenerated. (Q2's logging fix was before grading and is confirmed by the grader.)</li>
+<li><strong>Not verified:</strong> real-window Voices-section rendering and Piper/eSpeak playback in the webview; the ~1 s end-to-end budget in the real window; real Debian python3-venv absence (fakes only); multi-Python-version behaviour; voice downloads in the es language (76 MB, skipped by QA).</li>
+<li><strong>Budget used:</strong> spawns 2 of 3 (one QA, one grader), fix rounds 2 of 2 (Q2 before grading, G3 after grading). Agents: QA and grader ran as delegated general agents on this session's model (opencode-go / glm-5.3-flash).</li>
+<li><strong>Recorded open decision (from the Build tab):</strong> C1/C2 trust note — pip fetches the pinned wheel and unpinned transitive dependency wheels; the catalog's pinned URL/SHA-256 is the trust record for piper-tts itself (PyPI immutability for <code>==1.8.0</code>), transitives rely on PyPI. Change only on your decision.</li></ul>
+<p class="note gate"><strong>Handoff:</strong> nothing is committed or published. Open decisions for you — <strong>G1/Q1</strong>: the installed runtime measures 210 MB (the spike's ≈120 MB was stale); accept ~210 MB as the recorded budget (recommended — the number is real) or slim the install; <strong>G4</strong>: accept the English-only F4/Blocked copy for v1 (recommended) or approve a spec amendment for translated copy. Also open from the audio page: real-window playback checks for both features, and the AppImage eSpeak bundling decision. Reply with your decisions and what you want next (for example “commit”), or describe the changes you want.</p></section>
+<h2 class="rep">Detailed report</h2>
+<section id="v-qa" aria-labelledby="v-qa-t" style="--sc:var(--c-amb)"><h2 id="v-qa-t">QA scenario runs</h2>
+<p class="note skip-inline">QA ran in the sandbox copy /tmp/opencode/qa-piper/repo with a real harness driving the real adapters (identical construction to main.go; all data under /tmp/opencode/qa-piper/qa-data; network = PyPI + HF at the pinned revision). Table pasted from the QA report.</p>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable QA table"><table class="cards"><caption>Each scenario run for real</caption><thead><tr><th scope="col">Scenario</th><th scope="col">Steps</th><th scope="col">Expected</th><th scope="col">Observed</th><th scope="col">Result</th><th scope="col">Evidence</th></tr></thead><tbody>
+<tr><th scope="row">S5 (C2)</th><td data-label="Steps">list → install-runtime (real venv+pip) → install-runtime --check → list</td><td data-label="Expected">progress, venv+manifest, idempotent no-op</td><td data-label="Observed">progress events; manifest (piper-tts 1.8.0, onnxruntime 1.32.0, numpy 2.5.4); second install 0.0 s, mtimes unchanged; runtime installed=true</td><td data-label="Result">matches</td><td data-label="Evidence">S5_step1..4</td></tr>
+<tr><th scope="row">S7 success (C3)</th><td data-label="Steps">install-voice en_GB-alba-medium (real HF, pinned rev)</td><td data-label="Expected">both files, checksum, atomic</td><td data-label="Observed">downloading→installing→complete; onnx 63,221,984 B + json 5,471 B; sha256 matches pinned; no temp leftovers</td><td data-label="Result">matches</td><td data-label="Evidence">S7_part1_download.txt</td></tr>
+<tr><th scope="row">S7 corruption (extra)</th><td data-label="Steps">injected http.Client serves a one-byte-flipped onnx for en_US-amy</td><td data-label="Expected">checksum failure, nothing installed, previous pack intact</td><td data-label="Observed">"voice download checksum verification failed"; amy dir absent; alba unchanged; 0 temp leftovers</td><td data-label="Result">matches (extra)</td><td data-label="Evidence">S7_part2_tamper.txt</td></tr>
+<tr><th scope="row">S1 (+S9 cache)</th><td data-label="Steps">speak en ˈnɒl.ɪdʒ (real Piper subprocess)</td><td data-label="Expected">RIFF WAV, peak ≥ 1000, cached, replay</td><td data-label="Observed">46,124 B WAV in 0.34 s, peak=32767; cache file present; 2nd call 0.000 s, byte-equal</td><td data-label="Result">matches</td><td data-label="Evidence">S1.txt</td></tr>
+<tr><th scope="row">S4 (F2)</th><td data-label="Steps">chain with real PiperVoices pointing at a dummy venv python3</td><td data-label="Expected">eSpeak fallback, no error, nothing Piper cached</td><td data-label="Observed">Source="espeak" Voice="en-us", 35,294 B WAV peak=17744, no piper cache entry</td><td data-label="Result">matches</td><td data-label="Evidence">S4.txt</td></tr>
+<tr><th scope="row">S2 (F1)</th><td data-label="Steps">chain without Piper wired</td><td data-label="Expected">unchanged eSpeak result</td><td data-label="Observed">Source="espeak" peak=17744</td><td data-label="Result">matches</td><td data-label="Evidence">S2.txt</td></tr>
+<tr><th scope="row">S3 (recording wins)</th><td data-label="Steps">chain with AudioFetch over in-process TLS + installed-voice Piper whose fake venv python writes a RAN marker</td><td data-label="Expected">recording plays, Piper not started</td><td data-label="Observed">Source="recording", marker absent</td><td data-label="Result">matches</td><td data-label="Evidence">S3.txt</td></tr>
+<tr><th scope="row">S11 (SkipRecording)</th><td data-label="Steps">same chain, SkipRecording=true</td><td data-label="Expected">recordings skipped, Piper still tried</td><td data-label="Observed">Source="piper" Voice="alba" (from cache)</td><td data-label="Result">matches</td><td data-label="Evidence">S11.txt</td></tr>
+<tr><th scope="row">S8 (F4)</th><td data-label="Steps">installer with Python="definitely-not-python3"; List + Install + playback</td><td data-label="Expected">runtime row disabled with F4 copy verbatim; installs fail; playback unaffected</td><td data-label="Observed">F4 copy verbatim on all rows; runtime install fails with the copy; eSpeak playback audible</td><td data-label="Result">matches</td><td data-label="Evidence">S8.txt</td></tr>
+</tbody></table></div>
+<p class="hdr">QA extras/observations: with python3 "missing" but the runtime previously installed, a direct voice Install succeeds (C3 needs no python — F4 blocking lives in List states and runtime Install); frontend surface not exercised (vitest covers it). Not run: S1 es voice (76 MB optional), S6 real network failure, S10 real venv failure, S8's UI part, real-window webview playback.</p>
+</section>
+<section id="v-grade" aria-labelledby="v-grade-t" style="--sc:var(--c-blue)"><h2 id="v-grade-t">Criteria, scenario map and findings</h2>
+<p class="note skip-inline">Grader output pasted (lightly condensed); it ran the quality gate and the page lint once each, read-only. Full criteria evidence and the scenario map are in the grader report substance below.</p>
+<h3>Criteria</h3>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable criteria table"><table><caption>Grader criteria</caption><thead><tr><th scope="col">Criterion</th><th scope="col">Score</th><th scope="col">Evidence (substance)</th></tr></thead><tbody>
+<tr><th scope="row">1. Coverage</th><td>PASS</td><td>S1–S11 and F1–F4 all mapped with path:line; real chain exercised twice.</td></tr>
+<tr><th scope="row">2. Decision areas</th><td>PARTIAL</td><td>Kill/caps/audibility/~1 s met; 210 MB vs ≤120 MB (G1) honestly surfaced; no-pack = zero change verified.</td></tr>
+<tr><th scope="row">3. Architecture</th><td>PASS</td><td>Ports/services/installer/Piper adapter/chain/wiring match; VoicePack.Blocked addition flagged (G6, now recorded).</td></tr>
+<tr><th scope="row">4. Test layers</th><td>PASS</td><td>Fakes at every seam; real chain ran twice (integration + QA); no test weakened.</td></tr>
+<tr><th scope="row">5. Production vs design</th><td>PASS</td><td>Voices states/copy verbatim, Piper hover, no-pack users unchanged; F3 copy fixed (G3).</td></tr>
+<tr><th scope="row">6. Records honest</th><td>PARTIAL</td><td>Approvals/statuses honest; traceability staleness fixed (G2); G1/G4 need user decisions.</td></tr>
+<tr><th scope="row">7. A11y and checks</th><td>PASS</td><td>Gate + page lint re-run PASS; a11y from static inspection (progressbar aria-label, role="alert"); no webview session evidence (admitted).</td></tr>
+</tbody></table></div>
+<h3>Findings</h3>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable findings detail"><table><caption>Grader findings (substance)</caption><thead><tr><th scope="col">ID</th><th scope="col">Substance</th></tr></thead><tbody>
+<tr><th scope="row">G1</th><td>medium · requirement. Approved disk budget "≤ 120 MB installed" exceeded: QA measured 210 MB for the pip-installed runtime; spike number stale; README and page still carry the old number; needs a user decision (accept 210 MB, slim, or re-set).</td></tr>
+<tr><th scope="row">G2</th><td>low · requirement. Traceability table rows still "pending" although tests exist. Fixed (record edit).</td></tr>
+<tr><th scope="row">G3</th><td>low · implementation. F3 copy reuses installationFailed ("dictionary" wording). Fixed after grading: dedicated voiceInstallationFailed key (en/es), test updated, gate re-run.</td></tr>
+<tr><th scope="row">G4</th><td>low · implementation. F4/Blocked adapter copy is English-only in the Spanish UI. Fixing needs a spec amendment (translated copy); proposed: accept as v1 English-only and record.</td></tr>
+<tr><th scope="row">G5</th><td>low · implementation (out-of-spec hardening note). Direct voice Install not refused without python3 — harmless (voice install needs no python); spec requires only disabled rows. No action required.</td></tr>
+<tr><th scope="row">G6</th><td>low · requirement (record). Build tab omitted the VoicePack.Blocked interface addition. Fixed (record edit).</td></tr>
+<tr><th scope="row">Q2 fix confirmed</th><td>Piper failure logging exists post-fix (playback_service.go log.Printf); gate re-run green; no residual finding.</td></tr>
+<tr><th scope="row">C1/C2 trust note</th><td>recorded open decision — pip fetches the pinned wheel (PyPI immutability for ==1.8.0) and unpinned transitive wheels; user review optional.</td></tr>
+</tbody></table></div>
+<p class="hdr">Grader limitations: did not re-run integration/QA/real window; relied on Build/QA records for real-chain timings and the 210 MB measurement; could not fully audit one QA evidence line (S3 audioBytes reporting); no rule breaches.</p>
+</section>
+<section id="v-checks" aria-labelledby="v-checks-t" style="--sc:var(--c-blue)"><h2 id="v-checks-t">Checks run on this page</h2><ul>
+<li>Mechanical: <code>inline_view.py --check sdd/piper-voices.html</code> — 0 errors, 0 warnings (re-run by the grader with the same result).</li>
+<li>Quality gate: run by both coders, by the orchestrator after each fix (Q2, G3), and once independently by the grader — PASS every time (svelte-check 0/0, vitest 99/99, <code>go test -tags gtk3 ./...</code> ok).</li>
+<li>Not checked: real browser/webview rendering of the page or the app (no browser session ran in this phase); real-window items listed under "Not verified".</li>
+</ul></section>
+</div>
+
+<!-- ============ APPROVALS ============ -->
+<div role="tabpanel" id="p-appr" aria-labelledby="t-appr" class="tabpanel">
+<section id="appr" aria-labelledby="appr-t" style="--sc:var(--c-grn)"><h2 id="appr-t">Approvals</h2>
+<p class="note">Record only approvals actually received in chat, with the date, the tab content approved and the user’s words. A page control never approves a gate.</p>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable approvals table"><table><caption>Gate approvals</caption><thead><tr><th scope="col">Gate</th><th scope="col">Date</th><th scope="col">Approved artifact</th><th scope="col">Approval in chat</th></tr></thead><tbody>
+<tr><th scope="row">Design</th><td>2026-11-13</td><td>Design tab: Voices section (runtime + en_GB-alba/en_US-amy/es_ES-sharvard), Piper subprocess from the shown IPA, chain insertion, F1–F4, five decisions; Q1–Q5 defaulted to the recommendations at approval</td><td>“Approved”</td></tr><tr><th scope="row">Spec</th><td>2026-11-13</td><td>Spec tab: contracts C1–C7, scenarios S1–S11, thresholds (10 s Piper kill, 50 MiB wheel / 150 MiB voice caps, 120 MB runtime budget, audibility ≥ 1000, ~1 s Piper budget), traceability table</td><td>“Spec approved”</td></tr><tr><th scope="row">Architecture</th><td>2026-11-13</td><td>Architecture tab: Voices/PiperVoice ports, VoicePack type, installer + Piper adapters, chain step, file list, 6-phase plan</td><td>“Architecture approved”</td></tr><tr><th scope="row">Automatic verification</th><td>2026-11-13</td><td>QA and grade run after the build unless the user replied <code>no QA</code> or <code>no grade</code></td><td>not opted out</td></tr>
+</tbody></table></div></section>
+</div>
+</main>
+<footer>Single-file SDD review · no network dependencies · no live backend</footer>
+<script>
+'use strict';
+const tabs=Array.from(document.querySelectorAll('[role=tab]'));
+const panels=Array.from(document.querySelectorAll('.tabpanel'));
+function act(p,focus,keep){tabs.forEach(t=>{const on=t.dataset.p===p;t.setAttribute('aria-selected',on);t.tabIndex=on?0:-1;document.getElementById('p-'+t.dataset.p).hidden=!on;if(on&&focus)t.focus();});if(!keep){try{history.replaceState(null,'','#p-'+p)}catch(_){}}}
+tabs.forEach((t,i)=>{t.addEventListener('click',()=>act(t.dataset.p));t.addEventListener('keydown',ev=>{const k={ArrowRight:1,ArrowLeft:-1}[ev.key];if(ev.key==='Home'){ev.preventDefault();act(tabs[0].dataset.p,1)}else if(ev.key==='End'){ev.preventDefault();act(tabs[tabs.length-1].dataset.p,1)}else if(k){ev.preventDefault();act(tabs[(i+k+tabs.length)%tabs.length].dataset.p,1)}});});
+function fromHash(){const id=location.hash.slice(1);const el=id&&document.getElementById(id);const pan=el&&el.closest('.tabpanel');act(pan?pan.id.slice(2):(tabs.find(t=>t.getAttribute('aria-selected')==='true')||tabs[0]).dataset.p,false,!!pan);if(el&&pan){for(let d=el.closest('details');d;d=d.parentElement&&d.parentElement.closest('details'))d.open=true;el.scrollIntoView();}}
+fromHash();window.addEventListener('hashchange',fromHash);
+</script>
+<script>
+'use strict';
+const details=Array.from(document.querySelectorAll('details'));let prior=[];
+window.addEventListener('beforeprint',()=>{panels.forEach(p=>{p.hidden=false;});prior=details.map(d=>d.open);details.forEach(d=>{d.open=true;});});
+window.addEventListener('afterprint',()=>{details.forEach((d,i)=>{d.open=prior[i]??true;});const s=tabs.find(t=>t.getAttribute('aria-selected')==='true');if(s)act(s.dataset.p);});
+</script>
+</body>
+</html>

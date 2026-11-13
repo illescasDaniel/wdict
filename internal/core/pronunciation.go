@@ -34,7 +34,7 @@ func NormalizePronunciations(raw []Pronunciation) []Pronunciation {
 		}
 		seen[text] = true
 		label, title := normalizeAccentLabel(item.Label, item.LabelTitle)
-		out = append(out, Pronunciation{Text: text, Label: label, LabelTitle: title})
+		out = append(out, Pronunciation{Text: text, Label: label, LabelTitle: title, AudioURL: item.AudioURL})
 		if len(out) == maxPronunciations {
 			break
 		}

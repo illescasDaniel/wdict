@@ -77,7 +77,12 @@ func TestGivenOnlineHelloFixtureWhenLookedUpThenAudioOnlyItemIsSkippedAndTextsKe
 	// when
 	entries := findOnlineEnglish(t, body)
 	// then
-	want := []core.Pronunciation{{Text: "/həˈləʊ/"}, {Text: "/həˈloʊ/"}}
+	// C2: each text keeps the audio supplied with the same item; the first
+	// item has no text, so its audio is not used.
+	want := []core.Pronunciation{
+		{Text: "/həˈləʊ/", AudioURL: "https://api.dictionaryapi.dev/media/pronunciations/en/hello-uk.mp3"},
+		{Text: "/həˈloʊ/"},
+	}
 	if len(entries) != 1 || !reflect.DeepEqual(entries[0].Pronunciations, want) {
 		t.Fatalf("got %+v", entries)
 	}
@@ -97,6 +102,45 @@ func TestGivenOnlineReadFixtureWhenLookedUpThenEachEntryKeepsItsOwnPronunciation
 	}
 	if got := texts(entries[1].Pronunciations); !reflect.DeepEqual(got, []string{"/ɹɛd/"}) {
 		t.Fatalf("second=%v", got)
+	}
+	want := []core.Pronunciation{
+		{Text: "/ɹiːd/", AudioURL: "https://api.dictionaryapi.dev/media/pronunciations/en/read-1-uk.mp3"},
+		{Text: "/ɹid/", AudioURL: "https://api.dictionaryapi.dev/media/pronunciations/en/read-1-us.ogg"},
+	}
+	if !reflect.DeepEqual(entries[0].Pronunciations, want) || entries[1].Pronunciations[0].AudioURL != "https://api.dictionaryapi.dev/media/pronunciations/en/read-2-us.mp3" {
+		t.Fatalf("got %+v", entries)
+	}
+}
+
+func TestGivenEnglishAudioPairedWithItsTextWhenLookedUpThenFirstNonEmptyAudioPerTextIsKept(t *testing.T) {
+	// given (C2): first non-empty audio per text, in item order
+	body := englishJSON(`null`, `[
+		{"text":"/a/","audio":""},
+		{"text":"/a/","audio":"https://example.test/first.mp3"},
+		{"text":"/a/","audio":"https://example.test/second.mp3"},
+		{"text":"/b/","audio":"https://example.test/b.mp3"}
+	]`)
+	// when
+	entries := findOnlineEnglish(t, body)
+	// then
+	want := []core.Pronunciation{
+		{Text: "/a/", AudioURL: "https://example.test/first.mp3"},
+		{Text: "/b/", AudioURL: "https://example.test/b.mp3"},
+	}
+	if !reflect.DeepEqual(entries[0].Pronunciations, want) {
+		t.Fatalf("got %+v", entries[0].Pronunciations)
+	}
+}
+
+func TestGivenEnglishAudioWithUnexpectedShapeWhenLookedUpThenTextIsKeptWithoutURL(t *testing.T) {
+	// given (C2): unexpected shapes yield no URL, never an error
+	body := englishJSON(`null`, `[{"text":"/a/","audio":5},{"text":"/b/","audio":{"url":"https://example.test/x.mp3"}}]`)
+	// when
+	entries := findOnlineEnglish(t, body)
+	// then
+	want := []core.Pronunciation{{Text: "/a/"}, {Text: "/b/"}}
+	if !reflect.DeepEqual(entries[0].Pronunciations, want) {
+		t.Fatalf("got %+v", entries[0].Pronunciations)
 	}
 }
 
@@ -191,12 +235,13 @@ func TestGivenOnlineEnglishLookupWhenFoundThenExactlyOneRequestIsMade(t *testing
 }
 
 func TestGivenSavedSpanishResponsesWhenLookedUpThenOnlyTheSpanishValueIsReturned(t *testing.T) {
-	for word, want := range map[string]string{
-		"hola":  "[ˈola]",
-		"casa":  "[ˈkasa]",
-		"perro": "[ˈpero]",
-		"leer":  "[leˈeɾ]",
-		"agua":  "[ˈaɣ̞wa]",
+	// C2: the phonos audio button is resolved to an https file URL.
+	for word, want := range map[string]core.Pronunciation{
+		"hola":  {Text: "[ˈola]", AudioURL: "https://upload.wikimedia.org/wikipedia/commons/transcoded/a/a2/Es-hola.oga/Es-hola.oga.mp3"},
+		"casa":  {Text: "[ˈkasa]", AudioURL: "https://upload.wikimedia.org/wikipedia/commons/transcoded/8/81/Es-am-lat-casa.ogg/Es-am-lat-casa.ogg.mp3"},
+		"perro": {Text: "[ˈpero]", AudioURL: "https://upload.wikimedia.org/wikipedia/commons/transcoded/2/28/LL-Q1321_%28spa%29-Rodelar-perro.wav/LL-Q1321_%28spa%29-Rodelar-perro.wav.mp3"},
+		"agua":  {Text: "[ˈaɣ̞wa]", AudioURL: "https://upload.wikimedia.org/wikipedia/commons/transcoded/9/98/Es-am-lat-agua.ogg/Es-am-lat-agua.ogg.mp3"},
+		"leer":  {Text: "[leˈeɾ]"},
 	} {
 		t.Run(word, func(t *testing.T) {
 			// given
@@ -204,7 +249,7 @@ func TestGivenSavedSpanishResponsesWhenLookedUpThenOnlyTheSpanishValueIsReturned
 			// when
 			entries := findOnlineSpanish(t, body)
 			// then
-			if len(entries) != 1 || !reflect.DeepEqual(entries[0].Pronunciations, []core.Pronunciation{{Text: want}}) {
+			if len(entries) != 1 || !reflect.DeepEqual(entries[0].Pronunciations, []core.Pronunciation{want}) {
 				t.Fatalf("got %+v", entries[0].Pronunciations)
 			}
 			if len(entries[0].Meanings) == 0 {
@@ -259,6 +304,61 @@ func TestGivenSpanishRowsWithOtherLabelsWhenLookedUpThenOnlyPronunciationRowIsUs
 	// then
 	if got := texts(entries[0].Pronunciations); !reflect.DeepEqual(got, []string{"[ˈola]", "[ˈoɫa]"}) {
 		t.Fatalf("got=%v", got)
+	}
+}
+
+func TestGivenSpanishPhonosMarkupWhenLookedUpThenTheAudioReferenceIsResolvedToHTTPS(t *testing.T) {
+	for name, value := range map[string]string{
+		"scheme relative":   `<span class="ext-phonos"><a role="button" href="//upload.example.test/w/x.ogg/x.ogg.mp3">▶</a></span>[ˈola]<br />`,
+		"already https":     `<span class="ext-phonos"><a role="button" href="https://upload.example.test/w/x.ogg/x.ogg.mp3">▶</a></span>[ˈola]<br />`,
+		"audio before text": `<span class="ext-phonos"><a role="button" href="//upload.example.test/w/x.ogg/x.ogg.mp3">▶</a></span> <br />[ˈola]<br />`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			// given
+			body := spanishPage(`<h2 id="Español">Español</h2>`, spanishDefinition, pronunciationRow("pronunciación", value))
+			// when
+			entries := findOnlineSpanish(t, body)
+			// then
+			want := core.Pronunciation{Text: "[ˈola]", AudioURL: "https://upload.example.test/w/x.ogg/x.ogg.mp3"}
+			if !reflect.DeepEqual(entries[0].Pronunciations, []core.Pronunciation{want}) {
+				t.Fatalf("got %+v", entries[0].Pronunciations)
+			}
+		})
+	}
+}
+
+func TestGivenSpanishPhonosWithUnusableLinkWhenLookedUpThenNoAudioURLIsSet(t *testing.T) {
+	for name, value := range map[string]string{
+		"relative link":  `<span class="ext-phonos"><a role="button" href="/wiki/Archivo:x.ogg">▶</a></span>[ˈola]<br />`,
+		"plain http":     `<span class="ext-phonos"><a role="button" href="http://upload.example.test/x.mp3">▶</a></span>[ˈola]<br />`,
+		"no link":        `<span class="ext-phonos"><span>▶ audio</span></span>[ˈola]<br />`,
+		"nested no link": `<span class="ext-phonos"><span><span class="ext-phonos"><span>▶</span></span></span></span>[ˈola]<br />`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			// given
+			body := spanishPage(`<h2 id="Español">Español</h2>`, spanishDefinition, pronunciationRow("pronunciación", value))
+			// when
+			entries := findOnlineSpanish(t, body)
+			// then
+			want := core.Pronunciation{Text: "[ˈola]"}
+			if !reflect.DeepEqual(entries[0].Pronunciations, []core.Pronunciation{want}) {
+				t.Fatalf("got %+v", entries[0].Pronunciations)
+			}
+		})
+	}
+}
+
+func TestGivenTwoSpanishValuesWithOneAudioWhenLookedUpThenTheAudioStaysWithItsOwnValue(t *testing.T) {
+	// given (C2): the second phonos button belongs to the second value; the
+	// fixture for casa has the Latin-American button next to [ˈkasa]
+	body := spanishPage(`<h2 id="Español">Español</h2>`, spanishDefinition, pronunciationRow("pronunciación",
+		`[ˈkasa] <span class="ext-phonos"><a role="button" href="//upload.example.test/one.mp3">▶</a></span><br /> <span class="ext-phonos"><a role="button" href="//upload.example.test/two.mp3">▶</a></span><br />`))
+	// when
+	entries := findOnlineSpanish(t, body)
+	// then
+	want := []core.Pronunciation{{Text: "[ˈkasa]", AudioURL: "https://upload.example.test/one.mp3"}}
+	if !reflect.DeepEqual(entries[0].Pronunciations, want) {
+		t.Fatalf("got %+v", entries[0].Pronunciations)
 	}
 }
 

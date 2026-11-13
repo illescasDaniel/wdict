@@ -1,8 +1,20 @@
 # Active context
 
+## Natural voices / Piper (2026-11-13, Verify done — user decisions pending)
+
+Built through `sdd/piper-voices.html` (design/spec/architecture approved; "Approved"/"Spec approved"/"Architecture approved"). Go + frontend implemented by delegated coders, tests first. QA exercised the real chain in a sandbox (real PyPI venv+pip install 5.1 s, real checksummed HF voice download, real synthesis 0.34 s peak 32767, cache replay byte-equal; all matches). Independent grader: **PASS** (criteria 2 and 6 PARTIAL). Fixed: Piper failure logging (Q2, pre-grade), traceability fill (G2), voice-specific failure copy `voiceInstallationFailed` en/es (G3, post-grade, not re-graded), Build-tab record for VoicePack.Blocked (G6). Open user decisions: **G1** installed runtime = 210 MB (spike's ≤120 MB stale — recommended: accept measured number), **G4** English-only F4/Blocked copy for v1 (recommended: accept + record). Not committed. **Next step: user decides G1/G4, real-window check of both features, then commit.**
+
+## Audio pronunciation (2026-11-13, revision 3 — IPA-faithful eSpeak voice)
+
+Revision 3 after the user chose the converter ("that matters to me"): the voice path now speaks the shown IPA via a pure `IPAToMnemonics` converter (94/94 table entries oracle-verified against `espeak-ng -q -x`), falling back to the plain-text headword when symbols are unmappable (F4 restored). Gate green, audibility integration tests pass in both modes. The user's real-window check of the converter (with the ɒ→0 and stress-anchor fixes) is still owed. The piper-voices feature's QA/grader pass covered the whole current chain. Not committed.
+
+Revision 2 (superseded): the user reported "i hear no sound"; the approved SSML `<phoneme>` mechanism rendered digitally silent WAVs (ffmpeg volumedetect: max −91 dB vs −5.2 dB for plain text). With chat approval ("Speak the headword (Recommended)"), C5 was amended to plain-text headword speech; the real-binary integration test gained the audibility peak check (≥ 1000) that would have caught the original bug.
+
+Revision 1: gates approved; implemented by delegated coders, tests first; QA matched all reachable scenarios in a sandbox (webview rendered empty there, so real-window items were unverified by QA); independent grader **PASS** (criteria 2 and 5 PARTIAL); G1 fixed after grading (plain-text headword retry).
+
 ## Offline duplicate results fix (2026-11-13)
 
-Duplicate offline result cards (user screenshot, `dogfood`) are fixed in the working tree but not committed: `scanDictionary` now reports each index entry once despite repeated or self-folding `.syn` aliases (`memory/decisions.md`, regression test in `internal/adapters/offline_format_test.go`). Quality gate green. Open: commit, and the installed v0.7.0 binary still shows duplicates until the next release. `opencode.json` (project MCPs for OpenCode, mirroring `.mcp.json`) is also untracked.
+Released as v0.7.1 (commit `c8977f6`, bump `cade98e`, release run 43461376019) and reinstalled via `go install -tags gtk3 github.com/illescasDaniel/wdict@v0.7.1` (`/home/daniel/go/bin/wdict` prints 0.7.1). `opencode.json` (project MCPs for OpenCode, mirroring `.mcp.json`) was committed with the fix; `memory/friction/2026-11-13-opencode-mcp-not-loaded.md` records the setup gap.
 
 ## Phonetic pronunciation (2026-11-11)
 

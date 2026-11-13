@@ -153,6 +153,29 @@ func TestGivenNormalizedValuesWhenNormalizedAgainThenUnchanged(t *testing.T) {
 	}
 }
 
+func TestGivenPronunciationWithAudioURLWhenNormalizedThenTheDisplayOutputIsUnchangedAndTheURLIsKept(t *testing.T) {
+	// given (C1): the URL is metadata; text, label and title behave as before
+	// when
+	got := NormalizePronunciations([]Pronunciation{
+		{Text: "/wɝːd/", Label: "🇺🇸", LabelTitle: "General American", AudioURL: "https://example.test/a.mp3"},
+		{Text: "/həˈləʊ/", AudioURL: "https://example.test/b.mp3"},
+		{Text: "/[ˈola]/", AudioURL: "https://example.test/c.mp3"},
+	})
+	// then
+	want := []Pronunciation{
+		{Text: "/wɝːd/", Label: "🇺🇸", LabelTitle: "General American", AudioURL: "https://example.test/a.mp3"},
+		{Text: "/həˈləʊ/", AudioURL: "https://example.test/b.mp3"},
+		{Text: "/[ˈola]/", AudioURL: "https://example.test/c.mp3"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %+v", got)
+	}
+	// and the display output of items without a URL is unchanged
+	if got := NormalizePronunciations([]Pronunciation{{Text: "wɜːd"}}); !reflect.DeepEqual(got, []Pronunciation{{Text: "/wɜːd/"}}) {
+		t.Fatalf("display changed: %+v", got)
+	}
+}
+
 func TestGivenInputSliceWhenNormalizedThenInputIsNotModified(t *testing.T) {
 	// given
 	raw := []Pronunciation{{Text: "  ola ", Label: "General American"}}

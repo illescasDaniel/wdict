@@ -51,10 +51,15 @@ func (clock) Now() time.Time { return time.Now() }
 
 type App struct {
 	dictionaries     core.Dictionaries
+	playback         *core.PronunciationAudioService
 	mu               sync.Mutex
 	progress         core.DownloadProgress
 	downloadActive   bool
 	bilingual        core.BilingualLookup
+	voices           core.Voices
+	voiceMu          sync.Mutex
+	voiceProgress    core.DownloadProgress
+	voiceDownload    bool
 	emit             func(core.LanguageOutcome)
 	searchCancel     context.CancelFunc
 	searchContext    context.Context
@@ -81,6 +86,13 @@ type lookupEvent struct {
 
 // Version returns the application version.
 func (a *App) Version() string { return currentVersion() }
+
+// PlayPronunciation resolves one transcription item into audio bytes or the
+// verbatim failure copy to show next to it (C3). Expected failures are
+// results, never errors.
+func (a *App) PlayPronunciation(request core.PlayRequest) core.PlayResult {
+	return a.playback.Play(context.Background(), request)
+}
 
 func (a *App) Lookup(query string) (string, error) {
 	a.mu.Lock()
@@ -244,6 +256,66 @@ func diskCache(dir func() (string, error)) core.Cache {
 	return &adapters.DiskCache{Dir: filepath.Join(root, "wdict", "responses")}
 }
 
+// audioCacheDir resolves the shared audio cache directory (recordings and
+// Piper WAVs); an empty result disables caching, not playback.
+func audioCacheDir(dir func() (string, error)) string {
+	root, err := dir()
+	if err != nil || root == "" {
+		return ""
+	}
+	return filepath.Join(root, "wdict", "audio")
+}
+
+// audioRecordings builds the recording source for the audio cache directory;
+// a missing user cache directory disables recordings, not playback.
+func audioRecordings(dir func() (string, error)) core.RecordingSource {
+	cache := audioCacheDir(dir)
+	if cache == "" {
+		return nil
+	}
+	return &adapters.AudioFetch{Dir: cache}
+}
+
+// ListVoices lists the natural-voices packs with their installed and blocked
+// states (C6).
+func (a *App) ListVoices() ([]core.VoicePack, error) {
+	return a.voices.List(context.Background())
+}
+
+// VoiceProgress reports the current voice-pack download. The state is kept
+// separate from dictionary downloads so the two kinds cannot interleave.
+func (a *App) VoiceProgress() core.DownloadProgress {
+	a.voiceMu.Lock()
+	defer a.voiceMu.Unlock()
+	return a.voiceProgress
+}
+
+// DownloadVoicePack downloads one catalog pack (the runtime or a voice), one
+// at a time, mirroring the dictionary download pattern.
+func (a *App) DownloadVoicePack(id core.VoicePackID) error {
+	a.voiceMu.Lock()
+	if a.voiceDownload {
+		a.voiceMu.Unlock()
+		return nil
+	}
+	a.voiceDownload = true
+	a.voiceProgress = core.DownloadProgress{DictionaryID: core.DictionaryID(id), State: core.DownloadInProgress}
+	a.voiceMu.Unlock()
+	err := a.voices.Download(context.Background(), id, func(p core.DownloadProgress) {
+		a.voiceMu.Lock()
+		a.voiceProgress = p
+		a.voiceMu.Unlock()
+	})
+	a.voiceMu.Lock()
+	a.voiceDownload = false
+	if err != nil {
+		a.voiceProgress.State = core.DownloadFailed
+		a.voiceProgress.Message = err.Error()
+	}
+	a.voiceMu.Unlock()
+	return err
+}
+
 // initialWindowSize keeps the reference proportions while fitting the available display.
 func initialWindowSize(width, height int) (int, int) {
 	if width <= 0 || height <= 0 {
@@ -271,9 +343,15 @@ func main() {
 	catalog := &adapters.Catalog{English: installer, Spanish: spanish}
 	memory := &adapters.MemoryCache{}
 	disk := diskCache(os.UserCacheDir)
+	piperDir := filepath.Join(xdg.DataHome, "wdict", "piper")
+	voicePacks := &adapters.VoicePackInstaller{Dir: piperDir}
+	piper := &adapters.PiperVoices{Dir: piperDir, CacheDir: audioCacheDir(os.UserCacheDir)}
+	playback := &core.PronunciationAudioService{Recordings: audioRecordings(os.UserCacheDir), Piper: piper, Voices: &adapters.EspeakVoices{}}
 	bilingual := &core.BilingualService{Sources: sourceResolver{english: core.LanguageSources{Offline: &adapters.OfflineDictionary{IFO: installer.CurrentIFO(), Source: adapters.DictionarySourceInfo}, Online: adapters.OnlineDictionary{}, Provider: "free-dictionary-api"}, spanish: core.LanguageSources{Offline: &adapters.OfflineDictionary{IFO: spanish.CurrentIFO(), Source: adapters.SpanishDictionarySourceInfo, Language: core.Spanish}, Online: adapters.SpanishOnlineDictionary{}, Provider: "spanish-wiktionary"}}, Memory: memory, Disk: disk, Clock: clock{}}
 	appService := &App{
 		dictionaries:  &core.DictionaryService{Catalog: catalog, Installer: catalog},
+		playback:      playback,
+		voices:        &core.VoiceService{Catalog: voicePacks, Installer: voicePacks},
 		bilingual:     bilingual,
 		dictionaryIFO: map[core.Language]string{core.English: installer.CurrentIFO(), core.Spanish: spanish.CurrentIFO()},
 		alternatives: map[core.Language]core.Alternatives{

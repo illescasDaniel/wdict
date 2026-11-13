@@ -82,6 +82,50 @@ func TestGivenDownloadPendingWhenRequestedTwiceThenProgressIsNotFailed(t *testin
 	}
 }
 
+// blockingVoices keeps a voice download in flight so the single-download and
+// progress state of the App methods can be observed.
+type blockingVoices struct {
+	started chan struct{}
+	release chan struct{}
+}
+
+func (d *blockingVoices) List(context.Context) ([]core.VoicePack, error) { return nil, nil }
+func (d *blockingVoices) Download(_ context.Context, id core.VoicePackID, report func(core.DownloadProgress)) error {
+	close(d.started)
+	<-d.release
+	report(core.DownloadProgress{DictionaryID: core.DictionaryID(id), State: core.DownloadComplete})
+	return nil
+}
+
+func TestGivenVoiceDownloadPendingWhenRequestedTwiceThenProgressIsNotFailed(t *testing.T) {
+	// given: the voice-pack download state is kept separate from dictionary
+	// downloads (C7 wiring): a second request while one is active neither
+	// fails nor corrupts the progress shown
+	v := &blockingVoices{started: make(chan struct{}), release: make(chan struct{})}
+	app := &App{voices: v}
+	done := make(chan error, 1)
+	go func() { done <- app.DownloadVoicePack("piper-runtime") }()
+	<-v.started
+	if p := app.VoiceProgress(); p.State != core.DownloadInProgress {
+		t.Fatalf("progress=%+v", p)
+	}
+	// when
+	if err := app.DownloadVoicePack("piper-runtime"); err != nil {
+		t.Fatal(err)
+	}
+	// then
+	if p := app.VoiceProgress(); p.State != core.DownloadInProgress {
+		t.Fatalf("progress=%+v", p)
+	}
+	close(v.release)
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	if p := app.VoiceProgress(); p.State != core.DownloadComplete || p.DictionaryID != core.DictionaryID("piper-runtime") {
+		t.Fatalf("progress=%+v", p)
+	}
+}
+
 func TestGivenBuildInfoWhenResolvingVersionThenPrefersLdflagsThenModuleVersion(t *testing.T) {
 	info := func(v string) *debug.BuildInfo { return &debug.BuildInfo{Main: debug.Module{Version: v}} }
 	for _, tc := range []struct {

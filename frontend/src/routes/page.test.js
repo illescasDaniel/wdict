@@ -581,7 +581,7 @@ describe("lookup and offline dictionary UI", () => {
     render(Page);
     // when
     await fireEvent.click(
-      screen.getByRole("button", { name: "Offline dictionaries" }),
+      screen.getByRole("button", { name: "Offline content" }),
     );
     await screen.findByText("Unable to load dictionary information.");
     failed = false;
@@ -669,7 +669,7 @@ describe("lookup and offline dictionary UI", () => {
     // when
     render(Page);
     await fireEvent.click(
-      screen.getByRole("button", { name: "Offline dictionaries" }),
+      screen.getByRole("button", { name: "Offline content" }),
     );
     await screen.findByText("English dictionary");
     await fireEvent.click(screen.getByRole("button", { name: "Download" }));
@@ -765,7 +765,7 @@ describe("lookup and offline dictionary UI", () => {
     // when
     render(Page);
     await fireEvent.click(
-      screen.getByRole("button", { name: "Offline dictionaries" }),
+      screen.getByRole("button", { name: "Offline content" }),
     );
     await screen.findByText("English dictionary");
     await fireEvent.click(screen.getByRole("button", { name: "Download" }));
@@ -782,7 +782,7 @@ describe("lookup and offline dictionary UI", () => {
     await screen.findByText("a greeting");
     finish();
     await fireEvent.click(
-      screen.getByRole("button", { name: "Offline dictionaries" }),
+      screen.getByRole("button", { name: "Offline content" }),
     );
     // then
     await screen.findByText("Ready to use offline.");
@@ -802,13 +802,13 @@ describe("lookup and offline dictionary UI", () => {
     // when
     render(Page);
     await fireEvent.click(
-      screen.getByRole("button", { name: "Offline dictionaries" }),
+      screen.getByRole("button", { name: "Offline content" }),
     );
     await screen.findByText("English dictionary");
     await fireEvent.click(screen.getByRole("button", { name: "Download" }));
     await fireEvent.click(screen.getByRole("button", { name: "← Look up" }));
     await fireEvent.click(
-      screen.getByRole("button", { name: "Offline dictionaries" }),
+      screen.getByRole("button", { name: "Offline content" }),
     );
     await waitFor(() =>
       expect(
@@ -872,7 +872,7 @@ describe("lookup and offline dictionary UI", () => {
     await user.tab({ shift: true });
     await user.tab({ shift: true });
     expect(document.activeElement).toBe(
-      screen.getByRole("button", { name: "Offline dictionaries" }),
+      screen.getByRole("button", { name: "Offline content" }),
     );
     await user.keyboard("{Enter}");
     // then
@@ -975,7 +975,7 @@ describe("appearance", () => {
     screen.getByRole("radio", { name: "System" }).focus();
     await user.keyboard("{ArrowLeft}");
     await user.click(
-      screen.getByRole("button", { name: "Offline dictionaries" }),
+      screen.getByRole("button", { name: "Offline content" }),
     );
     // then
     expect(

@@ -50,7 +50,45 @@ type DictionaryInstaller interface {
 	Install(ctx context.Context, id DictionaryID, progress func(DownloadProgress)) error
 }
 
+// Voices is the inbound interface for listing and installing the natural
+// voices packs. The progress callback may be nil. An installation failure
+// must be reported and leave the previously installed pack intact.
+type Voices interface {
+	List(ctx context.Context) ([]VoicePack, error)
+	Download(ctx context.Context, id VoicePackID, progress func(DownloadProgress)) error
+}
+
+// PiperVoice synthesises speech from the shown IPA with a neural voice when
+// the pack for the language is installed. Available reports whether the
+// runtime and a voice for the language are installed; when false, Speak is
+// never called and the caller falls back to eSpeak. Voice names the short
+// voice id (e.g. "alba") used for the language, for the Piper result label;
+// empty when no voice is installed.
+type PiperVoice interface {
+	Available(language Language) bool
+	Voice(language Language) string
+	Speak(ctx context.Context, language Language, ipa string) (data []byte, err error)
+}
+
 // Clock permits deterministic freshness and last-used decisions.
 type Clock interface {
 	Now() time.Time
+}
+
+// RecordingSource fetches a recording: cache first, then a bounded download.
+// Implementations validate the URL at the edge and own the cache; a miss or a
+// failed fetch returns an error and the caller falls back to the voice path.
+type RecordingSource interface {
+	Fetch(ctx context.Context, audioURL string) (data []byte, err error)
+}
+
+// VoiceSynthesiser speaks an eSpeak voice, either mnemonic phonemes or plain
+// text (C5, revision 3: core converts the shown IPA to mnemonics and falls
+// back to the headword). Available reports whether the eSpeak binary exists;
+// when false, neither method is called and the caller shows the
+// install-guidance copy.
+type VoiceSynthesiser interface {
+	Available() bool
+	SpeakPhonemes(ctx context.Context, voice, mnemonics string) (data []byte, err error)
+	SpeakText(ctx context.Context, voice, text string) (data []byte, err error)
 }

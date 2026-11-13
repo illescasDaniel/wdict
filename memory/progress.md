@@ -2,10 +2,10 @@
 
 ## Open
 
-- [ ] Commit the offline duplicate-results fix (`internal/adapters/offline.go`, `offline_format_test.go`) and the new `opencode.json`; the installed v0.7.0 binary still shows duplicate results until the next release.
+- [ ] Verify the duplicate-results fix in the installed v0.7.1 app (search `dogfood`; expect 3 cards: two `dog food` senses and one `dogfood`).
 
-- [x] Fixed duplicate offline results (2026-11-13): `scanDictionary` dedupes repeated/self-folding `.syn` aliases; regression test added; quality gate green; real `dogfood` lookup returns 3 entries (was 6). Recorded in `memory/decisions.md` and as durable note `src:9f5e5a6626331a4ce3e4`.
-- [x] Added `opencode.json` (agemem, webnav, codenav-go) so the OpenCode session loads the project MCPs, mirroring `.mcp.json` (2026-11-13).
+- [x] Committed the offline duplicate-results fix and `opencode.json` (`c8977f6`), bumped to v0.7.1 with rebuilt `frontend/build` (`cade98e`), pushed, CI green (run 43461083397), Release workflow succeeded (run 43461376019, tag `v0.7.1`, AppImage attached), and `go install -tags gtk3 github.com/illescasDaniel/wdict@v0.7.1` updated `/home/daniel/go/bin/wdict` (`wdict --version` prints 0.7.1) on 2026-11-13.
+- [x] Ran the memory-wrapup routine on 2026-11-13: bank files updated, durable notes for the bug and the OpenCode MCP config (`src:9f5e5a6626331a4ce3e4`, `src:ce6c60902135e963239c`), maintain run, pending queue empty.
 
 - [x] Implemented lookup alternatives and passed the quality gate on 2026-11-06 (55 frontend tests, Go tests with gtk3 tag, svelte-check clean).
 - [x] Rebuilt `frontend/build` with `go tool task build` on 2026-11-06; the shipped bundle now includes the `timed_out` text (`frontend/build/_app/immutable/nodes/2.DDDowKUZ.js`).
@@ -154,4 +154,10 @@
 - [x] Phonetic pronunciation revisions R3 (limit after flag mapping) and R4 (ignore "dialectal"/"obsolete"; generic UK+US shows no flags) built and graded PASS on 2026-11-11; not committed. Open: G8 (5-run performance medians), real-window check.
 
 - [x] Committed phonetic pronunciation and bumped to v0.7.0 on 2026-11-11 (VERSION, frontend package files, README, CHANGELOG, rebuilt `frontend/build`). Released v0.7.0 on 2026-11-11: CI green, Release workflow succeeded, AppImage `wdict-x86_64.AppImage` attached, and `go install -tags gtk3 github.com/illescasDaniel/wdict@v0.7.0` updated `/home/daniel/go/bin/wdict` (`wdict --version` printed 0.7.0).
-- [ ] Next feature: AI voice for pronunciation (not started).
+- [x] Audio pronunciation built through `sdd/audio-pronunciation.html` on 2026-11-13: design approved with Q1/Q2/Q4 answered in reviewer comments (Q3 defaulted to per item), spec approved, architecture approved. Go side (core chain service + audio fetch/cache + eSpeak runner + provider extraction) and frontend (per-item play buttons, F5 fallback) implemented by delegated coders, tests first. Gate green (svelte-check 0/0, vitest 90/90, `go test -tags gtk3 ./...` ok), `frontend/build` regenerated. Approved eSpeak voice ids verified against the real binary on this machine (2026-11-13). Not committed.
+- [x] Audio pronunciation Verify phase done 2026-11-13: QA matched every reachable scenario in a sandbox (real chain + real espeak-ng; webview rendered empty there, so in-window items unverified); independent grader PASS (criteria 2 and 5 PARTIAL). G1 (headword spoken as IPA phoneme) fixed after grading via `SpeakText`, gate re-run green. Open: G2 (hover attribution vs license), G3 (i18n double-failure copy), G4 (2 s budget in a real window; AppImage bundling). Budget: 2 spawns, 1 fix round.
+- [x] Audio pronunciation + Piper voices committed 2026-11-13 (single commit, not pushed): both features, the "Offline content" screen rename (was "Offline dictionaries"), README voices section, SDD pages, memory updates. Real-window checks still owed.
+- [ ] Audio pronunciation not verified: real WebKit window playback, 2 s end-to-end budget in the real window, AppImage bundling docs (packaging deferred), eSpeak on other distros.
+- [ ] Piper voices open items: G1 (runtime budget 210 MB vs stale ≤120 MB — recommended accept measured), G4 (English-only F4 copy — recommended accept v1), real-window check, es voice download (76 MB, unexercised).
+- [ ] Reported: "sometimes the voice says 'a <word>'" — unreproduced in piper phoneme-path duration tests (knowledge/apple/book durations match text mode, no dropped phonemes); needs an example word + which voice (hover text names the source: Recording/Piper/eSpeak) to chase.
+- [ ] Next feature: AI voice for pronunciation (started: audio-pronunciation SDD build done).

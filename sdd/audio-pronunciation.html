@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Play pronunciations aloud · SDD</title>
+<style>
+/* Tokens. Light by default; dark follows the system. Colour never carries meaning alone: every colour has a text label. */
+:root{color-scheme:light;--ink:#172b3a;--muted:#405766;--line:#b8c8ce;--accent:#126451;--paper:#fff;--wash:#edf4f3;--page:#f4f7f8;--link:#075a80;--focus:#a34b00;
+--c-teal:#14b8a6;--c-vio:#8b5cf6;--c-pink:#ec4899;--c-amb:#f59e0b;--c-grn:#22c55e;--c-blue:#3b82f6;--c-fail:#f43f5e}
+@media screen and (prefers-color-scheme:dark){:root{color-scheme:dark;--ink:#e4edf1;--muted:#a7bbc5;--line:#34505c;--accent:#4fe0b6;--paper:#16232b;--wash:#1b2d36;--page:#0d171c;--link:#84cff5;--focus:#ffb36b}}
+*{box-sizing:border-box}body{margin:0;background:var(--page);color:var(--ink);font:1rem/1.6 system-ui,sans-serif}
+a{color:var(--link)}a:focus-visible,button:focus-visible,select:focus-visible,summary:focus-visible,.scroll:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+header,main,footer{max-width:68rem;margin:auto;padding:1.5rem}header{padding-top:2.5rem}
+h1{font-size:clamp(1.9rem,6vw,3rem);line-height:1.1;margin:.5rem 0 1rem;background:linear-gradient(90deg,color-mix(in srgb,var(--c-teal) 55%,var(--ink)),var(--c-vio) 55%,var(--c-pink));-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800}
+h2{line-height:1.25;color:color-mix(in srgb,var(--sc,var(--c-teal)) 60%,var(--ink))}p,li{max-width:75ch}code{overflow-wrap:anywhere}
+.badge{display:inline-block;border:1px solid var(--c-teal);background:color-mix(in srgb,var(--c-teal) 18%,transparent);color:color-mix(in srgb,var(--c-teal) 35%,var(--ink));border-radius:2rem;padding:.2rem .7rem;font-size:.9rem;font-weight:650}
+.note{border-left:4px solid var(--c-teal);padding:.7rem 1rem;background:color-mix(in srgb,var(--c-teal) 10%,transparent)}
+section{background:var(--paper);border:1px solid var(--line);border-left:5px solid var(--sc,var(--c-teal));border-radius:.75rem;padding:clamp(1rem,3vw,2rem);margin-bottom:1.2rem;scroll-margin-top:1rem}
+.gate{border-left-color:var(--c-amb)}.src,.hdr{font-size:.85rem;opacity:.8;margin:.3rem 0}
+.rep{margin:2rem 0 1rem;padding-bottom:.3rem;border-bottom:3px solid var(--c-teal)}
+nav.sub{display:flex;flex-wrap:wrap;gap:.6rem;margin:0 0 1rem}nav.sub a{text-decoration:none;font-weight:600;padding:.15rem .6rem;border-radius:2rem;background:color-mix(in srgb,var(--c-blue) 14%,transparent)}
+/* Tabs: without JavaScript every panel stays visible. */
+.tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:1.5rem}
+.tabs button{font:inherit;font-weight:700;cursor:pointer;padding:.5rem 1rem;border-radius:.6rem .6rem 0 0;border:2px solid var(--line);border-bottom:0;background:color-mix(in srgb,var(--c-blue) 8%,var(--paper));color:var(--ink)}
+.tabs button[aria-selected=true]{background:var(--paper);border-color:var(--c-teal);box-shadow:inset 0 4px 0 var(--c-teal)}
+.st{font-size:.72rem;font-weight:650;padding:.05rem .5rem;border-radius:2rem;margin-left:.3rem;border:1.5px solid var(--cc)}
+.st.ok{--cc:var(--c-grn);background:color-mix(in srgb,var(--c-grn) 16%,transparent)}.st.wait{--cc:var(--c-amb);background:color-mix(in srgb,var(--c-amb) 18%,transparent)}.st.todo{--cc:var(--c-vio);border-style:dashed}
+/* Chips: text label plus colour and line style. */
+.chip{display:inline-block;font-size:.8rem;font-weight:650;padding:.05rem .6rem;border-radius:2rem;border:1.5px solid var(--cc);background:color-mix(in srgb,var(--cc) 16%,transparent);margin:0 .4rem .3rem 0}
+.chip.chg{--cc:var(--c-amb)}.chip.ex{--cc:var(--c-blue)}.chip.new{--cc:var(--c-grn)}.chip.def{--cc:var(--c-vio);border-style:dashed}.chip.fail{--cc:var(--c-fail);border-style:dashed}
+.scroll{overflow:auto}table{border-collapse:collapse;width:100%;text-align:left;font-size:.95rem}th,td{padding:.6rem;border-bottom:1px solid var(--line);vertical-align:top;min-width:6rem}
+thead th{border-bottom:2px solid color-mix(in srgb,var(--sc,var(--c-teal)) 60%,transparent)}caption{text-align:left;font-weight:650;padding:.5rem 0}
+details{border-top:1px solid var(--line);padding:.6rem 0}summary{cursor:pointer;font-weight:650}pre{overflow:auto;white-space:pre-wrap;background:color-mix(in srgb,var(--c-teal) 6%,var(--paper));padding:1rem;border-radius:.4rem}
+.gwt{border-left:4px solid var(--c-vio);padding-left:.8rem;margin:.4rem 0;border-top:0}
+label{display:block;font-weight:650}select{font:inherit;padding:.5rem;max-width:100%;margin:.5rem 0}.sim{border:1px solid var(--c-vio);background:color-mix(in srgb,var(--c-vio) 8%,transparent);padding:.8rem 1rem;border-radius:.4rem}.simnote{font-size:.85rem;opacity:.8}
+.hero{border:1px solid var(--line,#8884);border-radius:.6rem;padding:.6rem .8rem;margin:.6rem 0}.hero figcaption,.hero .cap{font-weight:650;font-size:.85em;margin:0 0 .3rem}
+/* Compact UI mock for the hero. */
+.mockcard{border:1px solid var(--line);border-radius:.6rem;padding:.7rem .9rem;max-width:34rem;background:var(--paper)}
+.mockword{font-weight:700;font-size:1.15rem}
+.mockline{display:flex;flex-wrap:wrap;align-items:center;gap:.45rem;margin-top:.35rem;font-size:.95rem;color:color-mix(in srgb,var(--ink) 85%,var(--muted))}
+.pbtn{display:inline-flex;align-items:center;justify-content:center;width:1.6rem;height:1.6rem;border-radius:50%;border:1px solid var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent);font-size:.85rem;cursor:pointer}
+.pbtn.dim{opacity:.45;border-style:dashed}
+.tag{font-size:.75rem;border:1px solid var(--line);border-radius:1rem;padding:.05rem .5rem;color:var(--muted)}
+.playing{color:var(--accent);font-weight:650}
+/* Diagrams */
+.dg{display:block;width:100%;color:var(--ink);max-width:none}.dg .t{font-size:11px;fill:currentColor}.dg .h{font-size:12px;font-weight:650;fill:currentColor}.dg .tag{font-size:10px;font-weight:700;fill:currentColor}.dg .f{font-size:11px;font-weight:700;fill:color-mix(in srgb,var(--c-fail) 70%,var(--ink))}
+.dg .hd{fill:color-mix(in srgb,var(--c-teal) 22%,var(--paper));stroke:var(--c-teal);stroke-width:2}.dg .fr{fill:color-mix(in srgb,var(--c-fail) 7%,transparent);stroke:var(--c-fail);stroke-width:1.5;stroke-dasharray:6 3}
+.dg .n{fill:var(--paper);stroke:currentColor;stroke-width:1.5}.dg .n.ex{fill:color-mix(in srgb,var(--c-blue) 14%,var(--paper));stroke:var(--c-blue)}.dg .n.chg{fill:color-mix(in srgb,var(--c-amb) 20%,var(--paper));stroke:var(--c-amb);stroke-width:3.5}
+.dg .n.new{fill:color-mix(in srgb,var(--c-grn) 16%,var(--paper));stroke:var(--c-grn);stroke-width:2}.dg .n.def{fill:color-mix(in srgb,var(--c-vio) 12%,var(--paper));stroke:var(--c-vio);stroke-width:2;stroke-dasharray:5 3}
+@media(max-width:38rem){header,main,footer{padding:1rem}}
+@media print{body{background:#fff;color:#000;font-size:10pt}.tabs,nav.sub{display:none}.tabpanel[hidden]{display:block!important}section{break-inside:avoid}details>*{display:block!important}details::details-content{content-visibility:visible;display:block}h1{color:#000;background:none}}
+@media (max-width:600px){table.cards,table.cards tbody,table.cards tr,table.cards td,table.cards th{display:block;min-width:0}table.cards caption{display:block}table.cards thead{position:absolute;clip:rect(0 0 0 0);width:1px;height:1px;overflow:hidden}table.cards tr{border:1px solid var(--line,#8884);border-radius:6px;margin:6px 0;padding:4px 8px}table.cards td,table.cards th{border-bottom:0;padding:.15rem 0;overflow-wrap:anywhere}table.cards td::before{content:attr(data-label) ": ";font-weight:650}table.cards th[scope=row]{font-size:1.05em}}
+@media (max-width:600px){.dg{min-width:34rem}}
+</style>
+<!-- Compact copy of the look for inline chat rendering. Inert in the page (media "not all"); scripts/inline_view.py enables it. Uses the host theme variables when present. -->
+<style data-inline media="not all">
+:root{--teal:#14b8a6;--vio:#8b5cf6;--amb:#f59e0b;--grn:#22c55e;--blue:#3b82f6;--fail:#f43f5e;--c-teal:var(--teal);--c-vio:var(--vio);--c-pink:#ec4899;--c-amb:var(--amb);--c-grn:var(--grn);--c-blue:var(--blue);--c-fail:var(--fail)}
+html,body{background:transparent;color:var(--foreground,inherit);font:14px/1.5 var(--font-sans,system-ui);margin:0}*{box-sizing:border-box}code,pre{font-family:var(--font-mono,monospace);font-size:12px}
+pre{white-space:pre-wrap;background:var(--code-background,transparent);border:1px solid var(--border,#8884);border-radius:6px;padding:8px}
+section{border:1px solid var(--border,#8884);border-left:5px solid var(--sc,var(--c-teal));border-radius:8px;padding:6px 14px;margin:8px 0;background:var(--card,transparent)}
+h2{font-size:15px;margin:6px 0;color:color-mix(in srgb,var(--sc,var(--c-teal)) 65%,var(--foreground,currentColor))}h3{font-size:13px;margin:8px 0 4px}
+.chip{display:inline-block;font-size:11px;font-weight:650;padding:0 8px;border-radius:99px;border:1.5px solid var(--cc);background:color-mix(in srgb,var(--cc) 15%,transparent);margin:0 4px 3px 0}
+.chg{--cc:var(--amb)}.ex{--cc:var(--blue)}.new{--cc:var(--grn)}.def{--cc:var(--vio);border-style:dashed}.fail{--cc:var(--fail);border-style:dashed}
+table{border-collapse:collapse;width:100%;font-size:12.5px}td,th{padding:4px 6px;border-bottom:1px solid var(--border,#8884);text-align:left;vertical-align:top}caption{text-align:left;font-weight:650}
+.gate{border-left-color:var(--amb)}.src,.hdr{font-size:12px;opacity:.8;margin:3px 0}.badge{display:inline-block;border:1px solid var(--teal);border-radius:99px;padding:0 8px;font-size:12px;font-weight:650}
+.hero{border:1px solid var(--border,#8884);border-radius:6px;padding:6px 10px;margin:6px 0}.hero .cap{font-weight:650;font-size:12px;margin:0 0 4px}.scroll{overflow:auto}details{margin:3px 0}summary{cursor:pointer;font-weight:650}.gwt{border-left:3px solid var(--vio);padding-left:8px}.big>summary{font-size:14px;padding:6px 0}
+.note{border-left:4px solid var(--teal);padding:4px 10px;background:color-mix(in srgb,var(--teal) 10%,transparent)}.simnote{font-size:12px;opacity:.75}
+.dg{display:block;color:var(--foreground,inherit);max-width:100%}.dg .t{font-size:11px;fill:currentColor}.dg .h{font-size:12px;font-weight:650;fill:currentColor}.dg .tag{font-size:10px;font-weight:700;fill:currentColor}.dg .f{font-size:11px;font-weight:700;fill:var(--fail)}
+.dg .hd{fill:color-mix(in srgb,var(--teal) 22%,transparent);stroke:var(--teal);stroke-width:2}.dg .fr{fill:color-mix(in srgb,var(--fail) 7%,transparent);stroke:var(--fail);stroke-width:1.5;stroke-dasharray:6 3}
+.dg .n{fill:var(--card,transparent);stroke:currentColor;stroke-width:1.5}.dg .n.ex{fill:color-mix(in srgb,var(--blue) 14%,transparent);stroke:var(--blue)}.dg .n.chg{fill:color-mix(in srgb,var(--c-amb) 20%,transparent);stroke:var(--amb);stroke-width:3}
+.dg .n.new{fill:color-mix(in srgb,var(--c-grn) 16%,transparent);stroke:var(--c-grn);stroke-width:2}.dg .n.def{fill:color-mix(in srgb,var(--vio) 12%,transparent);stroke:var(--vio);stroke-width:2;stroke-dasharray:5 3}
+@media (max-width:600px){table.cards,table.cards tbody,table.cards tr,table.cards td,table.cards th{display:block;min-width:0}table.cards caption{display:block}table.cards thead{position:absolute;clip:rect(0 0 0 0);width:1px;height:1px;overflow:hidden}table.cards tr{border:1px solid var(--line,#8884);border-radius:6px;margin:6px 0;padding:4px 8px}table.cards td,table.cards th{border-bottom:0;padding:.15rem 0;overflow-wrap:anywhere}table.cards td::before{content:attr(data-label) ": ";font-weight:650}table.cards th[scope=row]{font-size:1.05em}}
+@media (max-width:600px){.dg{min-width:34rem}}
+</style>
+</head>
+<body>
+<header>
+<span class="badge">Audio pronunciation · verify: handoff</span>
+<h1>Play pronunciations aloud</h1><p>Let the user hear every phonetic transcription: a real human recording when the looked-up data supplied one, otherwise eSpeak-NG reading the exact IPA with a voice matching the transcription's accent label. <!-- Real outcome, one or two sentences. --></p>
+<p class="note"><strong>Review only.</strong> One file, one tab per phase. Every interaction is a <strong>Simulation</strong>; no audio is played. Approval happens in chat, never on this page.</p>
+<!-- All tabs exist from the start and are never removed. Status vocabulary: approved, awaiting approval, not started, in progress, blocked, done, n/a, skipped or unavailable (PASS or NEEDS WORK on Verify). Run `inline_view.py --check` before ending a stop. -->
+<div class="tabs" role="tablist" aria-label="Phases">
+<button role="tab" id="t-design" aria-controls="p-design" aria-selected="true" data-p="design">Design <span class="st ok">approved</span></button>
+<button role="tab" id="t-spec" aria-controls="p-spec" aria-selected="false" tabindex="-1" data-p="spec">Spec <span class="st ok">approved</span></button>
+<button role="tab" id="t-arch" aria-controls="p-arch" aria-selected="false" tabindex="-1" data-p="arch">Architecture <span class="st ok">approved</span></button>
+<button role="tab" id="t-build" aria-controls="p-build" aria-selected="false" tabindex="-1" data-p="build">Build <span class="st ok">done</span></button>
+<button role="tab" id="t-verify" aria-controls="p-verify" aria-selected="false" tabindex="-1" data-p="verify">Verify <span class="st ok">PASS</span></button>
+<button role="tab" id="t-appr" aria-controls="p-appr" aria-selected="false" tabindex="-1" data-p="appr">Approvals <span class="st wait">3 of 3 gates</span></button>
+</div>
+</header>
+<main>
+
+<!-- ============ DESIGN ============ -->
+<div role="tabpanel" id="p-design" aria-labelledby="t-design" class="tabpanel">
+<nav class="sub skip-inline" aria-label="Design sections"><a href="#d-glance">At a glance</a><a href="#d-flow">Flow</a><a href="#d-paths">Explore paths</a><a href="#d-fail">Failures</a><a href="#d-dec">Decisions</a><a href="#d-scope">Scope</a></nav>
+<section id="d-glance" aria-labelledby="d-glance-t" style="--sc:var(--c-teal)"><h2 id="d-glance-t">At a glance</h2>
+<p><span class="chip new">added: play button per transcription item</span><span class="chip new">added: recording download + cache (Go)</span><span class="chip new">added: eSpeak-NG IPA synthesis (Go subprocess)</span><span class="chip chg">changed: providers keep supplied audio URLs</span><span class="chip ex">existing: pronunciation line with accent flags (v0.7.0)</span><span class="chip fail">F1 no source</span><span class="chip fail">F2 recording fails</span><span class="chip fail">F3 eSpeak missing</span><span class="chip fail">F4 IPA unsupported</span><span class="chip fail">F5 codec missing</span></p>
+<div class="hero"><p class="cap">Result card with play buttons (compact mock · simulation)</p>
+<div class="mockcard">
+<div><span class="mockword">word</span> <span class="tag">noun · offline English</span></div>
+<div class="mockline"><span aria-hidden="true">🇬🇧</span> /wɜːd/ <span class="pbtn" role="presentation" aria-hidden="true">▶</span><span class="tag">recording · CC BY-SA 4.0</span></div>
+<div class="mockline"><span aria-hidden="true">🇺🇸</span> /wɝːd/ <span class="pbtn" role="presentation" aria-hidden="true">▶</span><span class="tag">eSpeak-NG · en-us voice</span></div>
+<div class="mockline"><span aria-hidden="true">🇨🇦</span> /wɝːd/ <span class="pbtn" role="presentation" aria-hidden="true">▶</span><span class="tag">no recording — eSpeak-NG · en-ca voice</span></div>
+</div>
+<p class="src">Text equivalent: each transcription item in the pronunciation line gets a play affordance that is always shown. Its hover text names the source that will play: a downloaded recording with its license, or the eSpeak-NG voice chosen for the item's accent. With no recording the accent's eSpeak voice plays; when eSpeak-NG itself is unavailable the button stays and its click shows install guidance (F1).</p></div>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable diagram" style="margin-top:.4rem"><svg class="dg" viewBox="0 0 520 66" role="img" aria-labelledby="hg-t hg-d"><title id="hg-t">Main path in brief</title><desc id="hg-d">A play click reaches the Go app, which either downloads a supplied recording or synthesises the IPA with eSpeak-NG, and the webview plays the resulting audio bytes.</desc><defs><marker id="arh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs><rect class="n ex" x="8" y="10" width="120" height="44" rx="8"/><text class="h" x="18" y="30">SvelteKit UI</text><text class="tag" x="18" y="46">▶ click</text><rect class="n chg" x="185" y="10" width="150" height="44" rx="8"/><text class="h" x="195" y="30">wdict App (Go)</text><text class="tag" x="195" y="46">recording? else eSpeak</text><rect class="n ex" x="392" y="10" width="120" height="44" rx="8"/><text class="h" x="402" y="30">WebKit audio</text><text class="tag" x="402" y="46">plays bytes</text><g stroke="currentColor" stroke-width="1.6" fill="none" marker-end="url(#arh)"><path d="M128 32H185"/><path d="M335 32H392"/></g></svg>
+<p>Text equivalent: the click goes to the Go app, which resolves recording-or-voice and hands audio bytes to the webview. The full sequence with failure frames is in the detailed report.</p></div>
+<ul>
+<li><strong>Outcome:</strong> every transcription item the pronunciation line shows can be played aloud — a real recording when the lookup data supplied one, otherwise eSpeak-NG reading the shown IPA with the accent the label names.</li>
+<li><strong>Failure paths:</strong> F1 keeps the button and shows install guidance when nothing can play; F2 falls back from a failed recording to the eSpeak voice; F3 is the eSpeak-missing case inside that fallback; F4 retries with the headword when the IPA cannot be synthesised; F5 falls back to the eSpeak voice when the webview cannot decode a recording.</li>
+<li><strong>Decisions to settle:</strong> per-item vs per-line play control (Q3). Q1, Q2 and Q4 were answered in your review comments of 2026-11-13 (eSpeak fallback on codec failure; English default en-us, Spanish es; bundle eSpeak-NG if its license allows) and are folded into the decisions below.</li>
+<li><strong>Out of scope:</strong> neural/cloud voices (Piper, cloud TTS), settings UI, auto-play, audio search for offline-only entries.</li>
+</ul>
+<details class="questions" open><summary>Open questions (1)</summary><ol>
+<li><strong>Q3.</strong> One play control per transcription item, or one for the whole line? <em>Recommend: per item — accents differ per item and each has its own source.</em></li>
+</ol></details>
+<p class="note gate">Design approved 2026-11-13 (see Approvals).</p>
+<p class="skip-inline"><a href="#d-flow">Detailed report ↓</a></p></section>
+<h2 class="rep">Detailed report</h2>
+
+<section id="d-flow" aria-labelledby="d-flow-t" style="--sc:var(--c-blue)"><h2 id="d-flow-t">How does a play click become sound?</h2>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable diagram"><svg class="dg" viewBox="0 0 740 268" role="img" aria-labelledby="sq-t sq-d"><title id="sq-t">Play request sequence</title><desc id="sq-d">The user clicks a play button. The SvelteKit UI calls the new App play method with the transcription text, accent label and language. The Go app resolves the source: when the entry supplied a recording URL it downloads a bounded, cached copy; otherwise it synthesises the IPA with eSpeak-NG using a voice mapped from the accent label. Audio bytes go back to the webview and play. Frame F2: a failed download falls back to eSpeak. Frame F4: a failed synthesis retries with the plain headword.</desc>
+<defs><marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<g stroke="currentColor" stroke-opacity=".35" stroke-dasharray="4 4"><path d="M100 40V258"/><path d="M300 40V258"/><path d="M520 40V258"/><path d="M660 40V258"/></g>
+<rect class="hd" x="25" y="8" width="150" height="32" rx="16"/><text class="h" x="100" y="29" text-anchor="middle">User</text>
+<rect class="hd" x="235" y="8" width="130" height="32" rx="16"/><text class="h" x="300" y="29" text-anchor="middle">SvelteKit UI · chg</text>
+<rect class="hd" x="425" y="8" width="190" height="32" rx="16"/><text class="h" x="520" y="29" text-anchor="middle">wdict App (Go) · changed</text>
+<rect class="hd" x="595" y="44" width="130" height="30" rx="16"/><text class="h" x="660" y="64" text-anchor="middle">Recording / eSpeak</text>
+<g stroke="currentColor" stroke-width="1.6" fill="none" marker-end="url(#ar1)">
+<path d="M100 66H300"/><path d="M300 92H520"/><path d="M520 130H660"/><path d="M660 158H520"/><path d="M520 200H300"/><path d="M300 226H100"/></g>
+<text class="t" x="200" y="60" text-anchor="middle">1 play(item: ipa, label, lang)</text>
+<text class="t" x="410" y="86" text-anchor="middle">2 resolve source</text>
+<text class="t" x="590" y="124" text-anchor="middle">3 download recording · or synthesise IPA</text>
+<text class="t" x="590" y="152" text-anchor="middle">4 audio bytes (mp3 / WAV)</text>
+<text class="t" x="410" y="194" text-anchor="middle">5 data URI</text>
+<text class="t" x="200" y="220" text-anchor="middle">6 webview plays; playing state on the button</text>
+<rect class="fr" x="35" y="100" width="540" height="34" rx="6"/><text class="f" x="47" y="116">F2 · recording download fails or exceeds cap → fallback: eSpeak voice for the item's accent (F3 if missing)</text>
+<rect class="fr" x="35" y="168" width="540" height="26" rx="6"/><text class="f" x="47" y="184">F4 · eSpeak cannot render the IPA → retry with the plain headword; F5 falls back to eSpeak if the webview cannot decode</text></svg></div>
+<p>Text equivalent: the click reaches the Go app (step 2), which prefers a recording supplied by the lookup data and otherwise synthesises the IPA with eSpeak-NG (step 3). Audio bytes return as a data URI (step 5) and the webview plays them. A failed recording download exits as <strong>F2</strong> and falls back to the voice path; a failed synthesis exits as <strong>F4</strong> and retries with the headword. Source data for the recording URLs is the same untrusted provider output the app already validates.</p>
+<p class="hdr">Data now discarded that this feature keeps:</p>
+<ul>
+<li>English online (Free Dictionary API): <code>phonetics[].audio</code> URLs, currently dropped in <code>onlinePronunciations</code> (internal/adapters/provider.go). Text and audio can pair per item.</li>
+<li>Spanish online (Wikcionario): the response already contains <code>ext-phonos</code> ▶ audio markers in the pronunciation row (seen in test fixtures); the adapter strips them. The audio file name or URL can be kept alongside the IPA.</li>
+<li>Offline StarDict entries carry no audio; their play source is always the eSpeak voice.</li>
+</ul></section>
+
+<section id="d-paths" aria-labelledby="d-paths-t" style="--sc:var(--c-vio)"><h2 id="d-paths-t">Explore an outcome</h2>
+<details open><summary>Success · recording plays</summary><p>🇬🇧 /wɜːd/ has a recording URL from the lookup response. wdict downloads it (bounded, cached on disk by URL hash), returns audio bytes as a data URI, and the webview plays them. Hover text: <code>Recording · Free Dictionary API · CC BY-SA 3.0</code> or <code>Recording · Wikcionario · CC BY-SA 4.0</code>.</p></details>
+<details open><summary>Success · eSpeak voice plays</summary><p>The item has no recording URL (🇺🇸 /wɝːd/, or 🇨🇦 /wɝːd/). The Go app runs <code>espeak-ng -v en-us -m '&lt;phoneme alphabet="ipa" ph="wɝːd"/&gt;' --stdout</code>, strips the surrounding slashes/brackets first, captures the WAV bytes and plays them in the webview. The accent label drives the voice: 🇬🇧 → en-gb, 🇺🇸 → en-us, 🇦🇺 → en-au, 🇳🇿 → en-nz, 🇨🇦 → en-ca, 🇮🇪 → en-ie, 🇿🇦 → en-za (voice availability verified during the build; a missing accent voice falls back to the language default). Spanish items use es variants. A transcription with no accent label uses the language default: English → en-us (neutral General American, per your review comment), Spanish → es (Castilian, confirmed).</p></details>
+<details open><summary>F1 · no playable source at click time</summary><p>The item has no recording URL and eSpeak-NG is not installed (only possible for non-AppImage installs once bundling is decided, Q4). The play button is always shown; clicking it shows inline copy near the item: “No recording, and eSpeak-NG is not installed. Install eSpeak-NG (or use the AppImage build) to hear this transcription.” Nothing is fetched or run.</p></details>
+<details open><summary>F2 · recording fails</summary><p>The recording download fails, times out or exceeds the size cap. The app falls back to the eSpeak voice for the item's accent. If eSpeak is also unavailable, the F1 copy appears. The button stays for a retry.</p></details>
+<details open><summary>F4 · IPA not renderable</summary><p>eSpeak-NG exits with an error or produces no audible output for an unusual IPA string (for example a transcription containing characters outside its phoneme set). The app retries once with the plain headword ("word") in the same accent voice. If that also fails: “Could not synthesise this pronunciation.”</p></details>
+<details open><summary>F5 · recording not decodable</summary><p>The recording downloaded fine but the webview cannot decode its format (usually mp3, missing GStreamer plugin). Per your review comment, no plugin-install copy: the app falls back to the eSpeak voice for the item's accent. If eSpeak is also unavailable, the F1 copy appears. A short docs note about system codecs stays optional.</p></details>
+<p class="simnote">Simulation: no audio is played and no process is started. For this fullstack feature, each screen state maps to the response that causes it; commands and bytes are shown as they would occur.</p>
+</section>
+
+<section id="d-fail" aria-labelledby="d-fail-t" style="--sc:var(--c-fail)"><h2 id="d-fail-t">Failure inventory</h2>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable failure table"><table class="cards"><caption>Stable failure IDs; never renumber</caption><thead><tr><th scope="col">ID</th><th scope="col">Trigger</th><th scope="col">Visible result</th><th scope="col">State after</th><th scope="col">Recovery</th></tr></thead><tbody>
+<tr><th scope="row">F1</th><td data-label="Trigger">No recording URL and eSpeak-NG not installed</td><td data-label="Visible result">Button stays; on click, inline copy “No recording, and eSpeak-NG is not installed. Install eSpeak-NG (or use the AppImage build) to hear this transcription.”</td><td data-label="State after">Nothing fetched, nothing run</td><td data-label="Recovery">Install eSpeak-NG or use the AppImage; click again</td></tr>
+<tr><th scope="row">F2</th><td data-label="Trigger">Recording download fails, times out or is over the size cap</td><td data-label="Visible result">eSpeak voice plays instead; or the F1 copy if eSpeak is missing</td><td data-label="State after">Failed download not cached</td><td data-label="Recovery">Retry plays again; cache masks repeat failures</td></tr>
+<tr><th scope="row">F3</th><td data-label="Trigger">Fallback needs eSpeak-NG but it is not installed</td><td data-label="Visible result">The F1 inline copy</td><td data-label="State after">Nothing run</td><td data-label="Recovery">Install eSpeak-NG or use the AppImage</td></tr>
+<tr><th scope="row">F4</th><td data-label="Trigger">eSpeak-NG cannot render the IPA string</td><td data-label="Visible result">Retry with the headword; else “Could not synthesise this pronunciation.”</td><td data-label="State after">No partial audio</td><td data-label="Recovery">Headword retry is automatic</td></tr>
+<tr><th scope="row">F5</th><td data-label="Trigger">Webview cannot decode the recording's format (usually mp3)</td><td data-label="Visible result">eSpeak voice plays instead; or the F1 copy if eSpeak is missing</td><td data-label="State after">Cached bytes remain; nothing broken</td><td data-label="Recovery">Automatic eSpeak fallback; optional docs note about codecs</td></tr>
+</tbody></table></div></section>
+
+<section id="d-dec" aria-labelledby="d-dec-t" style="--sc:var(--c-amb)"><h2 id="d-dec-t">Proposed decisions</h2>
+<p>Proposals only; nothing is approved until you say so in chat. State a reason for any area that does not apply (“N/A — reason”).</p>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable decisions table"><table><caption>Five decision areas</caption><thead><tr><th scope="col">Area</th><th scope="col">Proposal</th><th scope="col">Needs review</th></tr></thead><tbody>
+<tr><th scope="row">Success criteria</th><td>Every transcription item is playable when a recording URL or eSpeak-NG exists; the play affordance is always shown (your 2026-11-13 comment); the accent label — or the language default, English en-us / Spanish es (your comments) — selects the voice; hover text names the source and license; synthesis starts promptly (measured during the build, not guessed).</td><td>Confirm per-item buttons (Q3, still open).</td></tr>
+<tr><th scope="row">Failure handling and recovery</th><td>Fallback chain recording → eSpeak voice → headword → inline copy; F5 codec failure also falls back to the eSpeak voice instead of asking for plugins (your comment); the button is never hidden — F1 shows the install-guidance copy on click; failures are never silent.</td><td>Confirm the chain and the inline copies above.</td></tr>
+<tr><th scope="row">Performance and resource budget</th><td>Recording downloads capped at the same 2 MiB limit used for provider bodies; audio bytes cached on disk keyed by URL hash so replays are offline; eSpeak runs per play as a short-lived subprocess with capped WAV output; no background work, no synthesis on lookup.</td><td>Total cache size cap: propose a bounded directory with eviction, measured during the build before fixing a number.</td></tr>
+<tr><th scope="row">Trust boundary and validation</th><td>Audio URLs are provider-supplied untrusted data: https-only with a host (reuse <code>validSourceURL</code>); downloads length-limited; bytes are passed to the webview as a data URI, never executed or written as scripts; IPA strings are already sanitised (no markup characters) by pronunciation normalisation.</td><td>Confirm the cap and that data URIs are acceptable.</td></tr>
+<tr><th scope="row">Compatibility and rollout</th><td>New optional <code>Pronunciation.AudioURL</code> field (<code>json:",omitempty"</code>) — old cached entries stay valid, no cache version bump; eSpeak-NG bundled in the AppImage when its license permits (your comment: bundle if licensing allows — eSpeak-NG is GPLv3 and runs as a separate executable, which is aggregation; attribution, license text and a source offer must ship; verify at build). Non-AppImage installs use the system package with the F1 guidance fallback.</td><td>Confirm the GPLv3 bundling reading and required attribution at build time.</td></tr>
+</tbody></table></div></section>
+
+<section id="d-scope" aria-labelledby="d-scope-t" style="--sc:var(--c-teal)"><h2 id="d-scope-t">Scope and open questions</h2>
+<p><strong>In scope:</strong> play buttons on the existing pronunciation line; recording URLs kept from English online, Spanish online and cached responses; recording download + disk cache; eSpeak-NG IPA synthesis with accent-mapped voices; playback in the webview; failure handling F1–F5.</p>
+<p><strong>Out of scope:</strong> neural or cloud TTS (Piper, paid APIs), any settings UI for voices or speed, auto-play on lookup, searching Wikimedia Commons for audio for offline-only entries (offline entries get the voice path only), Spanish interface-language recording filtering beyond what responses supply.</p>
+<ol>
+<li><strong>Q3.</strong> One play control per transcription item. <em>Recommend: accept; the line level has no single accent.</em></li>
+</ol>
+<p>Answered in your 2026-11-13 review comments and folded into the decisions above: <strong>Q1</strong> — a recording the webview cannot decode falls back to the eSpeak voice instead of plugin-install copy; <strong>Q2</strong> — language default voice: English en-us (neutral General American), Spanish es (Castilian, “yes”); <strong>Q4</strong> — bundle eSpeak-NG in the AppImage if its license allows (GPLv3, separate executable → aggregation; attribution and source offer ship with it; verified at build).</p>
+<p>If an answer adds a failure path, add its stable ID and walkthrough before asking for approval.</p></section>
+<section id="d-checks" aria-labelledby="d-checks-t" style="--sc:var(--c-blue)"><h2 id="d-checks-t">Checks run on this page</h2><ul>
+<li>Mechanical: <code>inline_view.py --check sdd/audio-pronunciation.html</code> — run 2026-11-13, result: 0 errors, 0 warnings.</li>
+<li>Static inspection: every failure ID F1–F5 appears in the flow frames, the failure inventory and (later) the traceability table; diagrams carry text equivalents; no remote assets, no live calls, no secrets; tabs work without JavaScript; narrow layout and dark theme rely on the template CSS verified in the v0.7.0 page.</li>
+<li>Not run: a real browser session on this page (no browser tooling was used in this phase); the inline chat render and the <code>--check</code> script are the verification. Claims about eSpeak voice names (en-ca, en-ie), IPA rendering quality and codec behaviour are design-stage expectations, explicitly to verify during the build.</li>
+</ul></section>
+</div>
+
+<!-- ============ SPEC ============ -->
+<div role="tabpanel" id="p-spec" aria-labelledby="t-spec" class="tabpanel">
+<section id="s-glance" aria-labelledby="s-glance-t" style="--sc:var(--c-teal)"><h2 id="s-glance-t">At a glance</h2>
+<p class="note skip-inline"><strong>This tab is the spec</strong> and the single source of truth: summary, then the detailed report with every Given/When/Then. Add a separate Markdown spec only if the project requires one, and then link it as authoritative.</p>
+<ul>
+<li><strong>What changes / contracts:</strong> new optional <code>Pronunciation.AudioURL</code> field (C1); adapters keep recording URLs (C2); new <code>App.PlayPronunciation</code> method with a result contract (C3); bounded recording download + cache (C4); eSpeak-NG IPA synthesis with accent-mapped voices (C5); fallback chain and verbatim copy (C6); per-item play button in the pronunciation line (C7, Q3 resolved at design approval: per item).</li>
+<li><strong>Failures covered:</strong> <span class="chip fail">F1</span> S4 · <span class="chip fail">F2</span> S5 · <span class="chip fail">F3</span> S6 · <span class="chip fail">F4</span> S7 · <span class="chip fail">F5</span> S8; success S1–S3; cache and validation S9–S10; guards S11–S12.</li>
+<li><strong>Verification:</strong> Go unit tests with a fake runner and fake HTTP (S1–S12 core), adapter tests with existing fixtures, opt-in integration with real eSpeak-NG and a live download, frontend vitest for button states and copy, real WebKit playback checked in QA.</li>
+<li><strong>Decisions to approve:</strong> the five areas with observable thresholds below; proposed values (timeouts, caps, cache size) become approved only with your spec approval.</li>
+</ul>
+<p class="note gate">Spec approved 2026-11-13 (see Approvals).</p></section>
+<h2 class="rep">Detailed report</h2>
+<section id="s-contracts" aria-labelledby="s-contracts-t" style="--sc:var(--c-teal)"><h2 id="s-contracts-t">Contracts and decisions</h2>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable contracts table"><table><caption>Contracts (C1…)</caption><thead><tr><th scope="col">ID</th><th scope="col">Contract</th><th scope="col">Observable threshold / detail</th></tr></thead><tbody>
+<tr><th scope="row">C1</th><td>Data model: <code>Pronunciation.AudioURL string</code> with <code>json:",omitempty"</code>.</td><td>Old cached and saved entries without the field stay valid; no cache version bump; <code>NormalizePronunciations</code> output for display is unchanged (text, Label, LabelTitle only).</td></tr>
+<tr><th scope="row">C2</th><td>Recording extraction: English online keeps <code>phonetics[].audio</code> paired with the same item's <code>text</code> (first non-empty audio per text); Spanish online keeps the Wikcionario phonos audio reference resolved to an https file URL; offline entries get none.</td><td>Exact phonos markup parsing and URL resolution verified at build against the real MediaWiki response; unexpected shapes yield no URL, never an error (same rule as <code>onlinePronunciations</code>).</td></tr>
+<tr><th scope="row">C3</th><td>App method <code>PlayPronunciation(PlayRequest{Text, Label, LabelTitle, Language, AudioURL}) PlayResult</code>.</td><td><code>PlayResult{Audio string, Source string, Message string}</code>: <code>Audio</code> is a <code>data:audio/wav</code> or <code>data:audio/mpeg</code> URI or empty; <code>Source</code> ∈ <code>recording | espeak</code> (amended 2026-11-13: the headword speech <em>is</em> the voice path, so no separate headword source); <code>Message</code> carries the verbatim failure copy when Audio is empty. Expected failures never surface as thrown errors; only unexpected internal errors return an error.</td></tr>
+<tr><th scope="row">C4</th><td>Recording download: https-only with a host (reuse <code>validSourceURL</code>), 10 s timeout, response body capped at 2 MiB, cached on disk under <code>UserCacheDir/wdict/audio</code> keyed by SHA-256 of the URL.</td><td>Cache directory bounded at 50 MiB with oldest-last-used eviction (proposed value). Failed, oversized or invalid downloads are never cached. Replays of a cached recording work offline.</td></tr>
+<tr><th scope="row">C5</th><td><strong>Amended 2026-11-13, revision 3 (approved in chat):</strong> the voice path speaks the shown IPA faithfully when possible: a pure Go converter (<code>IPAToMnemonics</code>) translates the IPA transcription (delimiters stripped, syllable dots dropped, ˈ/ˌ mapped to the ' stress marker) into eSpeak mnemonic phonemes (<code>[[w'3:d]]</code> style), and the adapter speaks them as <code>espeak-ng -v &lt;voice&gt; '[[…]]' --stdout</code>. If any IPA symbol is outside the language's mapping table, the converter fails and the <strong>headword</strong> is spoken instead (F4). History: the original SSML <code>&lt;phoneme&gt;</code> mechanism was verified to render digitally silent WAVs on espeak-ng 1.52 (max −91 dB); plain-text headword speech (revision 2) is audible but reads espeak's default reading, not the shown transcription — the converter restores transcription fidelity.</td><td>Voice from the item's accent label (US→en-us, UK/Received Pronunciation→en-gb, Australia→en-au, New Zealand→en-nz, Canada→en-ca, Ireland→en-ie, South Africa→en-za — verified against the real binary; a missing accent voice falls back to the language default). Language defaults: English en-us, Spanish es. Mapping tables for the en and es phoneme sets are sourced empirically from the engine's own <code>espeak-ng -q -x</code> output on this machine (2026-11-13) and every entry is parse-verified via the same oracle; full-IPA strings are spot-checked against <code>-x</code> of the corresponding words. WAV output capped at 4 MiB; subprocess killed at 5 s.</td></tr>
+<tr><th scope="row">C6</th><td>Fallback chain and copy: recording → IPA mnemonics → headword (both as the eSpeak voice, C5) → verbatim copy. A newer play always wins; no queue.</td><td>F1/F3 copy: “No recording, and eSpeak-NG is not installed. Install eSpeak-NG (or use the AppImage build) to hear this transcription.” F4 copy (restored 2026-11-13, revision 3: the headword retry returns as the converter's fallback): “Could not synthesise this pronunciation.” Approved addition (G3): when audio was produced but the webview cannot play it even after the one-attempt voice fallback, the item shows the page's translated playback-failed copy — “Pronunciation playback failed. Try again.” / “No se pudo reproducir la pronunciación. Vuelve a intentarlo.” Copies shown inline near the item, button remains enabled.</td></tr>
+<tr><th scope="row">C7</th><td>Frontend: one play button per transcription item (Q3 resolved at design approval: per item), always shown for items; click calls <code>PlayPronunciation</code>.</td><td><code>aria-label</code> “Play pronunciation” + accent title when present; hover text names source and attribution <strong>(amended 2026-11-13, approved in chat, G2 — the sources supply attribution strings; <code>core.Source</code> has no license-name field)</strong>: “Recording · &lt;source name&gt; · &lt;attribution when available&gt;” or “eSpeak-NG · &lt;voice&gt;”; visible playing state while audio plays; on the audio element's error event the frontend immediately requests the voice fallback for the same item (F5) and shows the C6 copy for the path that fails.</td></tr>
+</tbody></table></div>
+<h3>Five decisions with observable thresholds</h3>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable decisions table"><table><caption>Approved design decisions made measurable (proposed values need this approval)</caption><thead><tr><th scope="col">Area</th><th scope="col">Observable threshold</th></tr></thead><tbody>
+<tr><th scope="row">Success criteria</th><td>Every item with a recording URL or eSpeak-NG present plays within 2 s of the click on the dev machine (measured; if not met, the value returns for re-approval). Voice per accent label; English default en-us, Spanish es. Display of the pronunciation line is byte-identical to v0.7.1 while idle.</td></tr>
+<tr><th scope="row">Failure handling and recovery</th><td>Chain C6 always terminates in sound or a verbatim copy within the same 2 s budget plus network time for the recording attempt (10 s timeout). Nothing plays silently-failed: every F path ends in audio or copy.</td></tr>
+<tr><th scope="row">Performance and resource budget</th><td>Download 10 s / 2 MiB caps (C4); eSpeak subprocess 5 s / 4 MiB WAV (C5); audio cache ≤ 50 MiB with LRU eviction (C4); no synthesis on lookup; no background processes between plays.</td></tr>
+<tr><th scope="row">Trust boundary and validation</th><td>Recording URLs https + host only (C4); bytes length-capped and only handed to the webview as data URIs; no URL from data becomes a link, script or file write outside the cache directory.</td></tr>
+<tr><th scope="row">Compatibility and rollout</th><td>C1 backward-compatible; eSpeak-NG bundled in the AppImage if its license permits (GPLv3 aggregation reading verified at build, attribution + source offer included); otherwise optional system package with F1 guidance; no lookup-path latency change.</td></tr>
+</tbody></table></div>
+</section>
+<section id="s-scen" aria-labelledby="s-scen-t" style="--sc:var(--c-vio)"><h2 id="s-scen-t">Acceptance scenarios</h2>
+<details class="gwt" id="s1"><summary><strong>S1</strong> · Recording plays (success)</summary><p><strong>Given</strong> a looked-up English item with a valid https recording URL and eSpeak-NG irrelevant,<br><strong>When</strong> the user clicks the item's play button,<br><strong>Then</strong> the recording downloads within the caps, is cached by URL hash, and plays in the webview; the hover text names “Recording · Free Dictionary API · CC BY-SA 3.0” (or the response's license) and a playing state is visible.</p></details>
+<details class="gwt" id="s2"><summary><strong>S2</strong> · Accent voice plays the transcription (success, revision 3)</summary><p><strong>Given</strong> an item with no recording URL whose label maps to an accent (for example “General American”) and whose IPA is fully covered by the language's mapping table,<br><strong>When</strong> the user clicks play,<br><strong>Then</strong> eSpeak-NG speaks the converted mnemonic stream of the shown IPA with voice en-us, the WAV bytes are <em>audible</em> (peak-amplitude guard), and the hover text reads “eSpeak-NG · en-us”.</p></details>
+<details class="gwt" id="s3"><summary><strong>S3</strong> · Default voice for unlabelled accents (success)</summary><p><strong>Given</strong> an English item with no recording URL and no accent label, and a Spanish item likewise,<br><strong>When</strong> the user clicks each play button,<br><strong>Then</strong> the English item synthesises with en-us and the Spanish item with es, matching the approved language defaults.</p></details>
+<details class="gwt" id="s4"><summary><strong>S4</strong> · Nothing can play (F1)</summary><p><strong>Given</strong> an item with no recording URL while eSpeak-NG is not installed,<br><strong>When</strong> the user clicks the always-shown play button,<br><strong>Then</strong> the verbatim F1 copy appears inline near the item, the button remains enabled, and nothing is downloaded or executed.</p></details>
+<details class="gwt" id="s5"><summary><strong>S5</strong> · Recording download fails (F2)</summary><p><strong>Given</strong> an item with a recording URL whose download fails, times out or is refused,<br><strong>When</strong> the user clicks play,<br><strong>Then</strong> the accent's eSpeak voice plays instead, nothing is cached, and no error dialog appears.</p></details>
+<details class="gwt" id="s6"><summary><strong>S6</strong> · Fallback without eSpeak (F3)</summary><p><strong>Given</strong> a failed recording (F2) while eSpeak-NG is not installed,<br><strong>When</strong> the fallback is attempted,<br><strong>Then</strong> the verbatim F1 copy appears and the button stays enabled.</p></details>
+<details class="gwt" id="s7"><summary><strong>S7</strong> · Synthesis failure (F4, restored revision 3)</summary><p><strong>Given</strong> the transcription contains symbols outside the language's mapping table <em>or</em> the eSpeak synthesis of the mnemonics fails (process error, empty or over-cap output),<br><strong>When</strong> the user clicks play with no recording available,<br><strong>Then</strong> the headword is spoken instead in the same accent voice; if that also fails, the verbatim “Could not synthesise this pronunciation.” copy appears and the button stays enabled.</p></details>
+<details class="gwt" id="s8"><summary><strong>S8</strong> · Recording not decodable (F5)</summary><p><strong>Given</strong> a recording that downloaded and cached but the webview raises an audio error for it (unsupported format),<br><strong>When</strong> playback fails,<br><strong>Then</strong> the frontend immediately requests the voice fallback for the same item, the accent's eSpeak voice plays, and no plugin-install copy is shown. If the voice WAV is also undecodable (the one-attempt cap), the item shows the approved translated playback-failed copy (C6, amended 2026-11-13).</p></details>
+<details class="gwt" id="s9"><summary><strong>S9</strong> · Cache behaviour</summary><p><strong>Given</strong> a recording already played once (cached),<br><strong>When</strong> the user plays it again with no network,<br><strong>Then</strong> it plays from cache; and given a previously failed or oversized download, a new click re-attempts the download (never serves a partial or failed file).</p></details>
+<details class="gwt" id="s10"><summary><strong>S10</strong> · Invalid recording URL</summary><p><strong>Given</strong> an item whose audio URL is not https, has no host, or is otherwise rejected by <code>validSourceURL</code>,<br><strong>When</strong> the user clicks play,<br><strong>Then</strong> the URL is treated as absent (no request is made) and the accent's eSpeak voice plays.</p></details>
+<details class="gwt" id="s11"><summary><strong>S11</strong> · Oversized recording</summary><p><strong>Given</strong> a recording whose response exceeds the 2 MiB cap,<br><strong>When</strong> the user clicks play,<br><strong>Then</strong> the download is aborted at the cap, nothing is cached, and the F2 fallback (accent voice) plays.</p></details>
+<details class="gwt" id="s12"><summary><strong>S12</strong> · Rapid repeats and idle display guard</summary><p><strong>Given</strong> the user clicks play on item A then quickly on item B,<br><strong>When</strong> both clicks land,<br><strong>Then</strong> B's audio replaces A's (newest wins, no queue, no double audio), and the pronunciation line's displayed text, flags and order remain identical to v0.7.1 whenever no play is active.</p></details>
+</section>
+<section id="s-trace" aria-labelledby="s-trace-t" style="--sc:var(--c-amb)"><h2 id="s-trace-t">Traceability</h2>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable traceability table"><table><caption>Design path to scenario to verification</caption><thead><tr><th scope="col">Design path or state</th><th scope="col">Scenario</th><th scope="col">Planned verification</th><th scope="col">Actual test and code</th></tr></thead><tbody>
+<tr><th scope="row">Success · recording</th><td>S1</td><td>Go test, fake HTTP server serving mp3 bytes</td><td><code>audio_fetch_test.go</code> (cache+replay) + core <code>playback_test.go</code> S1 test</td></tr>
+<tr><th scope="row">Success · accent voice</th><td>S2</td><td>Go test, fake runner asserts voice + headword text; opt-in real eSpeak integration with an audibility check</td><td>core <code>TestVoiceForAccent…</code> + <code>espeak_test.go</code> text-mode args + <code>espeak_real_integration_test.go</code> (audibility peak check, run once, this machine)</td></tr>
+<tr><th scope="row">Success · default voices</th><td>S3</td><td>Go test, fake runner asserts en-us / es</td><td>core <code>TestVoiceForAccentUsesLanguageDefaults</code></td></tr>
+<tr><th scope="row">F1</th><td>S4</td><td>Go test (no URL, runner absent) + frontend test (copy shown, button enabled)</td><td>core F1-copy test + <code>playback.test.js</code> empty-Audio copy tests</td></tr>
+<tr><th scope="row">F2</th><td>S5</td><td>Go test, fake HTTP failure → voice fallback</td><td>core <code>TestGivenFailedRecording…</code> + <code>audio_fetch_test.go</code> failure paths</td></tr>
+<tr><th scope="row">F3</th><td>S6</td><td>Go test, download fails + runner absent → F1 copy</td><td>core <code>TestGivenFailedRecordingAndMissingSynthesiser…</code></td></tr>
+<tr><th scope="row">F4</th><td>S7</td><td>Go test, failing synthesis → verbatim copy</td><td>core <code>TestGivenSynthesisFailure…</code> + <code>TestGivenEmptyVoiceOutput…</code></td></tr>
+<tr><th scope="row">F5</th><td>S8</td><td>Frontend test, audio error event → fallback request; Go test serves the voice result</td><td><code>playback.test.js</code> error-event tests + core SkipRecording test</td></tr>
+<tr><th scope="row">Cache</th><td>S9</td><td>Go test with temp cache dir: hit, offline replay, failed download not cached</td><td><code>audio_fetch_test.go</code> cache/eviction/failure tests</td></tr>
+<tr><th scope="row">URL validation</th><td>S10</td><td>Go test, non-https/hostless URLs → voice path</td><td>core non-https test + <code>audio_fetch_test.go</code> no-request validation</td></tr>
+<tr><th scope="row">Size cap</th><td>S11</td><td>Go test, server sends over-cap body → abort, no cache, fallback</td><td><code>audio_fetch_test.go</code> over-cap abort + core over-cap fallback</td></tr>
+<tr><th scope="row">Rapid repeats · idle display</th><td>S12</td><td>Frontend test (replacement, no queue) + existing pronunciation display tests stay green</td><td><code>playback.test.js</code> newest-wins/no-double-audio + unchanged <code>pronunciation.test.js</code> textContent assertions</td></tr>
+<tr><th scope="row">Real WebKit playback (both sources)</th><td>S1, S2, S8</td><td>Manual in the real window / QA</td><td><em>manual — pending QA/real-window check</em></td></tr>
+</tbody></table></div>
+<p>Keep this table current as tests and code appear. Mark rows whose verification is manual as manual, never “done”, until someone actually did it.</p></section>
+<section id="s-checks" aria-labelledby="s-checks-t" style="--sc:var(--c-blue)"><h2 id="s-checks-t">Checks run on this page</h2><ul>
+<li>Mechanical: <code>inline_view.py --check sdd/audio-pronunciation.html</code> — run 2026-11-13 after filling this tab; result: 0 errors, 0 warnings.</li>
+<li>Traceability audit: every F1–F5 maps to a scenario (F1→S4, F2→S5, F3→S6, F4→S7, F5→S8) and every scenario to a design path in the table; every approved design decision appears with a threshold in the decisions table.</li>
+<li>Static inspection only: no browser session ran for this tab; the Markdown inline render and <code>--check</code> are the verification. eSpeak voice ids, SSML phoneme support, phonos parsing and the GPLv3 bundling reading are contract-stated build-verification items, not yet verified facts.</li>
+<li>Amendment 2026-11-13 (approved in chat): C6 gains the translated playback-failed copy, C7 hover becomes “source and attribution”, S8 gains the one-attempt cap clause. Recorded in Approvals; no code change required — the implementation already matched.</li>
+<li>Amendment 3, 2026-11-13 (approved in chat, “that matters to me”): the voice path speaks the transcription again via a pure <code>IPAToMnemonics</code> converter with headword fallback (C5/C6/S2/S7 amended). Grounded empirically: espeak-ng <code>-q -x</code> prints canonical mnemonics (<code>w'3:d</code> for “word”), mnemonic input <code>[[…]]</code> round-trips through <code>-x</code>, SSML phoneme silence re-confirmed, es/es phoneme names read from engine output (x, Q, n^, l^, J, J^, B, D, T, R2). Implementation delegated; audibility guard retained for both modes.</li>
+</ul></section>
+</div>
+
+<!-- ============ ARCHITECTURE ============ -->
+<div role="tabpanel" id="p-arch" aria-labelledby="t-arch" class="tabpanel">
+<section id="a-glance" aria-labelledby="a-glance-t" style="--sc:var(--c-pink)"><h2 id="a-glance-t">At a glance</h2>
+<ul>
+<li><strong>Assessment:</strong> one new core service (<code>PronunciationAudioService</code>) behind a new core port, with two new outbound ports implemented by two new adapters (audio fetch+cache, eSpeak runner). Pure voice mapping lives in core. Existing boundaries reused unchanged: <code>validSourceURL</code>, the <code>DiskCache</code> patterns and directory conventions, Wails service binding, <code>core.NormalizePronunciations</code>. The only data-model change is the optional <code>AudioURL</code> field.</li>
+<li><strong>Test approach and order:</strong> behavioural tests first with fakes (core chain and voice mapping; adapters with a fake runner and local HTTP server), then adapters with opt-in real eSpeak/network integration (project's <code>integration</code> tag pattern), then the frontend vitest layer, then the quality gate; real WebKit playback is a manual/QA check.</li>
+<li><strong>Differs from design:</strong> nothing behavioural. Architectural detail the design left open: <code>PlayRequest</code> carries a <code>SkipRecording</code> flag so the frontend's audio-error fallback (C7/F5) can request the voice path directly; the chain is one core service so every failure ends in sound or verbatim copy in testable, IO-free logic.</li>
+</ul>
+<p class="note gate">Architecture approved 2026-11-13 (see Approvals).</p></section>
+<h2 class="rep">Detailed report</h2>
+<section id="a-deps" aria-labelledby="a-deps-t" style="--sc:var(--c-blue)"><h2 id="a-deps-t">Dependencies and ownership</h2>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable diagram"><svg class="dg" viewBox="0 0 740 210" role="img" aria-labelledby="dp-t dp-d"><title id="dp-t">Playback dependencies</title><desc id="dp-d">The frontend play button calls the App method, which owns the new core playback service. The service uses two new adapter ports: the audio fetch and cache adapter for recordings, and the eSpeak synthesiser adapter for voices. The provider and Spanish adapters, changed, supply the optional AudioURL on pronunciations. The WebKit webview plays the returned data URI.</desc>
+<defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<rect class="n chg" x="15" y="18" width="170" height="62" rx="8"/><text class="h" x="25" y="40">+page.svelte play button</text><text class="t" x="25" y="56">states, copy, a11y</text><text class="tag" x="25" y="72">CHANGED</text>
+<rect class="n chg" x="240" y="18" width="170" height="62" rx="8"/><text class="h" x="250" y="40">App.PlayPronunciation</text><text class="t" x="250" y="56">wiring only</text><text class="tag" x="250" y="72">CHANGED</text>
+<rect class="n new" x="465" y="18" width="250" height="62" rx="8"/><text class="h" x="475" y="40">core.PronunciationAudioService</text><text class="t" x="475" y="56">chain C6 · voice mapping (pure)</text><text class="tag" x="475" y="72">NEW</text>
+<rect class="n new" x="300" y="120" width="200" height="58" rx="8"/><text class="h" x="310" y="142">adapters.AudioFetch</text><text class="t" x="310" y="158">download · validate · LRU cache</text><text class="tag" x="310" y="172">NEW</text>
+<rect class="n new" x="540" y="120" width="180" height="58" rx="8"/><text class="h" x="550" y="142">adapters.EspeakVoices</text><text class="t" x="550" y="158">subprocess · WAV bytes</text><text class="tag" x="550" y="172">NEW</text>
+<rect class="n chg" x="15" y="120" width="200" height="58" rx="8"/><text class="h" x="25" y="142">provider.go / spanish.go</text><text class="t" x="25" y="158">keep AudioURL (C2)</text><text class="tag" x="25" y="172">CHANGED</text>
+<g stroke="currentColor" stroke-width="1.6" fill="none" marker-end="url(#ar2)"><path d="M185 49H240"/><path d="M410 49H465"/><path d="M540 80V108H450V120"/><path d="M650 80V120"/><path d="M115 120V80H240"/></g>
+<g transform="translate(14 196)"><rect class="n new" x="0" y="-10" width="12" height="12" rx="3"/><text class="t" x="18" y="0">new</text><rect class="n chg" x="70" y="-10" width="12" height="12" rx="3"/><text class="t" x="88" y="0">changed</text><rect class="n ex" x="160" y="-10" width="12" height="12" rx="3"/><text class="t" x="178" y="0">existing, unchanged</text></g></svg></div>
+<p>Text equivalent: the play button (changed) calls the App method (changed), which delegates to the new core playback service; the service uses the new audio fetch/cache adapter and the new eSpeak adapter. The changed provider and Spanish adapters feed the optional AudioURL into the existing data flow; caches, installer and lookup flow are untouched.</p>
+<h3>Ownership and trust boundaries</h3>
+<ul>
+<li><strong>core</strong> owns the fallback chain (C6), accent→voice mapping and copy selection — pure logic, IO via ports; it treats AudioURL as opaque and never fetches itself.</li>
+<li><strong>adapters</strong> own all I/O and validation at the edge: URL validation (<code>validSourceURL</code>) happens before any request; download length-capped; eSpeak input is the sanitised IPA (pronunciation normalisation already rejects markup characters; the adapter strips only the surrounding delimiters).</li>
+<li><strong>main (App)</strong> owns wiring only: constructs the service once at startup with the two adapters, exposes <code>PlayPronunciation</code>; no business logic.</li>
+<li><strong>frontend</strong> owns button states, the audio element, the F5 error-event fallback request and copy display; it never receives raw URLs as linkable data — only the data URI it plays.</li>
+<li><strong>Trust boundary:</strong> provider data (URLs) → validated at the adapter edge; bytes → length-capped, cached, returned as data URI only; subprocess input → sanitised IPA or plain headword.</li>
+</ul></section>
+<section id="a-plan" aria-labelledby="a-plan-t" style="--sc:var(--c-grn)"><h2 id="a-plan-t">Interfaces and phased plan</h2>
+<h3>Interface diffs (declarations only; no bodies before the build)</h3>
+<pre>// internal/core/domain.go (changed)
+type Pronunciation struct {
+    Text       string
+    Label      string `json:",omitempty"`
+    LabelTitle string `json:",omitempty"`
+    AudioURL   string `json:",omitempty"` // C1: recording URL, absent for offline entries
+}
+
+// internal/core/ports.go (added)
+// RecordingSource fetches a recording: cache first, then a bounded download.
+type RecordingSource interface {
+    Fetch(ctx context.Context, audioURL string) (data []byte, err error)
+}
+
+// VoiceSynthesiser speaks pre-stripped IPA text with an eSpeak voice.
+type VoiceSynthesiser interface {
+    Available() bool
+    Speak(ctx context.Context, voice, ipa string) (data []byte, err error)
+}
+
+// internal/core/playback.go (new)
+type PlayRequest struct {
+    Text          string        // transcription as shown, e.g. "/wɝːd/"
+    Label         string        // flags or source label as shown
+    LabelTitle    string        // original accent label, e.g. "General American"
+    Language      Language
+    AudioURL      string
+    SkipRecording bool          // set by the frontend's F5 audio-error fallback
+}
+type PlaySource string
+const (
+    PlayRecording PlaySource = "recording"
+    PlayVoice     PlaySource = "espeak"
+    PlayHeadword  PlaySource = "headword"
+)
+type PlayResult struct {
+    Audio   string // data:audio/wav or data:audio/mpeg URI; empty on failure
+    Source  PlaySource
+    Message string // verbatim failure copy when Audio is empty
+}
+func VoiceForAccent(language Language, accentTitle string) (voice string) // pure; C5 map + language defaults
+
+// internal/core/playback_service.go (new)
+type PronunciationAudioService struct {
+    Recordings RecordingSource // optional; nil = never fetch
+    Voices     VoiceSynthesiser
+    Clock      Clock // subprocess/copy budget measurement only if needed
+}
+func (s *PronunciationAudioService) Play(ctx context.Context, request PlayRequest) PlayResult // chain C6
+
+// internal/adapters (new)
+type AudioFetch struct { Dir string; Client *http.Client; CacheBytes int64 } // implements core.RecordingSource
+type EspeakVoices struct { Binary string /* default "espeak-ng" */ }         // implements core.VoiceSynthesiser; LookPath at startup
+
+// main.go (changed)
+func (a *App) PlayPronunciation(request core.PlayRequest) core.PlayResult</pre>
+<h3>New and changed files</h3>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable file table"><table><caption>Everything the plan implies (including tests and fixtures)</caption><thead><tr><th scope="col">File</th><th scope="col">Status</th><th scope="col">Content</th></tr></thead><tbody>
+<tr><th scope="row"><code>internal/core/domain.go</code></th><td>changed</td><td><code>AudioURL</code> field (C1)</td></tr>
+<tr><th scope="row"><code>internal/core/ports.go</code></th><td>changed</td><td><code>RecordingSource</code>, <code>VoiceSynthesiser</code> ports</td></tr>
+<tr><th scope="row"><code>internal/core/playback.go</code></th><td>new</td><td><code>PlayRequest/PlayResult/PlaySource</code>, <code>VoiceForAccent</code> (pure)</td></tr>
+<tr><th scope="row"><code>internal/core/playback_service.go</code></th><td>new</td><td>chain service (C6)</td></tr>
+<tr><th scope="row"><code>internal/core/playback_test.go</code></th><td>new</td><td>S2–S7, S10, part of S1/S5/S8/S11 with fakes</td></tr>
+<tr><th scope="row"><code>internal/adapters/audio_fetch.go</code></th><td>new</td><td>C4 download + validate + LRU cache</td></tr>
+<tr><th scope="row"><code>internal/adapters/audio_fetch_test.go</code></th><td>new</td><td>S1/S5/S9/S10/S11 with httptest server and temp dirs</td></tr>
+<tr><th scope="row"><code>internal/adapters/espeak.go</code></th><td>new</td><td>C5 runner: availability, SSML build, WAV cap, timeout</td></tr>
+<tr><th scope="row"><code>internal/adapters/espeak_test.go</code></th><td>new</td><td>fake runner: SSML input, caps, F4 conditions; opt-in real-binary integration</td></tr>
+<tr><th scope="row"><code>internal/adapters/provider.go</code></th><td>changed</td><td>C2 English: keep <code>phonetics[].audio</code></td></tr>
+<tr><th scope="row"><code>internal/adapters/spanish.go</code></th><td>changed</td><td>C2 Spanish: keep phonos audio reference → https URL</td></tr>
+<tr><th scope="row"><code>internal/adapters/pronunciation_test.go</code></th><td>changed</td><td>audio-pairing cases</td></tr>
+<tr><th scope="row"><code>main.go</code></th><td>changed</td><td>wiring + <code>App.PlayPronunciation</code></td></tr>
+<tr><th scope="row"><code>frontend/src/routes/+page.svelte</code></th><td>changed</td><td>per-item play button (C7)</td></tr>
+<tr><th scope="row"><code>frontend/src/routes/playback.js</code> + <code>playback.test.js</code></th><td>new</td><td>button states, F5 error-event fallback, copy display (vitest)</td></tr>
+<tr><th scope="row"><code>packaging/ AppImage script, README</code></th><td>changed</td><td>bundled espeak-ng license note + source offer (only if bundling verified)</td></tr>
+</tbody></table></div>
+<p>No migration of stored data: <code>AudioURL</code> is additive and <code>omitempty</code>; old cache entries parse unchanged (no version bump). Rollback = revert the field and the frontend button; nothing else persists.</p>
+<h3>Phased plan (each phase ends green on its tests)</h3>
+<ol>
+<li><strong>Core chain:</strong> <code>playback.go</code> + <code>playback_service.go</code> tests first (S2–S7, S10 behavioural) → implementation. Evidence: <code>go test ./internal/core</code>.</li>
+<li><strong>Adapters:</strong> <code>audio_fetch.go</code> and <code>espeak.go</code> tests first (S1/S5/S9–S11, caps, SSML) → implementation. Evidence: <code>go test ./internal/adapters</code>; opt-in real eSpeak integration noted in the page if run.</li>
+<li><strong>Data + wiring:</strong> C2 extraction changes with fixture tests; <code>main.go</code> wiring. Evidence: adapter tests, <code>go build</code>.</li>
+<li><strong>Frontend:</strong> <code>playback.js</code> tests first → <code>+page.svelte</code> button. Evidence: <code>npm test</code> (vitest) plus existing pronunciation display tests staying green (S12 guard).</li>
+<li><strong>Gate + real checks:</strong> <code>go tool task test</code>; manual real-window playback of a recording and a voice item (S1/S2/S8 manual rows); measure the 2 s synthesis budget.</li>
+</ol>
+</section>
+<section id="a-checks" aria-labelledby="a-checks-t" style="--sc:var(--c-blue)"><h2 id="s-checks-t">Checks run on this page</h2><ul>
+<li>Mechanical: <code>inline_view.py --check sdd/audio-pronunciation.html</code> — run 2026-11-13 after filling this tab; result: 0 errors, 0 warnings.</li>
+<li>Static grounding check: every new/changed file above was confirmed to exist or be absent in the tree (no existing <code>playback*</code>, <code>audio_fetch*</code>, <code>espeak*</code> files; <code>provider.go</code>, <code>spanish.go</code>, <code>main.go</code>, <code>+page.svelte</code> confirmed present and read).</li>
+<li>Static inspection only: no browser session, no compiler run in this phase. Interface names are proposals until the build's first compile.</li>
+</ul></section>
+</div>
+
+<!-- ============ BUILD ============ -->
+<div role="tabpanel" id="p-build" aria-labelledby="t-build" class="tabpanel">
+<section id="b-glance" aria-labelledby="b-glance-t" style="--sc:var(--c-grn)"><h2 id="b-glance-t">At a glance</h2>
+<ul>
+<li><strong>Tests first:</strong> every behaviour was written and watched failing before implementation (stubs returning empty/identity produced behavioural failures; frontend: a stub controller + unmodified page failed all 19 tests with “unable to find button …”, no import/setup errors). Two test bugs were fixed along the way (missing <code>vi.mock</code> block; a test awaiting a never-resolving play promise) — the controller was not changed to satisfy a broken test.</li>
+<li><strong>After:</strong> project quality gate <code>go tool task test</code> from the repo root: PASS — svelte-check 0 errors/0 warnings, vitest 90/90 (5 files), <code>go test -tags gtk3 ./...</code> all packages ok; <code>gofmt -l</code> clean; <code>npm run build</code> regenerated <code>frontend/build</code> after the final frontend state.</li>
+<li><strong>Not verified:</strong> real WebKit window playback (recording and voice paths in the actual app), the 2 s end-to-end synthesis budget measured in the real window, the AppImage bundling question (packaging docs deferred until the GPLv3 bundling is confirmed), and eSpeak behaviour on other distributions (verified only on this machine, 2026-11-13).</li>
+</ul>
+<p class="note gate"><strong>Next:</strong> QA and the independent grader run automatically on this build (no opt-out recorded).</p></section>
+<h2 class="rep">Detailed report</h2>
+<section id="b-detail" aria-labelledby="b-detail-t" style="--sc:var(--c-blue)"><h2 id="b-detail-t">Evidence</h2>
+<h3>Changed files</h3>
+<p>New Go: <code>internal/core/playback.go</code> (PlayRequest/PlayResult/PlaySource, verbatim copies, pure VoiceForAccent + delimiter stripping + data-URI helper), <code>internal/core/playback_service.go</code> (C6 chain), <code>internal/core/playback_test.go</code>, <code>internal/adapters/audio_fetch.go</code> (+test; C4 with httptest TLS server and temp dirs), <code>internal/adapters/espeak.go</code> (+test; C5 with injectable runner, plus an opt-in <code>integration</code>-tag real-binary test). Changed Go: <code>domain.go</code> (AudioURL), <code>ports.go</code> (RecordingSource, VoiceSynthesiser), <code>pronunciation.go</code> (carries AudioURL through normalisation; display output untouched), <code>provider.go</code>/<code>spanish.go</code> (C2 extraction), <code>pronunciation_test.go</code>, <code>main.go</code> (App.PlayPronunciation + wiring). New frontend: <code>playback.js</code> + <code>playback.test.js</code>. Changed frontend: <code>+page.svelte</code> (per-item buttons in both pronunciation lines, inline copy, playing state), <code>language.js</code> (3 i18n keys ×2 languages), regenerated <code>frontend/build</code>.</p>
+<h3>Test → scenario map (highlights; full names in the test files)</h3>
+<ul>
+<li><strong>Core</strong> (<code>internal/core/playback_test.go</code>): voice mapping incl. flags/qualifiers → S2; language defaults en-us/es → S3; recording success S1; F1 copy S4; download failure → voice S5; F1 copy in fallback S6; headword retry and both-fail copy S7; SkipRecording path S8; non-https treated as absent S10; over-cap fallback S11; result-never-an-error contract C3; delimiter stripping C5.</li>
+<li><strong>Adapters</strong>: <code>audio_fetch_test.go</code> — cache + offline replay S1/S9, failure-not-cached S9, no-request validation S10, over-cap abort S11, eviction/cap C4; <code>espeak_test.go</code> — SSML args and escaping S2/C5, F4 conditions, WAV cap/timeout-kill C5; <code>pronunciation_test.go</code> — English audio/text pairing and unexpected shapes C2, Spanish phonos URL from real captured fixtures (hola/casa/perro/agua/leer) C2, core AudioURL pass-through C1/S12 idle guard.</li>
+<li><strong>Frontend</strong> (<code>playback.test.js</code>, 20 tests): full request contract incl. Headword → C7; newest-wins/no double audio/idle display byte-identical → S12; hover “Recording · source · attribution” and “eSpeak-NG” → S1/S2; hover upgrade to “eSpeak-NG · en-us” after a voice result → C7; audio error → immediate SkipRecording re-request and one-attempt cap → S8/F5; empty-Audio first result → verbatim copy, button enabled → S4/F1; playing-state lifecycle; data URI only on the audio element → C7 trust.</li>
+<li><strong>Real-binary check</strong> (opt-in integration, run once by the implementer): <code>espeak-ng</code> produced a RIFF WAV in 0.03 s for en-us; all approved voice ids (en-gb en-au en-nz en-ca en-ie en-za es) accepted the SSML form on this machine (2026-11-13) — the spec's “verify voice ids at build” item is verified locally.</li>
+</ul>
+<h3>Approved-contract differences found and resolved in build</h3>
+<ul>
+<li><code>PlayRequest.Headword</code> added (the architecture draft omitted it; the approved F4 headword retry needs it — data carrier only, no behaviour change).</li>
+<li><code>PlayResult.Voice</code> added and the hover text upgrades to “eSpeak-NG · en-us” once a voice result resolves — closes a C7 hover-copy gap in the approved copy (“eSpeak-NG · &lt;voice&gt;”) that the first frontend pass could not satisfy because the voice is computed Go-side. C7's “Recording · …” hover was already compliant; license is shown via <code>Source.Attribution</code> (the license name in the online responses; <code>Source</code> has no separate name field).</li>
+<li>Pre-existing fixture tests (hello/read/Spanish saved responses) updated: their full-struct expectations predate C2; assertions remain full-struct, not weakened.</li>
+<li><code>EspeakVoices</code> gained injectable <code>lookPath</code>/<code>runner</code>/<code>Timeout</code> seams for the fake-runner tests the architecture prescribed; production defaults keep the approved 5 s / 4 MiB.</li>
+<li>F5 fallback is capped at one attempt (an undecodable voice WAV clears state and shows the page's i18n fallback copy) to prevent an error-event loop; the C6 verbatim copy still comes from Go in all other failure paths.</li>
+<li>Recording data URIs are labelled <code>audio/mpeg</code> regardless of the source's actual container; a mislabeled or undecodable recording falls through the approved F5 chain (S8).</li>
+</ul>
+</section>
+</div>
+
+<!-- ============ VERIFY ============ -->
+<!-- Author split: the QA tester's and the grader's lines are pasted VERBATIM (Q# and G# IDs kept). The implementer writes only status, "fixed after grading", budget and the handoff line, and never writes an overall PASS of its own. -->
+<div role="tabpanel" id="p-verify" aria-labelledby="t-verify" class="tabpanel">
+<section id="v-glance" aria-labelledby="v-glance-t" style="--sc:var(--c-vio)"><h2 id="v-glance-t">Verification report</h2>
+<p><span class="chip ok">PASS</span><span class="chip def">fix round 1 of at most 2 used</span></p>
+<ul>
+<li><strong>Verdict (grader, verbatim):</strong> PASS — The delivered implementation matches the approved design, spec and architecture with honest records, passing the quality gate and page lint, with two implementation deviations (F4 headword spoken as an IPA phoneme; C7 hover license) and environmentally-blocked real-window items left as explicit findings and limitations, none rising to a FAIL criterion.</li>
+<li><strong>QA result (tester, verbatim):</strong> Result: Every scenario reachable without a real provider lookup behaved as the approved spec states — the one gap is real-window interaction (hover/playing state/clicks), which could not be exercised because the webview rendered empty in this environment and real dictionary APIs were off-limits.</li>
+</ul>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable scorecard"><table class="cards"><caption>Scorecard</caption><thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Evidence</th></tr></thead><tbody>
+<tr><th scope="row">Build quality gate</th><td data-label="Result">pass (re-run after the G1 fix: still pass)</td><td data-label="Evidence"><code>go tool task test</code>: svelte-check 0/0, vitest 90/90, <code>go test -tags gtk3 ./...</code> ok; grader reproduced the gate itself</td></tr>
+<tr><th scope="row">QA scenarios</th><td data-label="Result">matches 10 · differs 0 · not run 1 (S12 window part) · extras 3</td><td data-label="Evidence"><code>/tmp/opencode/qa-audio/evidence/INDEX.txt</code> (sandbox copy of the working tree)</td></tr>
+<tr><th scope="row">Grade criterion 1 (coverage)</th><td data-label="Result">PASS</td><td data-label="Evidence">scenario map below, path:line</td></tr>
+<tr><th scope="row">Grade criterion 2 (decision areas)</th><td data-label="Result">PARTIAL</td><td data-label="Evidence">budgets implemented; 2 s budget unmeasured, bundling deferred (G4)</td></tr>
+<tr><th scope="row">Grade criterion 3 (architecture)</th><td data-label="Result">PASS</td><td data-label="Evidence">ports/adapters/wiring match; build additions honestly recorded</td></tr>
+<tr><th scope="row">Grade criterion 4 (test layers)</th><td data-label="Result">PASS</td><td data-label="Evidence">real httptest TLS server + real binary, not fake-only</td></tr>
+<tr><th scope="row">Grade criterion 5 (production vs design)</th><td data-label="Result">PARTIAL</td><td data-label="Evidence">copies byte-exact; G2/G3 deviations recorded</td></tr>
+<tr><th scope="row">Grade criterion 6 (records honest)</th><td data-label="Result">PASS</td><td data-label="Evidence">approvals, traceability and counts spot-checked</td></tr>
+<tr><th scope="row">Grade criterion 7 (a11y and checks)</th><td data-label="Result">PASS</td><td data-label="Evidence">component-level a11y tests; real webview evidence missing (blocker Q2)</td></tr>
+</tbody></table></div>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable findings table"><table class="cards"><caption>Findings (Q# from QA, G# from the grader)</caption><thead><tr><th scope="col">ID</th><th scope="col">Label</th><th scope="col">Severity</th><th scope="col">Status</th></tr></thead><tbody>
+<tr><th scope="row">Q1</th><td data-label="Label">implementation (informational)</td><td data-label="Severity">none</td><td data-label="Status">no action — chain strips delimiters in core, spec-correct today</td></tr>
+<tr><th scope="row">Q2</th><td data-label="Label">environment (not a feature defect)</td><td data-label="Severity">low</td><td data-label="Status">recorded — WebKitGTK webview rendered empty in the QA sandbox; blocks real-window QA</td></tr>
+<tr><th scope="row">G1</th><td data-label="Label">implementation</td><td data-label="Severity">medium</td><td data-label="Status">fixed (fix round 1) — headword retry now spoken as plain text via <code>VoiceSynthesiser.SpeakText</code>; gate re-run green; not re-graded</td></tr>
+<tr><th scope="row">G2</th><td data-label="Label">requirement</td><td data-label="Severity">low</td><td data-label="Status">resolved — C7 amended to “source and attribution” 2026-11-13 (approved in chat); implementation already compliant</td></tr>
+<tr><th scope="row">G3</th><td data-label="Label">implementation</td><td data-label="Severity">low</td><td data-label="Status">resolved — C6 amended with the translated playback-failed copy 2026-11-13 (approved in chat); implementation already compliant</td></tr>
+<tr><th scope="row">G4</th><td data-label="Label">requirement</td><td data-label="Severity">low</td><td data-label="Status">partially resolved — bundling decision made 2026-11-13 after the license review (bundle the unmodified espeak-ng CLI in the AppImage as an aggregate, GPLv3 §5; ship COPYING + source offer); packaging implementation is a follow-up. The 2 s budget is measured in the real window with the user.</td></tr>
+</tbody></table></div>
+<ul>
+<li><strong>Fixed after grading, not re-graded:</strong> G1 — <code>internal/core/ports.go</code> adds <code>SpeakText</code> to <code>VoiceSynthesiser</code>; <code>internal/adapters/espeak.go</code> implements plain-text SSML (escaped text, no phoneme element); <code>playback_service.go</code> retries the headword through it; tests updated (<code>playback_test.go</code> speakCall gains a mode flag, new <code>espeak_test.go</code> text-mode test). Quality gate re-run: PASS. Per the skill this fix is not re-graded.</li>
+<li><strong>Not verified:</strong> real WebKit window playback of recordings and voice WAVs (S1/S2/S8 UI parts), hover/playing-state/copy display in the real window (S12 window part), the 2 s end-to-end synthesis budget in the real window, the 10 s download timeout (shares the abort logic verified in S11), eSpeak behaviour on distributions other than this machine, AppImage bundling/attribution docs.</li>
+<li><strong>Budget used:</strong> spawns 2 of 3 (one QA, one grader), fix rounds 1 of 2 (G1). Agents: QA and grader ran as delegated general agents on this session's model (opencode-go / glm-5.3-flash); no model choice was requested.</li></ul>
+<p class="note gate"><strong>Handoff:</strong> nothing is committed or published. G2 and G3 are resolved by the approved spec amendment of 2026-11-13; the bundling decision is made (bundle the unmodified espeak-ng CLI; packaging implementation pending). Remaining before release: the real-window playback check with the 2 s measurement, and the AppImage packaging change. Reply with what you want next (for example “commit” or “do the packaging”), or describe the changes you want.</p></section>
+<h2 class="rep">Detailed report</h2>
+<section id="v-qa" aria-labelledby="v-qa-t" style="--sc:var(--c-amb)"><h2 id="v-qa-t">QA scenario runs</h2>
+<p class="note skip-inline">QA ran in the sandbox copy <code>/tmp/opencode/qa-audio</code> (full working-tree copy, diff base cade98e + uncommitted feature), driving the real <code>core.PronunciationAudioService</code> with real <code>adapters.AudioFetch</code>/<code>adapters.EspeakVoices</code> against a local httptest TLS server and the real system <code>espeak-ng</code> 1.52.0; user caches untouched. Table pasted verbatim from the QA report.</p>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable QA table"><table class="cards"><caption>Each scenario run for real</caption><thead><tr><th scope="col">Scenario</th><th scope="col">Steps</th><th scope="col">Expected</th><th scope="col">Observed</th><th scope="col">Result</th><th scope="col">Evidence</th></tr></thead><tbody>
+<tr><th scope="row">S1 recording success</th><td data-label="Steps">Play request with valid https URL → local TLS server serving synthetic mp3 bytes</td><td data-label="Expected">Downloads, cached by URL hash, data URI, Source=recording</td><td data-label="Observed">Source="recording", audio is data:audio/mpeg;base64,…, 1 request, exactly one cache file named SHA-256(url)</td><td data-label="Result">matches</td><td data-label="Evidence">evidence/S1_recording_success.txt</td></tr>
+<tr><th scope="row">S2 accent voice (core + real binary)</th><td data-label="Steps">EspeakVoices.Speak(ctx,"en-us","wɝːd") with real espeak-ng; exact documented C5 command also run in shell</td><td data-label="Expected">SSML phoneme input, voice en-us, WAV bytes</td><td data-label="Observed">13626-byte RIFF WAV returned; shell run exits 0 with RIFF PCM 22050 Hz; all mapped voices exist in the real binary</td><td data-label="Result">matches (in-window hover/playing state not run)</td><td data-label="Evidence">evidence/S2_real_eSpeak_synthesis_(en-us).txt, espeak-c5-command.wav, espeak-voice-check.txt</td></tr>
+<tr><th scope="row">S3 default voices</th><td data-label="Steps">VoiceForAccent for all 9 accent names + empty label + Spanish + unknown accent</td><td data-label="Expected">en-us/en-gb/en-au/en-nz/en-ca/en-ie/en-za; empty → en-us (EN)/es (ES); unknown → default</td><td data-label="Observed">Exactly that mapping, incl. "US"→en-us, "UK"→en-gb, "Bavarian"→en-us</td><td data-label="Result">matches</td><td data-label="Evidence">evidence/S3_VoiceForAccent_mapping.txt</td></tr>
+<tr><th scope="row">S4 / F1</th><td data-label="Steps">Play with no AudioURL, service constructed without Voices</td><td data-label="Expected">Verbatim F1 copy inline, empty audio</td><td data-label="Observed">Audio="", Message byte-equal to the approved F1 copy; button-stays-enabled covered by frontend tests</td><td data-label="Result">matches (in-window display not run)</td><td data-label="Evidence">evidence/S4_F1_nothing_can_play.txt</td></tr>
+<tr><th scope="row">S5 / F2</th><td data-label="Steps">Play with URL whose server returns HTTP 500, real espeak wired</td><td data-label="Expected">Accent's voice plays, nothing cached, no error dialog</td><td data-label="Observed">Source="espeak" Voice="en-us", WAV data URI, cache empty, result-not-error</td><td data-label="Result">matches</td><td data-label="Evidence">evidence/S5_F2_recording_download_fails_→_voice_fallback.txt</td></tr>
+<tr><th scope="row">S6 / F3</th><td data-label="Steps">500 + no Voices wired</td><td data-label="Expected">Verbatim F1 copy</td><td data-label="Observed">Message byte-equal F1 copy, Audio=""</td><td data-label="Result">matches</td><td data-label="Evidence">evidence/S6_F3_failed_recording,_no_eSpeak.txt</td></tr>
+<tr><th scope="row">S7 / F4</th><td data-label="Steps">Real-exec fake espeak script fails on IPA, succeeds on headword; second variant fails always</td><td data-label="Expected">IPA retried once as plain headword in same voice; both-fail → verbatim copy</td><td data-label="Observed">2 subprocess invocations recorded (IPA then headword), Source="headword" Voice="en-us"; both-fail → byte-equal F4 copy</td><td data-label="Result">matches (args predate the G1 fix: headword was sent as a phoneme — fixed after grading)</td><td data-label="Evidence">evidence/S7_F4_IPA_fails_→_headword_retry.txt, S7b_F4_both_syntheses_fail.txt</td></tr>
+<tr><th scope="row">S9 cache</th><td data-label="Steps">a) replay after server.Close(); b) HTTP-500 download</td><td data-label="Expected">a) plays from cache with no network; b) failure never cached</td><td data-label="Observed">a) byte-equal payload, 0 new requests; b) 1 request, cache empty</td><td data-label="Result">matches</td><td data-label="Evidence">evidence/S9a_offline_replay_from_cache.txt, S9b_failed_download_not_cached.txt</td></tr>
+<tr><th scope="row">S10 invalid URL</th><td data-label="Steps">Play with http://… and with hostless not-a-url</td><td data-label="Expected">Treated as absent, no request, voice plays</td><td data-label="Observed">0 requests both times, Source="espeak"</td><td data-label="Result">matches</td><td data-label="Evidence">evidence/S10_non-https_URL.txt, S10b_hostless_URL.txt</td></tr>
+<tr><th scope="row">S11 oversized</th><td data-label="Steps">Server sends 2 MiB + 1 byte</td><td data-label="Expected">Aborted at cap, nothing cached, F2 fallback</td><td data-label="Observed">Exactly 1 request, cache empty, voice path taken</td><td data-label="Result">matches</td><td data-label="Evidence">evidence/S11_oversized_recording_(2_MiB_+_1).txt</td></tr>
+<tr><th scope="row">S12 rapid repeats / idle display</th><td data-label="Steps">Window clicks not possible (webview rendered empty; real APIs off-limits)</td><td data-label="Expected">Newest wins, no double audio, idle display unchanged</td><td data-label="Observed">Not run in window; the build's own frontend tests assert it</td><td data-label="Result">not run</td><td data-label="Evidence">evidence/frontend-tests-verbose.txt (indirect)</td></tr>
+<tr><th scope="row">extra</th><td data-label="Steps">Exact C5 command form via real exec</td><td data-label="Expected">-v voice -m speak/phoneme --stdout</td><td data-label="Observed">Recorded args byte-match after core strips /…/</td><td data-label="Result">extra</td><td data-label="Evidence">evidence/EXTRA_C5_command_form_+_delimiter_stripping.txt</td></tr>
+<tr><th scope="row">extra</th><td data-label="Steps">C4 eviction at a small cap (three 2000-byte recordings, CacheBytes=3000)</td><td data-label="Expected">Bounded cache, oldest-last-used evicted</td><td data-label="Observed">After 3 stores only 1 file remains; oldest evicted; re-fetch re-downloads</td><td data-label="Result">extra</td><td data-label="Evidence">evidence/EXTRA_C4_eviction_(CacheBytes=3000,_three_2000-byte_items).txt</td></tr>
+<tr><th scope="row">extra</th><td data-label="Steps">Project's frontend vitest suite (build's own tests, not independent)</td><td data-label="Expected">90/90 pass incl. hover copy, F1 copy, F5 fallback, S12</td><td data-label="Observed">5 files, 90 passed, 0 failed (caveat: build's own assertions)</td><td data-label="Result">extra</td><td data-label="Evidence">evidence/frontend-tests-verbose.txt</td></tr>
+</tbody></table></div>
+<p class="hdr">QA defects: Q1 — informational observation (delimiter stripping lives in core, not the adapter; spec-correct today, no action). Q2 — environment: the WebKitGTK webview rendered empty in the sandbox (Wayland + WebKitGTK 2.54.2, with/without DMABUF/GDK workarounds; window log and screenshot in evidence), blocking in-window QA; not a feature defect.</p>
+</section>
+<section id="v-grade" aria-labelledby="v-grade-t" style="--sc:var(--c-blue)"><h2 id="v-grade-t">Criteria, scenario map and findings</h2>
+<p class="note skip-inline">Grader output pasted verbatim (lightly escaped). The grader ran the quality gate and the page lint once each, read-only.</p>
+<h3>Criteria</h3>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable criteria table"><table><caption>Grader criteria</caption><thead><tr><th scope="col">Criterion</th><th scope="col">Score</th><th scope="col">Evidence (verbatim, condensed)</th></tr></thead><tbody>
+<tr><th scope="row">1. Coverage</th><td>PASS</td><td>All S1–S12 and F1–F5 have implementation + tests; core/adapter paths additionally observed by QA. Real-window UI parts honestly marked "manual — pending".</td></tr>
+<tr><th scope="row">2. Decision areas</th><td>PARTIAL</td><td>Boundary validation honored (audio_fetch.go:73-76 validSourceURL; espeak.go:77-86 SSML escaping); budgets implemented (10 s/2 MiB audio_fetch.go:31-35,101-128; 5 s/4 MiB espeak.go:24-28; 50 MiB LRU :37-42,161-196); compatibility additive (domain.go:28; pronunciation_test.go:156-178); chains honored (playback_service.go:19-41). Not honored: 2 s budget unmeasured; bundling deferred (G4).</td></tr>
+<tr><th scope="row">3. Architecture</th><td>PASS</td><td>Core service + ports (ports.go:59-71); adapters structural, no core import; wiring only in main.go:292-299 (+ App.PlayPronunciation :88-94, no business logic). Headword/Voice additions are data carriers for approved behaviour; records honest.</td></tr>
+<tr><th scope="row">4. Test layers</th><td>PASS</td><td>Core with port fakes (playback_test.go:17-62); adapters with real httptest TLS server and temp dirs + real-binary integration; QA ran the real service chain against a live server; UI at component layer; gate-run tests are the reviewed ones.</td></tr>
+<tr><th scope="row">5. Production vs design</th><td>PARTIAL</td><td>Copies byte-exact (playback.go:40-42 vs C6; playback_test.go:12-15; playback.test.js:12-14); per-item always-shown buttons in both lines; playing state; role="alert"; no simulation content shipped; frontend/build regenerated (grep-verified). Deviations: G1 (fixed after grading), G2, G3.</td></tr>
+<tr><th scope="row">6. Records honest</th><td>PASS</td><td>Approvals consistent (3 chat approvals dated 2026-11-13 + not opted out); traceability rows spot-checked against real tests; counts verified (vitest 90/90, 20 playback tests); WebKit row honestly manual.</td></tr>
+<tr><th scope="row">7. A11y and checks</th><td>PASS</td><td>Gate re-run PASS; page lint 0/0; a11y at component level (aria-label, titles, playing state, role="alert", never disabled); real webview evidence missing (blocker), cited as limitation.</td></tr>
+</tbody></table></div>
+<h3>Findings</h3>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable findings detail"><table><caption>Grader findings, verbatim substance</caption><thead><tr><th scope="col">ID</th><th scope="col">Substance</th></tr></thead><tbody>
+<tr><th scope="row">G1</th><td>medium · implementation. F4 headword retry was spoken as an IPA phoneme (playback_service.go:36-38 → espeak.go:67; QA recorded <code>-m &lt;speak&gt;&lt;phoneme alphabet="ipa" ph="word"/&gt;&lt;/speak&gt;</code>), so eSpeak reads the letters as IPA values, audibly different from the word. Fixed after grading: plain-text mode via <code>VoiceSynthesiser.SpeakText</code>.</td></tr>
+<tr><th scope="row">G2</th><td>low · requirement. C7 requires hover "Recording · source · license", but core.Source has no license-name field (domain.go:10-17); the page shows Source.Attribution, which is the license name for the English API but an attribution string for Wikcionario. Corrective action: derive a license display name or amend C7 to "attribution" — an approved-copy change needing re-approval.</td></tr>
+<tr><th scope="row">G3</th><td>low · implementation. F5 double-failure shows the page's i18n copy (playbackFailed), not an approved verbatim copy; the approved C6 defines only two copies and Go had already returned audio here. Corrective action: approve a C6 amendment for an "audio could not be played" copy or accept the i18n fallback with that amendment recorded.</td></tr>
+<tr><th scope="row">G4</th><td>low · requirement. Two approved build-verification items remain open: the 2 s end-to-end responsiveness threshold (unmeasured; needs a working window session) and the AppImage eSpeak bundling/attribution decision (packaging untouched). Both need the user.</td></tr>
+</tbody></table></div>
+<p class="hdr">Grader limitations (verbatim substance): chat approvals not independently confirmable (fresh session); QA harness/real window/integration test not re-run; real WebKitGTK in-window behaviour unverified by anyone (documented blocker) and receives no PASS anywhere; frontend/build not verified bit-for-bit against a fresh build; page print/narrow/dark rendering not exercised in a browser. Rule breaches: none.</p>
+</section>
+<section id="v-checks" aria-labelledby="v-checks-t" style="--sc:var(--c-blue)"><h2 id="v-checks-t">Checks run on this page</h2><ul>
+<li>Mechanical: <code>inline_view.py --check sdd/audio-pronunciation.html</code> — run 2026-11-13 after filling this tab; 0 errors, 0 warnings (also re-run by the grader with the same result).</li>
+<li>Quality gate: run by the implementer three times (initial build, hover-voice addition, post-G1 fix) and once independently by the grader — PASS each time: svelte-check 0/0, vitest 90/90, <code>go test -tags gtk3 ./...</code> ok.</li>
+<li>Not checked on this page: real browser rendering of the page (narrow, dark, print) — no browser session was run in this phase; the app's real-window behaviour is covered in "Not verified".</li>
+</ul></section>
+</div>
+
+<!-- ============ APPROVALS ============ -->
+<div role="tabpanel" id="p-appr" aria-labelledby="t-appr" class="tabpanel">
+<section id="appr" aria-labelledby="appr-t" style="--sc:var(--c-grn)"><h2 id="appr-t">Approvals</h2>
+<p class="note">Record only approvals actually received in chat, with the date, the tab content approved (hash or short description) and the user’s words. A page control never approves a gate. Later edits to status labels or traceability are not re-approvals; a change to behaviour, scope or contracts reopens the gate that owns it. Hashes identify what was approved, not what the page shows today.</p>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable approvals table"><table><caption>Gate approvals</caption><thead><tr><th scope="col">Gate</th><th scope="col">Date</th><th scope="col">Approved artifact</th><th scope="col">Approval in chat</th></tr></thead><tbody>
+<tr><th scope="row">Design</th><td>2026-11-13</td><td>Design tab: outcome, per-item play buttons, recording + eSpeak-NG sources, fallback chain recording → voice → headword → copy, F1–F5, five decisions, Q1/Q2/Q4 answered in reviewer comments, Q3 defaulted to per-item at approval</td><td>“design approved”</td></tr><tr><th scope="row">Spec</th><td>2026-11-13</td><td>Spec tab: contracts C1–C7, scenarios S1–S12, thresholds (10 s / 2 MiB download, 5 s / 4 MiB eSpeak, 50 MiB LRU cache, 2 s responsiveness, verbatim copies), traceability table</td><td>“spec approved”</td></tr><tr><th scope="row">Architecture</th><td>2026-11-13</td><td>Architecture tab: PronunciationAudioService + 2 outbound ports/adapters, interface diffs, file list, 5-phase plan</td><td>“architecture approved”</td></tr>
+<tr><th scope="row">Spec amendment</th><td>2026-11-13</td><td>C6 gains the translated playback-failed copy for the webview double-failure case (G3); C7 hover wording becomes “source and attribution” (G2); S8 gains the one-attempt cap clause. No code change needed — the implementation already matched.</td><td>“Okay let's go with your recommendations”</td></tr>
+<tr><th scope="row">Automatic verification</th><td>2026-11-13</td><td>QA and grade run after the build unless the user replied <code>no QA</code> or <code>no grade</code></td><td>not opted out</td></tr>
+</tbody></table></div></section>
+</div>
+</main>
+<footer>Single-file SDD review · no network dependencies · no live backend</footer>
+<script>
+'use strict';
+const tabs=Array.from(document.querySelectorAll('[role=tab]'));
+const panels=Array.from(document.querySelectorAll('.tabpanel'));
+function act(p,focus,keep){tabs.forEach(t=>{const on=t.dataset.p===p;t.setAttribute('aria-selected',on);t.tabIndex=on?0:-1;document.getElementById('p-'+t.dataset.p).hidden=!on;if(on&&focus)t.focus();});if(!keep){try{history.replaceState(null,'','#p-'+p)}catch(_){}}}
+tabs.forEach((t,i)=>{t.addEventListener('click',()=>act(t.dataset.p));t.addEventListener('keydown',ev=>{const k={ArrowRight:1,ArrowLeft:-1}[ev.key];if(ev.key==='Home'){ev.preventDefault();act(tabs[0].dataset.p,1)}else if(ev.key==='End'){ev.preventDefault();act(tabs[tabs.length-1].dataset.p,1)}else if(k){ev.preventDefault();act(tabs[(i+k+tabs.length)%tabs.length].dataset.p,1)}});});
+function fromHash(){const id=location.hash.slice(1);const el=id&&document.getElementById(id);const pan=el&&el.closest('.tabpanel');act(pan?pan.id.slice(2):(tabs.find(t=>t.getAttribute('aria-selected')==='true')||tabs[0]).dataset.p,false,!!pan);if(el&&pan){for(let d=el.closest('details');d;d=d.parentElement&&d.parentElement.closest('details'))d.open=true;el.scrollIntoView();}}
+fromHash();window.addEventListener('hashchange',fromHash);
+</script>
+<script>
+'use strict';
+const details=Array.from(document.querySelectorAll('details'));let prior=[];
+window.addEventListener('beforeprint',()=>{panels.forEach(p=>{p.hidden=false;});prior=details.map(d=>d.open);details.forEach(d=>{d.open=true;});});
+window.addEventListener('afterprint',()=>{details.forEach((d,i)=>{d.open=prior[i]??true;});const s=tabs.find(t=>t.getAttribute('aria-selected')==='true');if(s)act(s.dataset.p);});
+</script>
+</body>
+</html>

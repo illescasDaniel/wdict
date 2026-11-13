@@ -97,19 +97,35 @@ func (p OnlineDictionary) Find(ctx context.Context, query string, language core.
 }
 
 // onlinePronunciations reads phonetics[].text in order, and the top-level
-// phonetic only when no item has text. Unexpected shapes yield no values.
+// phonetic only when no item has text. Each text keeps the audio URL supplied
+// with the same item (C2): the first non-empty audio per text; unexpected
+// shapes yield no URL and never an error.
 func onlinePronunciations(phonetics, phonetic json.RawMessage) []core.Pronunciation {
 	var items []json.RawMessage
-	var found []core.Pronunciation
-	if json.Unmarshal(phonetics, &items) == nil {
-		for _, raw := range items {
-			var item struct {
-				Text string `json:"text"`
-			}
-			if json.Unmarshal(raw, &item) == nil && strings.TrimSpace(item.Text) != "" {
-				found = append(found, core.Pronunciation{Text: item.Text})
-			}
+	if json.Unmarshal(phonetics, &items) != nil {
+		items = nil
+	}
+	audioFor := make(map[string]string, len(items))
+	var texts []string
+	for _, raw := range items {
+		var item struct {
+			Text  string          `json:"text"`
+			Audio json.RawMessage `json:"audio"`
 		}
+		if json.Unmarshal(raw, &item) != nil || strings.TrimSpace(item.Text) == "" {
+			continue
+		}
+		audioFor[item.Text] = firstAudio(audioFor[item.Text], item.Audio)
+		texts = append(texts, item.Text)
+	}
+	var found []core.Pronunciation
+	seen := make(map[string]bool, len(texts))
+	for _, text := range texts {
+		if seen[text] {
+			continue
+		}
+		seen[text] = true
+		found = append(found, core.Pronunciation{Text: text, AudioURL: audioFor[text]})
 	}
 	if len(found) == 0 {
 		var text string
@@ -118,6 +134,19 @@ func onlinePronunciations(phonetics, phonetic json.RawMessage) []core.Pronunciat
 		}
 	}
 	return found
+}
+
+// firstAudio returns the current audio when it is already set, otherwise the
+// item's audio when it is a usable string.
+func firstAudio(current string, rawAudio json.RawMessage) string {
+	if current != "" {
+		return current
+	}
+	var audio string
+	if json.Unmarshal(rawAudio, &audio) == nil {
+		return strings.TrimSpace(audio)
+	}
+	return ""
 }
 
 // validSourceURL prevents provider-supplied URLs from becoming unsafe links.

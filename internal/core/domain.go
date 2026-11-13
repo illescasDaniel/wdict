@@ -25,6 +25,7 @@ type Pronunciation struct {
 	Text       string
 	Label      string `json:",omitempty"` // flags or source text (C4)
 	LabelTitle string `json:",omitempty"` // original label when replaced by flags
+	AudioURL   string `json:",omitempty"` // recording URL, absent for offline entries (C1)
 }
 
 type Entry struct {
