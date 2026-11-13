@@ -2,6 +2,11 @@
 
 ## Open
 
+- [ ] Commit the offline duplicate-results fix (`internal/adapters/offline.go`, `offline_format_test.go`) and the new `opencode.json`; the installed v0.7.0 binary still shows duplicate results until the next release.
+
+- [x] Fixed duplicate offline results (2026-11-13): `scanDictionary` dedupes repeated/self-folding `.syn` aliases; regression test added; quality gate green; real `dogfood` lookup returns 3 entries (was 6). Recorded in `memory/decisions.md` and as durable note `src:9f5e5a6626331a4ce3e4`.
+- [x] Added `opencode.json` (agemem, webnav, codenav-go) so the OpenCode session loads the project MCPs, mirroring `.mcp.json` (2026-11-13).
+
 - [x] Implemented lookup alternatives and passed the quality gate on 2026-11-06 (55 frontend tests, Go tests with gtk3 tag, svelte-check clean).
 - [x] Rebuilt `frontend/build` with `go tool task build` on 2026-11-06; the shipped bundle now includes the `timed_out` text (`frontend/build/_app/immutable/nodes/2.DDDowKUZ.js`).
 - [ ] Get an independent grade of the lookup-alternatives branch (not yet run; ask before spawning a code-grader); fix findings. The branch is largely untracked, so the grader must review untracked files too.

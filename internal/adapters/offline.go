@@ -280,10 +280,9 @@ func scanDictionary(ctx context.Context, d *stardict.Stardict, path, query strin
 			}
 		}
 		w := s.Word()
-		if matches(w.Word) {
-			results = append(results, w)
-		}
-		for n := aliases[i]; n > 0; n-- {
+		// The word is reported once even when matching synonym aliases, which
+		// can repeat or fold to the word itself, also point at its index entry.
+		if matches(w.Word) || aliases[i] > 0 {
 			results = append(results, w)
 		}
 		delete(aliases, i)

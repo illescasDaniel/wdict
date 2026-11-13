@@ -1,0 +1,22 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "agemem": {
+        "type": "local",
+        "command": ["uvx", "--python", "3.12", "agemem@0.3.0", "mcp"]
+      },
+      "webnav": {
+        "type": "local",
+        "command": ["npx", "webnav-ts-mcp@0.2"]
+      },
+      "codenav-go": {
+        "type": "local",
+        "command": ["go", "run", "github.com/illescasDaniel/codenav-go-mcp/cmd/codenav-go-mcp@latest"],
+        "environment": {
+          "CODENAV_GO_MCP_BUILD_FLAGS": "-tags=gtk3"
+        }
+      }
+    }
+  }
+}

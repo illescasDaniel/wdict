@@ -1,5 +1,9 @@
 # Active context
 
+## Offline duplicate results fix (2026-11-13)
+
+Duplicate offline result cards (user screenshot, `dogfood`) are fixed in the working tree but not committed: `scanDictionary` now reports each index entry once despite repeated or self-folding `.syn` aliases (`memory/decisions.md`, regression test in `internal/adapters/offline_format_test.go`). Quality gate green. Open: commit, and the installed v0.7.0 binary still shows duplicates until the next release. `opencode.json` (project MCPs for OpenCode, mirroring `.mcp.json`) is also untracked.
+
 ## Phonetic pronunciation (2026-11-11)
 
 Released as v0.7.0 (IPA pronunciations) and installed locally. Open: grader item G8 (the approved 5-run median performance report was not re-measured; the user has not decided). Not verified: real-window check, flags without a flag font. Next task the user named: an AI voice for pronunciation (start with the `sdd-html-feature` design gate).

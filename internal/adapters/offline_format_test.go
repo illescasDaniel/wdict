@@ -72,6 +72,58 @@ func TestGivenPunctuationEntriesWhenScannedThenAllExactEntriesAreFound(t *testin
 		t.Fatalf("cancelled scan: %v", err)
 	}
 }
+func TestGivenRepeatedSynonymAliasesWhenScannedThenEachIndexEntryIsReturnedOnce(t *testing.T) {
+	// given
+	dir := t.TempDir()
+	path := filepath.Join(dir, "dictionary.ifo")
+	words := []string{"dog food", "dog food", "dogfood"}
+	var index bytes.Buffer
+	for offset, word := range words {
+		index.WriteString(word + "\x00")
+		_ = binary.Write(&index, binary.BigEndian, uint32(offset))
+		_ = binary.Write(&index, binary.BigEndian, uint32(1))
+	}
+	// The real English dictionary repeats aliases and lists an alias that folds
+	// to the target word itself ("dog-food" → "dogfood"), which duplicated results.
+	var synonyms bytes.Buffer
+	for _, alias := range []struct {
+		word   string
+		target uint32
+	}{{"dog-food", 2}, {"dog-food", 0}, {"dogfood", 0}, {"dogfood", 1}, {"dogfood", 2}} {
+		synonyms.WriteString(alias.word + "\x00")
+		_ = binary.Write(&synonyms, binary.BigEndian, alias.target)
+	}
+	ifo := fmt.Sprintf("StarDict's dict ifo file\nversion=3.0.0\nbookname=Fixture\nwordcount=3\nsynwordcount=5\nidxfilesize=%d\n", index.Len())
+	if err := os.WriteFile(path, []byte(ifo), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for name, content := range map[string][]byte{
+		"dictionary.idx": index.Bytes(), "dictionary.syn": synonyms.Bytes(),
+	} {
+		if err := os.WriteFile(filepath.Join(dir, name), content, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	d, err := stardict.Open(path, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	// when
+	matches, err := scanDictionary(context.Background(), d, path, "dogfood")
+	// then
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, m := range matches {
+		got = append(got, m.Word)
+	}
+	want := []string{"dog food", "dog food", "dogfood"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("headwords=%q, want %q", got, want)
+	}
+}
 func TestGivenHTMLWithoutDefinitionListWhenExtractedThenReadableTextIsPreserved(t *testing.T) {
 	// given
 	// when
