@@ -318,8 +318,7 @@ func TestIPAToMnemonicsRejectsUnmappableSymbols(t *testing.T) {
 		language Language
 		ipa      string
 	}{
-		{English, "n\u0329"}, // syllabic n: combining marker has no entry
-		{English, "ø"},
+		{English, "ø"}, // not in the en table (combining marks are stripped before conversion)
 		{English, "β"}, // Spanish-only symbol
 		{Spanish, "ɑː"},
 		{Spanish, "ø"},
@@ -345,6 +344,57 @@ func TestIPAToMnemonicsStripsTheDelimiters(t *testing.T) {
 	}
 	if got, ok := IPAToMnemonics(Spanish, "[ˈola]"); !ok || got != "'ola" {
 		t.Fatalf("got %q (%v)", got, ok)
+	}
+}
+
+func TestStripNonPhonemic(t *testing.T) {
+	// notation, not sound: syllable dots, combining marks (d͡ʒ tie, nasal
+	// tildes, syllabicity); stress and length stay
+	for in, want := range map[string]string{
+		"ˈvɛd͡ʒ.tə.bəl": "ˈvɛdʒtəbəl", // vegetable: tie + dot stripped
+		"[ẽnˈrike]":     "[enˈrike]",  // Enrique: nasal tilde stripped
+		"bʌtn̩":          "bʌtn",       // syllabicity mark stripped
+		"ˈbʌt.ən":       "ˈbʌtən",     // dots stripped
+		"wɜːd":          "wɜːd",       // stress/length and base symbols stay
+		"":              "",
+	} {
+		if got := stripNonPhonemic(in); got != want {
+			t.Fatalf("%q: got %q", in, got)
+		}
+	}
+}
+
+func TestGivenTieBarredTranscriptionWhenPlayedThenTheConversionSucceeds(t *testing.T) {
+	// (post-handoff fixes, sdd/audio-pronunciation.html): the real offline
+	// "vegetable" items carry the d͡ʒ tie and syllable dots — they must be
+	// spoken via the mnemonic conversion, not the headword fallback
+	voices := &fakeVoices{available: true, outputs: phonemeResult("en-gb", "v'EdZt@b@l")}
+	s := service(nil, voices)
+	result := s.Play(context.Background(), PlayRequest{
+		Text: "/ˈvɛd͡ʒ.tə.bəl/", Label: "🇬🇧", LabelTitle: "Received Pronunciation", Language: English, Headword: "vegetable",
+	})
+	want := "data:audio/wav;base64," + base64.StdEncoding.EncodeToString([]byte(wavBytes))
+	if result.Audio != want || result.Source != PlayVoice {
+		t.Fatalf("got %+v", result)
+	}
+	if len(voices.calls) != 1 || voices.calls[0] != (voiceCall{phonemes: true, voice: "en-gb", text: "v'EdZt@b@l"}) {
+		t.Fatalf("voice calls %+v", voices.calls)
+	}
+}
+
+func TestGivenNasalisedTranscriptionWhenPlayedThenTheConversionSucceeds(t *testing.T) {
+	// the real offline "Enrique" item is [ẽnˈrike] — the nasal tilde is
+	// notation; the conversion now speaks it instead of falling back
+	voices := &fakeVoices{available: true, outputs: phonemeResult("es", "enr'ike")}
+	s := service(nil, voices)
+	result := s.Play(context.Background(), PlayRequest{
+		Text: "[ẽnˈrike]", Language: Spanish, Headword: "Enrique",
+	})
+	if result.Audio == "" || result.Source != PlayVoice {
+		t.Fatalf("got %+v", result)
+	}
+	if len(voices.calls) != 1 || voices.calls[0] != (voiceCall{phonemes: true, voice: "es", text: "enr'ike"}) {
+		t.Fatalf("voice calls %+v", voices.calls)
 	}
 }
 
@@ -443,12 +493,14 @@ func TestGivenFailedRecordingWhenPlayedThenTheAccentVoicePlaysInstead(t *testing
 }
 
 func TestGivenUnmappableTranscriptionWhenPlayedThenTheHeadwordIsSpoken(t *testing.T) {
-	// given (S7, revision 3): the syllabic n is outside the table
+	// given (S7, revision 3): ø is outside the table even after the
+	// non-phonemic strip (the /ˈbʌtn̩/ syllabic case now CONVERTS: the mark
+	// is notation, not sound)
 	voices := &fakeVoices{available: true, outputs: voiceResult("en-us", "button")}
 	s := service(nil, voices)
 	// when
 	result := s.Play(context.Background(), PlayRequest{
-		Text: "/ˈbʌtn\u0329/", Label: "🇺🇸", LabelTitle: "General American", Language: English, Headword: "button",
+		Text: "/bʌtø/", Label: "🇺🇸", LabelTitle: "General American", Language: English, Headword: "button",
 	})
 	// then: the headword is spoken as plain text, still as the espeak source
 	want := "data:audio/wav;base64," + base64.StdEncoding.EncodeToString([]byte(wavBytes))
@@ -660,7 +712,7 @@ func TestGivenVoicePackInstalledWhenPlayedThenPiperSpeaksTheStrippedIPA(t *testi
 		Text: "/ˈnɒl.ɪdʒ/", Language: English, Headword: "knowledge",
 	})
 	// then: Piper is called with the shown transcription, delimiters stripped
-	if len(piper.calls) != 1 || piper.calls[0].ipa != "ˈnɒl.ɪdʒ" || piper.calls[0].language != English {
+	if len(piper.calls) != 1 || piper.calls[0].ipa != "ˈnɒlɪdʒ" || piper.calls[0].language != English {
 		t.Fatalf("piper calls %+v", piper.calls)
 	}
 	if len(voices.calls) != 0 {

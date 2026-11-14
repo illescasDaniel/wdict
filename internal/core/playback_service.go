@@ -30,11 +30,15 @@ func (s *PronunciationAudioService) Play(ctx context.Context, request PlayReques
 	}
 	// 2. Piper path (natural voices, C5 of the piper-voices page): only when
 	//    the runtime and the language's voice are installed. The adapter
-	//    wraps the stripped IPA in [[…]]; a failure falls through to the
+	//    wraps the sanitised IPA in [[…]]; a failure falls through to the
 	//    eSpeak path unchanged (F2). Piper problems are logged for
-	//    diagnostics and never shown as errors.
+	//    diagnostics and never shown as errors. Non-phonemic notation
+	//    (syllable dots, combining marks like the d͡ʒ tie, nasal tildes, the
+	//    ɫ̩ syllabicity mark) is stripped first: the voices drop or mis-speak
+	//    it — spoken dots read as extra "a"-like sounds.
+	ipa := stripNonPhonemic(StripPronunciationDelimiters(request.Text))
 	if s.Piper != nil && s.Piper.Available(request.Language) {
-		if data, err := s.Piper.Speak(ctx, request.Language, StripPronunciationDelimiters(request.Text)); err == nil && len(data) > 0 {
+		if data, err := s.Piper.Speak(ctx, request.Language, ipa); err == nil && len(data) > 0 {
 			return PlayResult{Audio: audioDataURI("audio/wav", data), Source: PlayPiper, Voice: s.Piper.Voice(request.Language)}
 		} else {
 			log.Printf("piper: falling back to eSpeak: %v", err)
@@ -48,8 +52,10 @@ func (s *PronunciationAudioService) Play(ctx context.Context, request PlayReques
 	// Voice path (C5, revision 3): the shown IPA is spoken as eSpeak mnemonic
 	// phonemes when every symbol maps (S2); otherwise — or when that
 	// synthesis fails — the headword is spoken as plain text (S7). Both
-	// results stay in the espeak source (C3).
-	if data, ok := s.speakMnemonics(ctx, voice, request); ok {
+	// results stay in the espeak source (C3). Non-phonemic notation is
+	// stripped before conversion so tie-barred affricates (d͡ʒ), syllable
+	// dots and nasalised vowels (ẽ) convert instead of falling back.
+	if data, ok := s.speakMnemonics(ctx, request.Language, voice, ipa); ok {
 		return PlayResult{Audio: audioDataURI("audio/wav", data), Source: PlayVoice, Voice: voice}
 	}
 	if data, ok := s.synthesise(ctx, voice, request.Headword); ok {
@@ -58,11 +64,12 @@ func (s *PronunciationAudioService) Play(ctx context.Context, request PlayReques
 	return PlayResult{Message: CopyNoSynthesis}
 }
 
-// speakMnemonics converts the shown transcription (delimiters stripped) into
-// mnemonic phonemes and speaks them; it reports false when the transcription
-// is not fully mappable or the synthesis fails.
-func (s *PronunciationAudioService) speakMnemonics(ctx context.Context, voice string, request PlayRequest) ([]byte, bool) {
-	mnemonics, ok := IPAToMnemonics(request.Language, StripPronunciationDelimiters(request.Text))
+// speakMnemonics converts the shown transcription into mnemonic phonemes and
+// speaks them; it reports false when the transcription is not fully mappable
+// or the synthesis fails. The input arrives delimiter-stripped and free of
+// non-phonemic notation (see Play).
+func (s *PronunciationAudioService) speakMnemonics(ctx context.Context, language Language, voice, ipa string) ([]byte, bool) {
+	mnemonics, ok := IPAToMnemonics(language, ipa)
 	if !ok {
 		return nil, false
 	}

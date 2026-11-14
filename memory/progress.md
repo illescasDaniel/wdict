@@ -2,6 +2,8 @@
 
 ## Open
 
+- [x] Speech-notation fix committed 2026-11-14 (post-03e1e53): "a \<word\>" and Enrique root causes fixed via `stripNonPhonemic`; verified with the user's real runtime; new fixture tests. Not pushed.
+- [ ] Audio pronunciation + Piper voices committed 2026-11-13 (single commit 03e1e53, not pushed): both features, the "Offline content" screen rename (was "Offline dictionaries"), README voices section, SDD pages, memory updates. Real-window checks still owed.
 - [ ] Verify the duplicate-results fix in the installed v0.7.1 app (search `dogfood`; expect 3 cards: two `dog food` senses and one `dogfood`).
 
 - [x] Committed the offline duplicate-results fix and `opencode.json` (`c8977f6`), bumped to v0.7.1 with rebuilt `frontend/build` (`cade98e`), pushed, CI green (run 43461083397), Release workflow succeeded (run 43461376019, tag `v0.7.1`, AppImage attached), and `go install -tags gtk3 github.com/illescasDaniel/wdict@v0.7.1` updated `/home/daniel/go/bin/wdict` (`wdict --version` prints 0.7.1) on 2026-11-13.

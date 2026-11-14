@@ -129,6 +129,39 @@ func StripPronunciationDelimiters(text string) string {
 	return text
 }
 
+// stripNonPhonemic removes characters that are notation, not sound, before
+// speech synthesis (piper-voices C4, post-handoff fix for "a <word>" and
+// nasalised-vowel reports): syllable dots (the engines read them as pauses or
+// sounds — Wiktionary uses them as syllable separators), combining marks (the
+// d͡ʒ tie, syllabicity marks like ɫ̩) and precomposed nasalised vowels (ẽ —
+// the voices drop them entirely), which the voices drop or mis-read. Stress
+// (ˈ), length (ː) and all base symbols stay.
+func stripNonPhonemic(text string) string {
+	var out strings.Builder
+	out.Grow(len(text))
+	for _, r := range text {
+		switch r {
+		case '.':
+			continue
+		case 'ẽ':
+			r = 'e'
+		case 'ĩ':
+			r = 'i'
+		case 'õ':
+			r = 'o'
+		case 'ũ':
+			r = 'u'
+		case 'ã':
+			r = 'a'
+		}
+		if unicode.Is(unicode.Mn, r) {
+			continue
+		}
+		out.WriteRune(r)
+	}
+	return out.String()
+}
+
 // ipaMnemonics holds the per-language IPA→eSpeak mnemonic phoneme tables (C5,
 // revision 3). Every entry is sourced from the engine's own
 // `espeak-ng -v <voice> -q -x` output on espeak-ng 1.52 and parse-verified
