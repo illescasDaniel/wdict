@@ -2,6 +2,7 @@
 
 ## Open
 
+- [x] Release CI exposed an eSpeak output-limit test hang on Linux: a shell child retained subprocess pipes. The runner now bounds pipe waiting and closes stdout on cancellation; regression tests cover inherited pipes and prompt output-cap abort. Local quality gate passed.
 - [x] User confirmed the pronunciation repair works on 2026-11-14 and requested commit, push and a new release. Memory wrapup ran with consent; pending queue empty.
 - [x] Pronunciation repair 2026-11-14: normalize stress and syllabic endings, preserve Piper nasalization, merge model vowel clusters, reject unsupported phones, bypass legacy synthesis cache. Independent review findings fixed; final ID-assertion addition inspected and run by main agent. `go tool task test` and `go tool task build` passed; off-screen installed-runtime regression asserted actual phone sequences and exact model IDs for vegetable, table and Enrique, plus unknown-phone rejection and cache replay. Updated `/home/daniel/go/bin/wdict` atomically from verified `./wdict` (matching SHA-256); no GUI or speaker playback. Changes uncommitted. Human listening remains unverified.
 - [x] Earlier speech-notation fix committed 2026-11-14 (post-03e1e53) was incomplete: combining-mark stripping did not correct stress/model clusters and erased syllabicity. Superseded by repair above; see decisions and `src:0ae5aa2f26e677b96ca6`.

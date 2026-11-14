@@ -170,12 +170,16 @@ func TestAvailableUsesLookPath(t *testing.T) {
 
 func TestGivenRunnerOutputOverTheWAVCapWhenRunThenItAbortsAtTheCap(t *testing.T) {
 	// given (C5): the real runner reads subprocess output through the cap
-	e := &EspeakVoices{}
-	// when: 5 MiB of output from a real helper process
-	_, err := e.runDefault(context.Background(), "sh", []string{"-c", "head -c 5000000 /dev/zero"})
+	e := &EspeakVoices{Timeout: 3 * time.Second}
+	start := time.Now()
+	// when: an unbounded stream from a shell child that inherits stdout
+	_, err := e.runDefault(context.Background(), "sh", []string{"-c", "yes; :"})
 	// then
 	if err == nil || !strings.Contains(err.Error(), "too large") {
 		t.Fatalf("over-cap output accepted: %v", err)
+	}
+	if elapsed := time.Since(start); elapsed > 2*time.Second {
+		t.Fatalf("took %v; output cap did not abort promptly", elapsed)
 	}
 }
 
@@ -191,12 +195,12 @@ func TestGivenHangingSubprocessWhenRunThenItIsKilledAtTheTimeout(t *testing.T) {
 	e := &EspeakVoices{Timeout: 100 * time.Millisecond}
 	start := time.Now()
 	// when
-	_, err := e.runDefault(context.Background(), "sh", []string{"-c", "sleep 10"})
+	_, err := e.runDefault(context.Background(), "sh", []string{"-c", "sleep 10; :"})
 	// then
 	if err == nil {
 		t.Fatal("hanging subprocess produced output")
 	}
-	if elapsed := time.Since(start); elapsed > 5*time.Second {
-		t.Fatalf("took %v; subprocess was not killed at the timeout", elapsed)
+	if elapsed := time.Since(start); elapsed > 2*time.Second {
+		t.Fatalf("took %v; subprocess or inherited output pipe was not released promptly", elapsed)
 	}
 }

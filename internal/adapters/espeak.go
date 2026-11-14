@@ -124,18 +124,24 @@ func (e *EspeakVoices) runDefault(ctx context.Context, name string, args []strin
 	ctx, cancel := context.WithTimeout(ctx, e.timeout())
 	defer cancel()
 	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.WaitDelay = e.timeout()
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	pipe, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", name, err)
 	}
+	stopCloseStdout := context.AfterFunc(ctx, func() {
+		_ = pipe.Close()
+	})
+	defer stopCloseStdout()
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("%s: %w: %s", name, err, strings.TrimSpace(stderr.String()))
 	}
 	out, readErr := io.ReadAll(io.LimitReader(pipe, maxWAVBytes+1))
 	if len(out) > maxWAVBytes {
-		cancel() // abort at the cap: kill the still-running subprocess before waiting
+		cancel()         // abort at the cap: kill the still-running subprocess before waiting
+		_ = pipe.Close() // release writers, including children that inherited stdout
 	}
 	waitErr := cmd.Wait()
 	if readErr != nil {
