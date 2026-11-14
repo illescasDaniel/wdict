@@ -233,6 +233,7 @@ func (p *PiperVoices) runDefault(ctx context.Context, name string, args []string
 	ctx, cancel := context.WithTimeout(ctx, p.timeout())
 	defer cancel()
 	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.WaitDelay = p.timeout()
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	if stdin != "" {

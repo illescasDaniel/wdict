@@ -273,13 +273,13 @@ func TestGivenHangingPiperWhenSpokenThenItIsKilledAtTheTimeout(t *testing.T) {
 	p := &PiperVoices{Timeout: 100 * time.Millisecond}
 	start := time.Now()
 	// when
-	err := p.runDefault(context.Background(), "sh", []string{"-c", "sleep 10"}, "stdin text")
+	err := p.runDefault(context.Background(), "sh", []string{"-c", "sleep 10; :"}, "stdin text")
 	// then
 	if err == nil {
 		t.Fatal("hanging subprocess produced output")
 	}
-	if elapsed := time.Since(start); elapsed > 5*time.Second {
-		t.Fatalf("took %v; subprocess was not killed at the timeout", elapsed)
+	if elapsed := time.Since(start); elapsed > 2*time.Second {
+		t.Fatalf("took %v; subprocess or inherited stderr pipe was not released promptly", elapsed)
 	}
 }
 
