@@ -1,5 +1,11 @@
 # Active context
 
+## Current pronunciation repair (2026-11-14)
+
+The user confirmed the pronunciation repair works on 2026-11-14 and requested a release. Keep verification off screen and silent. Preserve the shown IPA rather than substituting headword speech. Diagnosis provenance: `src:0ae5aa2f26e677b96ca6`, screened `note:50`. Next step: finish version preparation, commit and push, wait for CI, then dispatch the project Release workflow.
+
+Correction to the historical status below: G1 was approved in chat (“g1”) and resolved to ≤250 MB installed; it is not awaiting a decision. G4 English-only fallback copy and packaging/native-window checks remain separate open items. Historical build/commit status below is superseded by `progress.md` and Git.
+
 ## Natural voices / Piper (2026-11-13, Verify done — user decisions pending)
 
 Built through `sdd/piper-voices.html` (design/spec/architecture approved; "Approved"/"Spec approved"/"Architecture approved"). Go + frontend implemented by delegated coders, tests first. QA exercised the real chain in a sandbox (real PyPI venv+pip install 5.1 s, real checksummed HF voice download, real synthesis 0.34 s peak 32767, cache replay byte-equal; all matches). Independent grader: **PASS** (criteria 2 and 6 PARTIAL). Fixed: Piper failure logging (Q2, pre-grade), traceability fill (G2), voice-specific failure copy `voiceInstallationFailed` en/es (G3, post-grade, not re-graded), Build-tab record for VoicePack.Blocked (G6). Open user decisions: **G1** installed runtime = 210 MB (spike's ≤120 MB stale — recommended: accept measured number), **G4** English-only F4/Blocked copy for v1 (recommended: accept + record). Not committed. **Next step: user decides G1/G4, real-window check of both features, then commit.**

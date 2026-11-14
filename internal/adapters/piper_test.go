@@ -30,12 +30,8 @@ type fakePiperRunner struct {
 func (f *fakePiperRunner) run(_ context.Context, name string, args []string, stdin string) error {
 	f.calls++
 	f.name, f.args, f.stdin = name, args, stdin
-	if f.wav != nil {
-		for i, arg := range args {
-			if arg == "-f" && i+1 < len(args) {
-				return os.WriteFile(args[i+1], f.wav, 0600)
-			}
-		}
+	if f.wav != nil && len(args) > 0 {
+		return os.WriteFile(args[len(args)-1], f.wav, 0600)
 	}
 	return f.err
 }
@@ -70,14 +66,13 @@ func newTestPiper(t *testing.T, runner *fakePiperRunner, cacheDir string) *Piper
 	return &PiperVoices{Dir: dir, CacheDir: cacheDir, runner: runner.run}
 }
 
-func TestGivenVoicePackInstalledWhenSpokenThenTheSubprocessShapeMatchesC4(t *testing.T) {
-	// given (S1/C4): the WAV file must be produced by
-	// venv/bin/python3 -m piper -m <voice.onnx> -f <wav>, fed the IPA inside
-	// [[…]] on stdin, with no shell involved.
+func TestGivenVoicePackInstalledWhenSpokenThenTheSubprocessUsesModelPhones(t *testing.T) {
+	// given: the adapter sends one phone per Unicode scalar to a Python helper
+	// that merges the model's configured vowel clusters and rejects unknowns.
 	runner := &fakePiperRunner{wav: fakeWav(2000)}
 	p := newTestPiper(t, runner, t.TempDir())
 	// when
-	data, err := p.Speak(context.Background(), core.English, "ˈnɒl.ɪdʒ")
+	data, err := p.Speak(context.Background(), core.English, "nˈɒlɪdʒ")
 	// then
 	if err != nil || string(data) != string(fakeWav(2000)) {
 		t.Fatalf("data len=%d err=%v", len(data), err)
@@ -88,20 +83,21 @@ func TestGivenVoicePackInstalledWhenSpokenThenTheSubprocessShapeMatchesC4(t *tes
 	if runner.name != filepath.Join(p.Dir, "venv", "bin", "python3") {
 		t.Fatalf("name=%q", runner.name)
 	}
-	if len(runner.args) != 6 || runner.args[0] != "-m" || runner.args[1] != "piper" ||
-		runner.args[2] != "-m" || runner.args[3] != filepath.Join(p.Dir, "voices", "en_GB-alba-medium", "en_GB-alba-medium.onnx") ||
-		runner.args[4] != "-f" || !strings.HasSuffix(runner.args[5], ".wav") {
+	if len(runner.args) != 4 || runner.args[0] != "-c" ||
+		!strings.Contains(runner.args[1], "voice.config.vowel_clusters") ||
+		runner.args[2] != filepath.Join(p.Dir, "voices", "en_GB-alba-medium", "en_GB-alba-medium.onnx") ||
+		!strings.HasSuffix(runner.args[3], ".wav") {
 		t.Fatalf("args=%q", runner.args)
 	}
-	if runner.stdin != "[[ˈnɒl.ɪdʒ]]" {
+	if runner.stdin != "[\"n\",\"ˈ\",\"ɒ\",\"l\",\"ɪ\",\"d\",\"ʒ\"]" {
 		t.Fatalf("stdin=%q", runner.stdin)
 	}
 	// no shell
 	if runner.name == "sh" || runner.name == "bash" || containsAll(runner.args, "sh", "-c") {
 		t.Fatalf("shell involved: %q %q", runner.name, runner.args)
 	}
-	// (C4): the cache holds the result under the pinned key shape
-	key := fmt.Sprintf("piper:%s:%s", "en_GB-alba-medium", "ˈnɒl.ɪdʒ")
+	// Cache key includes the synthesis pipeline version.
+	key := fmt.Sprintf("piper:v2:%s:%s", "en_GB-alba-medium", "nˈɒlɪdʒ")
 	sum := sha256.Sum256([]byte(key))
 	if _, err := os.Stat(filepath.Join(p.CacheDir, hex.EncodeToString(sum[:]))); err != nil {
 		t.Fatalf("cache miss after synthesis: %v", err)
@@ -125,12 +121,12 @@ func containsAll(args []string, want ...string) bool {
 }
 
 func TestGivenCachedResultWhenSpokenThenNoSubprocessRuns(t *testing.T) {
-	// given (S9): a result cached under sha256("piper:<voice id>:<ipa>")
+	// given (S9): a result cached under sha256("piper:v2:<voice id>:<ipa>")
 	runner := &fakePiperRunner{wav: fakeWav(2000)}
 	cacheDir := t.TempDir()
 	p := newTestPiper(t, runner, cacheDir)
-	ipa := "ˈnɒl.ɪdʒ"
-	key := fmt.Sprintf("piper:%s:%s", "en_GB-alba-medium", ipa)
+	ipa := "nˈɒlɪdʒ"
+	key := fmt.Sprintf("piper:v2:%s:%s", "en_GB-alba-medium", ipa)
 	sum := sha256.Sum256([]byte(key))
 	if err := os.WriteFile(filepath.Join(cacheDir, hex.EncodeToString(sum[:])), fakeWav(3000), 0600); err != nil {
 		t.Fatal(err)
@@ -146,11 +142,33 @@ func TestGivenCachedResultWhenSpokenThenNoSubprocessRuns(t *testing.T) {
 	}
 }
 
+func TestGivenLegacyCacheEntryWhenSpokenThenTheUpdatedPipelineSynthesisesAgain(t *testing.T) {
+	// given: an old pipeline's cache file exists for the same normalized input
+	runner := &fakePiperRunner{wav: fakeWav(2000)}
+	cacheDir := t.TempDir()
+	p := newTestPiper(t, runner, cacheDir)
+	ipa := "nˈɒlɪdʒ"
+	legacyKey := fmt.Sprintf("piper:%s:%s", "en_GB-alba-medium", ipa)
+	legacySum := sha256.Sum256([]byte(legacyKey))
+	if err := os.WriteFile(filepath.Join(cacheDir, hex.EncodeToString(legacySum[:])), fakeWav(3000), 0600); err != nil {
+		t.Fatal(err)
+	}
+	// when
+	data, err := p.Speak(context.Background(), core.English, ipa)
+	// then
+	if err != nil || string(data) != string(fakeWav(2000)) {
+		t.Fatalf("data len=%d err=%v", len(data), err)
+	}
+	if runner.calls != 1 {
+		t.Fatalf("runner calls=%d", runner.calls)
+	}
+}
+
 func TestGivenFailedSynthesisWhenSpokenThenAnErrorIsReturnedAndNothingIsCached(t *testing.T) {
 	// given (S4/C4): failed syntheses are never cached
 	runner := &fakePiperRunner{err: errors.New("exit status 1")}
 	p := newTestPiper(t, runner, t.TempDir())
-	if _, err := p.Speak(context.Background(), core.English, "ˈnɒl.ɪdʒ"); err == nil {
+	if _, err := p.Speak(context.Background(), core.English, "nˈɒlɪdʒ"); err == nil {
 		t.Fatal("failed synthesis accepted")
 	}
 	entries, _ := os.ReadDir(p.CacheDir)
@@ -160,7 +178,7 @@ func TestGivenFailedSynthesisWhenSpokenThenAnErrorIsReturnedAndNothingIsCached(t
 	// when: the subprocess recovers, the next play synthesises again
 	runner.err = nil
 	runner.wav = fakeWav(2000)
-	if _, err := p.Speak(context.Background(), core.English, "ˈnɒl.ɪdʒ"); err != nil {
+	if _, err := p.Speak(context.Background(), core.English, "nˈɒlɪdʒ"); err != nil {
 		t.Fatal(err)
 	}
 	if runner.calls != 2 {
@@ -181,7 +199,7 @@ func TestGivenNonWAVOrEmptyOrSilentOutputWhenSpokenThenAnErrorIsReturned(t *test
 		t.Run(name, func(t *testing.T) {
 			runner := &fakePiperRunner{wav: tc.wav}
 			p := newTestPiper(t, runner, t.TempDir())
-			_, err := p.Speak(context.Background(), core.English, "ˈnɒl.ɪdʒ")
+			_, err := p.Speak(context.Background(), core.English, "nˈɒlɪdʒ")
 			if err == nil {
 				t.Fatal("invalid output accepted")
 			}

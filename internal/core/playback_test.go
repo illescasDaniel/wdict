@@ -348,19 +348,52 @@ func TestIPAToMnemonicsStripsTheDelimiters(t *testing.T) {
 }
 
 func TestStripNonPhonemic(t *testing.T) {
-	// notation, not sound: syllable dots, combining marks (d͡ʒ tie, nasal
-	// tildes, syllabicity); stress and length stay
+	// eSpeak's mnemonic converter cannot represent diacritics, so notation and
+	// marks are stripped only on that fallback path.
 	for in, want := range map[string]string{
-		"ˈvɛd͡ʒ.tə.bəl": "ˈvɛdʒtəbəl", // vegetable: tie + dot stripped
-		"[ẽnˈrike]":     "[enˈrike]",  // Enrique: nasal tilde stripped
-		"bʌtn̩":          "bʌtn",       // syllabicity mark stripped
-		"ˈbʌt.ən":       "ˈbʌtən",     // dots stripped
-		"wɜːd":          "wɜːd",       // stress/length and base symbols stay
+		"ˈvɛd͡ʒ.tə.bəl": "ˈvɛdʒtəbəl",
+		"[ẽnˈrike]":     "[enˈrike]",
+		"bʌtn̩":         "bʌtən",
+		"ˈteɪbl̩":       "ˈteɪbəl",
+		"ˈbʌt.ən":       "ˈbʌtən",
+		"wɜːd":          "wɜːd",
 		"":              "",
 	} {
 		if got := stripNonPhonemic(in); got != want {
 			t.Fatalf("%q: got %q", in, got)
 		}
+	}
+}
+
+func TestNormalizePiperIPA(t *testing.T) {
+	// Piper's raw phone inventory expects stress on the vowel; dots and tie
+	// bars are IPA notation, while nasalization and syllabicity are phonemic.
+	for _, tc := range []struct {
+		language Language
+		input    string
+		want     string
+	}{
+		{English, "/ˈvɛd͡ʒ.tə.bəl/", "vˈɛdʒtəbəl"},
+		{English, "/ˈteɪbl̩/", "tˈeɪbəl"},
+		{English, "[ˈteɪbɫ̩]", "tˈeɪbəɫ"},
+		{English, "ˈbʌtn̩", "bˈʌtən"},
+		{English, "ˌɪnˈkriːs", "ˌɪnkrˈiːs"},
+		{English, "/ˈɡᵻvən/", "ɡˈᵻvən"},
+		{Spanish, "[ẽnˈrike]", "ẽnrˈike"},
+		{Spanish, "ˈẽn", "ˈẽn"},
+	} {
+		got, ok := NormalizePiperIPA(tc.language, tc.input)
+		if !ok || got != tc.want {
+			t.Errorf("NormalizePiperIPA(%s, %q) = %q (%v), want %q", tc.language, tc.input, got, ok, tc.want)
+		}
+	}
+	for _, input := range []string{"ˈ", "ˈˌa"} {
+		if got, ok := NormalizePiperIPA(English, input); ok {
+			t.Errorf("NormalizePiperIPA(%q) = %q, want rejection", input, got)
+		}
+	}
+	if got, ok := NormalizePiperIPA(Language("de"), "ˈwort"); ok {
+		t.Errorf("unsupported language converted to %q", got)
 	}
 }
 
@@ -702,7 +735,7 @@ func piperService(rec *fakeRecordings, piper *fakePiper, voices *fakeVoices) *Pr
 	return s
 }
 
-func TestGivenVoicePackInstalledWhenPlayedThenPiperSpeaksTheStrippedIPA(t *testing.T) {
+func TestGivenVoicePackInstalledWhenPlayedThenPiperGetsModelAlignedIPA(t *testing.T) {
 	// given (S1): runtime + language voice installed, no recording
 	piper := &fakePiper{output: []byte(wavBytes)}
 	voices := &fakeVoices{available: true, outputs: phonemeResult("en-us", "w3:d")}
@@ -711,8 +744,8 @@ func TestGivenVoicePackInstalledWhenPlayedThenPiperSpeaksTheStrippedIPA(t *testi
 	result := s.Play(context.Background(), PlayRequest{
 		Text: "/ˈnɒl.ɪdʒ/", Language: English, Headword: "knowledge",
 	})
-	// then: Piper is called with the shown transcription, delimiters stripped
-	if len(piper.calls) != 1 || piper.calls[0].ipa != "ˈnɒlɪdʒ" || piper.calls[0].language != English {
+	// then: stress is moved to the vowel and syllable notation is removed
+	if len(piper.calls) != 1 || piper.calls[0].ipa != "nˈɒlɪdʒ" || piper.calls[0].language != English {
 		t.Fatalf("piper calls %+v", piper.calls)
 	}
 	if len(voices.calls) != 0 {
@@ -723,6 +756,23 @@ func TestGivenVoicePackInstalledWhenPlayedThenPiperSpeaksTheStrippedIPA(t *testi
 	}
 	if !strings.HasPrefix(result.Audio, "data:audio/wav;base64,") {
 		t.Fatalf("audio %q", result.Audio)
+	}
+}
+
+func TestGivenTableSyllabicLWhenPiperIsUnavailableThenEspeakReceivesSchwaL(t *testing.T) {
+	// given: the shown IPA has a syllabic final lateral and Piper is absent
+	voices := &fakeVoices{available: true, outputs: phonemeResult("en-us", "t'eIb@l")}
+	s := service(nil, voices)
+	// when
+	result := s.Play(context.Background(), PlayRequest{
+		Text: "/ˈteɪbl̩/", Language: English, Headword: "table",
+	})
+	// then: the eSpeak fallback preserves the syllable as an explicit schwa+l
+	if result.Source != PlayVoice || result.Audio == "" {
+		t.Fatalf("result %+v", result)
+	}
+	if len(voices.calls) != 1 || voices.calls[0] != (voiceCall{phonemes: true, voice: "en-us", text: "t'eIb@l"}) {
+		t.Fatalf("voice calls %+v", voices.calls)
 	}
 }
 

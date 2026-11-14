@@ -29,21 +29,24 @@ func (s *PronunciationAudioService) Play(ctx context.Context, request PlayReques
 		}
 	}
 	// 2. Piper path (natural voices, C5 of the piper-voices page): only when
-	//    the runtime and the language's voice are installed. The adapter
-	//    wraps the sanitised IPA in [[…]]; a failure falls through to the
-	//    eSpeak path unchanged (F2). Piper problems are logged for
-	//    diagnostics and never shown as errors. Non-phonemic notation
-	//    (syllable dots, combining marks like the d͡ʒ tie, nasal tildes, the
-	//    ɫ̩ syllabicity mark) is stripped first: the voices drop or mis-speak
-	//    it — spoken dots read as extra "a"-like sounds.
-	ipa := stripNonPhonemic(StripPronunciationDelimiters(request.Text))
+	//    the runtime and the language's voice are installed. Piper consumes
+	//    raw phones, so normalize syllable-initial stress and notation while
+	//    preserving phonemic diacritics. The adapter validates the phones
+	//    against the installed model and clusters its diphthongs. Any failure
+	//    falls through to the eSpeak path (F2).
+	ipa := StripPronunciationDelimiters(request.Text)
 	if s.Piper != nil && s.Piper.Available(request.Language) {
-		if data, err := s.Piper.Speak(ctx, request.Language, ipa); err == nil && len(data) > 0 {
-			return PlayResult{Audio: audioDataURI("audio/wav", data), Source: PlayPiper, Voice: s.Piper.Voice(request.Language)}
-		} else {
-			log.Printf("piper: falling back to eSpeak: %v", err)
+		if piperIPA, ok := NormalizePiperIPA(request.Language, ipa); ok {
+			if data, err := s.Piper.Speak(ctx, request.Language, piperIPA); err == nil && len(data) > 0 {
+				return PlayResult{Audio: audioDataURI("audio/wav", data), Source: PlayPiper, Voice: s.Piper.Voice(request.Language)}
+			} else {
+				log.Printf("piper: falling back to eSpeak: %v", err)
+			}
 		}
 	}
+	// eSpeak's mnemonic syntax cannot represent all IPA diacritics, so only
+	// this fallback strips marks before converting the transcription.
+	ipa = stripNonPhonemic(ipa)
 	// 3. Voice path.
 	if s.Voices == nil || !s.Voices.Available() {
 		return PlayResult{Message: CopyNoSource}

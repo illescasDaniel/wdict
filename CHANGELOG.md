@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.8.0] - 2026-11-14
+
+- Play pronunciations aloud using the displayed pronunciation, with optional natural neural voices from Piper.
+
 ## [0.7.1] - 2026-11-13
 
 - Fix duplicated offline results: the same entry no longer appears once per matching synonym alias when the dictionary lists aliases repeatedly or an alias matches the word itself (for example `dogfood`).

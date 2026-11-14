@@ -55,7 +55,11 @@ func TestGivenRealPipAndVoiceWhenInstalledThenPiperSynthesisesAudibleWAV(t *test
 		t.Fatal("Piper reported unavailable with the pack installed")
 	}
 	started = time.Now()
-	data, err := piper.Speak(ctx, core.English, "ˈnɒl.ɪdʒ")
+	ipa, ok := core.NormalizePiperIPA(core.English, "ˈnɒl.ɪdʒ")
+	if !ok {
+		t.Fatal("test IPA was rejected")
+	}
+	data, err := piper.Speak(ctx, core.English, ipa)
 	if err != nil {
 		t.Fatalf("speak: %v", err)
 	}

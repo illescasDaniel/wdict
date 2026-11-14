@@ -2,7 +2,9 @@
 
 ## Open
 
-- [x] Speech-notation fix committed 2026-11-14 (post-03e1e53): "a \<word\>" and Enrique root causes fixed via `stripNonPhonemic`; verified with the user's real runtime; new fixture tests. Not pushed.
+- [x] User confirmed the pronunciation repair works on 2026-11-14 and requested commit, push and a new release. Memory wrapup ran with consent; pending queue empty.
+- [x] Pronunciation repair 2026-11-14: normalize stress and syllabic endings, preserve Piper nasalization, merge model vowel clusters, reject unsupported phones, bypass legacy synthesis cache. Independent review findings fixed; final ID-assertion addition inspected and run by main agent. `go tool task test` and `go tool task build` passed; off-screen installed-runtime regression asserted actual phone sequences and exact model IDs for vegetable, table and Enrique, plus unknown-phone rejection and cache replay. Updated `/home/daniel/go/bin/wdict` atomically from verified `./wdict` (matching SHA-256); no GUI or speaker playback. Changes uncommitted. Human listening remains unverified.
+- [x] Earlier speech-notation fix committed 2026-11-14 (post-03e1e53) was incomplete: combining-mark stripping did not correct stress/model clusters and erased syllabicity. Superseded by repair above; see decisions and `src:0ae5aa2f26e677b96ca6`.
 - [ ] Audio pronunciation + Piper voices committed 2026-11-13 (single commit 03e1e53, not pushed): both features, the "Offline content" screen rename (was "Offline dictionaries"), README voices section, SDD pages, memory updates. Real-window checks still owed.
 - [ ] Verify the duplicate-results fix in the installed v0.7.1 app (search `dogfood`; expect 3 cards: two `dog food` senses and one `dogfood`).
 

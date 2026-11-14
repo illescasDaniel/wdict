@@ -129,20 +129,107 @@ func StripPronunciationDelimiters(text string) string {
 	return text
 }
 
-// stripNonPhonemic removes characters that are notation, not sound, before
-// speech synthesis (piper-voices C4, post-handoff fix for "a <word>" and
-// nasalised-vowel reports): syllable dots (the engines read them as pauses or
-// sounds — Wiktionary uses them as syllable separators), combining marks (the
-// d͡ʒ tie, syllabicity marks like ɫ̩) and precomposed nasalised vowels (ẽ —
-// the voices drop them entirely), which the voices drop or mis-read. Stress
-// (ˈ), length (ː) and all base symbols stay.
+// NormalizePiperIPA converts display IPA into the raw phone sequence Piper
+// expects: syllable stress moves from the syllable onset to its vowel, syllable
+// dots and affricate tie bars are removed, nasal vowels are decomposed without
+// losing their phonemic tilde, and syllabic sonorants become the model's
+// schwa-plus-sonorant sequence. Other diacritics are kept. The adapter rejects
+// phones outside the installed model's inventory so playback can fall back.
+func NormalizePiperIPA(language Language, ipa string) (string, bool) {
+	if language != English && language != Spanish {
+		return "", false
+	}
+	runes := []rune(StripPronunciationDelimiters(ipa))
+	var out strings.Builder
+	out.Grow(len(ipa))
+	pendingStress := rune(0)
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+		switch r {
+		case '.', '͡', '͜':
+			continue
+		case 'ˈ', 'ˌ':
+			if pendingStress != 0 {
+				return "", false
+			}
+			pendingStress = r
+			continue
+		case 'ã', 'ẽ', 'ĩ', 'õ', 'ũ':
+			if pendingStress != 0 {
+				out.WriteRune(pendingStress)
+				pendingStress = 0
+			}
+			base := r
+			switch r {
+			case 'ã':
+				base = 'a'
+			case 'ẽ':
+				base = 'e'
+			case 'ĩ':
+				base = 'i'
+			case 'õ':
+				base = 'o'
+			case 'ũ':
+				base = 'u'
+			}
+			out.WriteRune(base)
+			out.WriteRune('̃')
+		case 'l', 'ɫ', 'n', 'm':
+			if i+1 < len(runes) && runes[i+1] == '̩' {
+				if pendingStress != 0 {
+					out.WriteRune(pendingStress)
+					pendingStress = 0
+				}
+				out.WriteRune('ə')
+				out.WriteRune(r)
+				i++
+				continue
+			}
+			out.WriteRune(r)
+		default:
+			if pendingStress != 0 && isIPAVowel(r) {
+				out.WriteRune(pendingStress)
+				pendingStress = 0
+			}
+			out.WriteRune(r)
+		}
+	}
+	if pendingStress != 0 {
+		return "", false
+	}
+	return out.String(), true
+}
+
+func isIPAVowel(r rune) bool {
+	// Cover the IPA vowel symbols in the pinned Piper/espeak inventory, not
+	// only the common English/Spanish subset. Stress must move past an onset
+	// to the first nucleus even when the transcription uses less common vowels.
+	return strings.ContainsRune("iyɨʉɯuɪʏʊeøɘɵɤoəɛœɜɞʌɔæɐaɶɑɒɚɝᵻ", r)
+}
+
+// stripNonPhonemic prepares IPA for eSpeak's mnemonic converter. eSpeak does
+// not accept IPA combining notation in its mnemonic input, so syllable dots,
+// combining marks and nasalization marks are omitted only on that fallback
+// path. The Piper path preserves phonemic diacritics through NormalizePiperIPA.
 func stripNonPhonemic(text string) string {
+	runes := []rune(text)
 	var out strings.Builder
 	out.Grow(len(text))
-	for _, r := range text {
-		switch r {
-		case '.':
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+		if (r == 'l' || r == 'ɫ' || r == 'n' || r == 'm') &&
+			i+1 < len(runes) && runes[i+1] == '̩' {
+			out.WriteRune('ə')
+			out.WriteRune(r)
+			i++
 			continue
+		}
+		if r == '.' || r == '͡' || r == '͜' || unicode.Is(unicode.Mn, r) {
+			continue
+		}
+		switch r {
+		case 'ã':
+			r = 'a'
 		case 'ẽ':
 			r = 'e'
 		case 'ĩ':
@@ -151,11 +238,6 @@ func stripNonPhonemic(text string) string {
 			r = 'o'
 		case 'ũ':
 			r = 'u'
-		case 'ã':
-			r = 'a'
-		}
-		if unicode.Is(unicode.Mn, r) {
-			continue
 		}
 		out.WriteRune(r)
 	}
