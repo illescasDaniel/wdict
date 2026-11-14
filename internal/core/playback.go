@@ -140,6 +140,19 @@ func NormalizePiperIPA(language Language, ipa string) (string, bool) {
 		return "", false
 	}
 	runes := []rune(StripPronunciationDelimiters(ipa))
+	// English word-initial unstressed ə becomes ɐ (post-0.8.0 fix, user
+	// report: "appearance" /əˈpiɹ.əns/ loses its start): both pinned voices
+	// are trained on eSpeak's text-mode output, whose English dictionaries
+	// write the initial prefix vowel as ɐ (about → ɐbˈaʊt, appearance →
+	// ɐpˈiəɹəns, occasion → əkˈeɪʒən). The models render a word-initial ə
+	// as near-silence — verified against the installed runtime, where the
+	// ə-variant's audio is the vowel-less audio shifted ~80 ms later —
+	// which reads as the word missing its start. ɐ is the same unstressed
+	// central vowel to the ear; a mid-word ə is common in training and
+	// stays as written.
+	if language == English && len(runes) > 0 && runes[0] == 'ə' {
+		runes[0] = 'ɐ'
+	}
 	var out strings.Builder
 	out.Grow(len(ipa))
 	pendingStress := rune(0)
@@ -148,6 +161,14 @@ func NormalizePiperIPA(language Language, ipa string) (string, bool) {
 		switch r {
 		case '.', '͡', '͜':
 			continue
+		case 'ⁿ':
+			// superscript nasal-release marker (Wednesday /ˈwɛdⁿnz.deɪ/):
+			// spoken as n — no voice map carries the marker itself — unless a
+			// real nasal already follows, where it is redundant
+			if i+1 < len(runes) && strings.ContainsRune("nmŋ", runes[i+1]) {
+				continue
+			}
+			out.WriteRune('n')
 		case 'ˈ', 'ˌ':
 			if pendingStress != 0 {
 				return "", false

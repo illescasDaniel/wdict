@@ -18,8 +18,9 @@ import (
 
 // PiperVoices synthesises speech from model-aligned IPA with the installed
 // Piper voice pack (C4). It implements core.PiperVoice: the venv's Python loads
-// the voice, merges configured vowel clusters, rejects phones outside the
-// model inventory, and writes a WAV that is audibility-guarded and cached.
+// the voice, merges configured vowel clusters, drops diacritics the model
+// inventory lacks (the base phone keeps the sound) while still rejecting
+// unknown base phones, and writes a WAV that is audibility-guarded and cached.
 type PiperVoices struct {
 	Dir      string        // <data>/wdict/piper root: the venv and the voices tree
 	CacheDir string        // shared audio cache directory (same as AudioFetch); empty = no cache
@@ -35,6 +36,7 @@ const piperKillTimeout = 10 * time.Second
 
 const piperSynthesisScript = `import json
 import sys
+import unicodedata
 import wave
 
 import numpy as np
@@ -60,9 +62,18 @@ while i < len(phones):
         merged.append("".join(match))
         i += len(match)
 
-missing = [phone for phone in merged if phone not in voice.config.phoneme_id_map]
-if missing:
-    raise ValueError("unsupported Piper phoneme(s): " + repr(missing))
+# A diacritic (Unicode Mn) outside the model's inventory is dropped: the
+# base phone before it carries the sound (Wiktionary marks Spanish
+# lenition as [saˈβ̞að̞o]; the models have β and ð but no ̞, and the
+# retraction marker ̠ is likewise absent). A missing base phone still
+# aborts — silently dropping it would corrupt the word.
+supported = []
+for phone in merged:
+    if phone in voice.config.phoneme_id_map:
+        supported.append(phone)
+    elif unicodedata.category(phone) != "Mn":
+        raise ValueError("unsupported Piper phoneme(s): " + repr([phone]))
+merged = supported
 
 syn_config = SynthesisConfig()
 ids = voice.phonemes_to_ids(merged)

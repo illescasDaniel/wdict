@@ -45,6 +45,21 @@ func TestGivenInstalledPiperModelsWhenDictionaryIPAIsSpokenThenModelPhonesAreUse
 			[]string{"e", "̃", "n", "r", "ˈ", "i", "k", "e"},
 			[]int{1, 0, 18, 0, 141, 0, 26, 0, 30, 0, 120, 0, 21, 0, 23, 0, 18, 0, 2},
 		},
+		{
+			// post-0.8.0 fix: word-initial ə renders as near-silence in the
+			// en voices (eSpeak's dictionaries write ɐ there), so the shown
+			// initial schwa is fed as ɐ
+			"appearance", core.English, "əˈpiɹ.əns",
+			[]string{"ɐ", "p", "ˈ", "i", "ɹ", "ə", "n", "s"},
+			[]int{1, 0, 50, 0, 28, 0, 120, 0, 21, 0, 88, 0, 59, 0, 26, 0, 31, 0, 2},
+		},
+		{
+			// post-0.8.0 fix: Wiktionary's lenition diacritics (̞) are not in
+			// the voice inventory; the script drops them and keeps β/ð
+			"sábado", core.Spanish, "saˈβ̞að̞o",
+			[]string{"s", "a", "β", "ˈ", "a", "ð", "o"},
+			[]int{1, 0, 31, 0, 14, 0, 125, 0, 120, 0, 14, 0, 41, 0, 27, 0, 2},
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.word, func(t *testing.T) {

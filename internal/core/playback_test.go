@@ -379,6 +379,15 @@ func TestNormalizePiperIPA(t *testing.T) {
 		{English, "ˈbʌtn̩", "bˈʌtən"},
 		{English, "ˌɪnˈkriːs", "ˌɪnkrˈiːs"},
 		{English, "/ˈɡᵻvən/", "ɡˈᵻvən"},
+		// word-initial ə → ɐ (post-0.8.0 fix: "appearance" lost its start —
+		// the voices are trained on eSpeak output, which writes ɐ there and
+		// renders a word-initial ə as near-silence); mid-word ə stays
+		{English, "/əˈpiɹ.əns/", "ɐpˈiɹəns"},
+		{English, "/əˈbaʊt/", "ɐbˈaʊt"},
+		{English, "/əˈpɪə.ɹəns/", "ɐpˈɪəɹəns"},
+		{English, "/bəˈnɑnə/", "bənˈɑnə"},
+		// superscript nasal release is spoken as n
+		{English, "/ˈwɛdⁿnz.deɪ/", "wˈɛdnzdeɪ"},
 		{Spanish, "[ẽnˈrike]", "ẽnrˈike"},
 		{Spanish, "ˈẽn", "ˈẽn"},
 	} {

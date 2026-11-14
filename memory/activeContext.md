@@ -1,10 +1,10 @@
 # Active context
 
-## Current pronunciation repair (2026-11-14)
+## v0.8.0 pronunciation follow-up fixes (2026-11-14, built — commit pending user check)
 
-The user confirmed the pronunciation repair works on 2026-11-14 and requested a release. Keep verification off screen and silent. Preserve the shown IPA rather than substituting headword speech. Diagnosis provenance: `src:0ae5aa2f26e677b96ca6`, screened `note:50`. Next step: finish version preparation, commit and push, wait for CI, then dispatch the project Release workflow.
+v0.8.0 is released and installed. The user reported two new symptoms: English "appearance" /əˈpiɹ.əns/ misses its initial part, and Spanish "Sábado" [saˈβ̞að̞o] sounds robotic (eSpeak fallback). Both root-caused with a ~105-item survey of both offline dictionaries through the real chain and fixed: English word-initial ə→ɐ in `NormalizePiperIPA` (initial ə rendered as ~82 ms of near-silence; the en voices' eSpeak training writes ɐ there), the piper synthesis script drops diacritics missing from the voice inventory (lenition ̞, retraction ̠) while base phones still reject, and ⁿ folds to n. Post-fix survey: 100% Piper, zero fallbacks; integration test (WDICT_PIPER_TEST_DIR, -tags integration) locks appearance→ɐpˈiɹəns and sábado→saβaðo. Gate green. Recorded on both SDD pages (fix budget spent, not re-graded). Keep verification off screen and silent per the user's standing request. **Next step: user listens to /tmp/opencode/survey/appearance-1.wav and /tmp/opencode/survey/sábado-0.wav (or tries the words in a rebuilt app), then commit; on their word, release v0.8.1 and update their install.** Also open: dictionary data quality observations (año [ˈano], quiso [keˈɾeɾ], think's entry returned for thought/sing) — user has not decided whether to chase these (they are in the offline data, not the chain).
 
-Correction to the historical status below: G1 was approved in chat (“g1”) and resolved to ≤250 MB installed; it is not awaiting a decision. G4 English-only fallback copy and packaging/native-window checks remain separate open items. Historical build/commit status below is superseded by `progress.md` and Git.
+Correction to the historical status below: G1 was approved in chat ("g1") and resolved to ≤250 MB installed; it is not awaiting a decision. G4 English-only fallback copy and packaging/native-window checks remain separate open items. Historical build/commit status below is superseded by `progress.md` and Git.
 
 ## Natural voices / Piper (2026-11-13, Verify done — user decisions pending)
 
