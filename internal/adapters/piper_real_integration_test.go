@@ -70,8 +70,9 @@ func TestGivenRealPipAndVoiceWhenInstalledThenPiperSynthesisesAudibleWAV(t *test
 	if peak := wavPeak(data); peak < 1000 {
 		t.Fatalf("output is (near-)silent: peak amplitude %d over %d bytes", peak, len(data))
 	}
-	// then (S9): the replay comes from the cache
-	again, err := piper.Speak(ctx, core.English, "ˈnɒl.ɪdʒ")
+	// then (S9): the replay comes from the cache — the identical normalized
+	// stream (the cache key is the fed IPA, not the shown transcription)
+	again, err := piper.Speak(ctx, core.English, ipa)
 	if err != nil || !bytes.Equal(again, data) {
 		t.Fatalf("replay: len=%d err=%v", len(again), err)
 	}

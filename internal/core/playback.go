@@ -130,11 +130,19 @@ func StripPronunciationDelimiters(text string) string {
 }
 
 // NormalizePiperIPA converts display IPA into the raw phone sequence Piper
-// expects: syllable stress moves from the syllable onset to its vowel, syllable
-// dots and affricate tie bars are removed, nasal vowels are decomposed without
-// losing their phonemic tilde, and syllabic sonorants become the model's
-// schwa-plus-sonorant sequence. Other diacritics are kept. The adapter rejects
-// phones outside the installed model's inventory so playback can fall back.
+// expects: syllable stress moves from the syllable onset to its vowel and a
+// transcription without any stress mark gains the default primary stress
+// eSpeak's own output always carries — per word of a multi-word stream (eight
+// → 'eIt, to say nothing of → t@ s'eI n'VTIN Vv; verified against espeak-ng
+// 1.52) — Wiktionary omits stress on monosyllables and phrase words, but the
+// voices were trained on eSpeak's stressed shapes and render unstressed feeds
+// weakly or garbled. Syllable dots, affix hyphens, affricate tie bars and
+// word-join ties (‿) are removed, whitespace feeds as one space, nasal vowels
+// are decomposed without losing their phonemic tilde, precomposed umlaut
+// vowels fold to their base, the Indian-English retroflex series folds to the
+// nearest standard phone, and syllabic sonorants become the model's
+// schwa-plus-sonorant sequence. Phones no engine of the language speaks are
+// rejected so playback falls back instead of synthesising untrained noise.
 func NormalizePiperIPA(language Language, ipa string) (string, bool) {
 	if language != English && language != Spanish {
 		return "", false
@@ -150,16 +158,42 @@ func NormalizePiperIPA(language Language, ipa string) (string, bool) {
 	// which reads as the word missing its start. ɐ is the same unstressed
 	// central vowel to the ear; a mid-word ə is common in training and
 	// stays as written.
+	// GOAT diphthong: the engine realises əʊ as oʊ in every position (its own
+	// mnemonic table folds əʊ → oU, espeak-ng 1.52 verified), and the voices'
+	// cluster list merges oʊ as one trained phone while ə+ʊ stays an untrained
+	// split pair (oak /əʊk/ fed ɐʊk before this fold). Runs before the
+	// word-initial rule below so the diphthong is folded, not split.
+	if language == English {
+		for i := 0; i+1 < len(runes); i++ {
+			if runes[i] == 'ə' && runes[i+1] == 'ʊ' {
+				runes[i] = 'o'
+			}
+		}
+	}
 	if language == English && len(runes) > 0 && runes[0] == 'ə' {
 		runes[0] = 'ɐ'
 	}
 	var out strings.Builder
 	out.Grow(len(ipa))
 	pendingStress := rune(0)
+	injectStress := !strings.ContainsRune(string(runes), 'ˈ') && !strings.ContainsRune(string(runes), 'ˌ')
+	if injectStress {
+		// No stress mark anywhere: eSpeak's text-mode output — the voices'
+		// training data — always marks an isolated word's stress (eight →
+		// 'eIt, cat → k'at, up → 'Vp) even where Wiktionary's transcription
+		// omits it (/eɪt/), and stresses every word of a stream. Feed the
+		// canonical shape: default primary stress on each word's first
+		// vowel. Unstressed feeds render weakly (the /eɪt/ report lost its
+		// diphthong) and short unstressed sequences can collapse to noise
+		// (the /eʈ/ report).
+		pendingStress = 'ˈ'
+	}
 	for i := 0; i < len(runes); i++ {
 		r := runes[i]
 		switch r {
-		case '.', '͡', '͜':
+		case '.', '͡', '͜', '-', '‿':
+			// ‿ is the liaison/word-join tie (wɪ‿ðə): notation the models
+			// never saw — the joined sounds flow as one prosodic word
 			continue
 		case 'ⁿ':
 			// superscript nasal-release marker (Wednesday /ˈwɛdⁿnz.deɪ/):
@@ -195,6 +229,48 @@ func NormalizePiperIPA(language Language, ipa string) (string, bool) {
 			}
 			out.WriteRune(base)
 			out.WriteRune('̃')
+		case 'ä', 'ö', 'ü', 'ë', 'ï':
+			// precomposed umlaut vowels are centralisation qualifiers, not
+			// separate sounds (out /ˈäʊ̯t/): fold to the base vowel, unlike
+			// nasality the model inventory has no mark for them
+			if pendingStress != 0 {
+				out.WriteRune(pendingStress)
+				pendingStress = 0
+			}
+			switch r {
+			case 'ä':
+				r = 'a'
+			case 'ö':
+				r = 'o'
+			case 'ü':
+				r = 'u'
+			case 'ë':
+				r = 'e'
+			case 'ï':
+				r = 'i'
+			}
+			out.WriteRune(r)
+		case 'ʈ', 'ɖ', 'ʂ', 'ʐ', 'ɳ', 'ɭ', 'ɽ':
+			// Indian-English retroflex series (eight /eʈ/): the voice maps
+			// carry the symbols but no English voice was trained on them —
+			// they synthesise noise. Fold to the nearest standard phone.
+			switch r {
+			case 'ʈ':
+				r = 't'
+			case 'ɖ':
+				r = 'd'
+			case 'ʂ':
+				r = 's'
+			case 'ʐ':
+				r = 'z'
+			case 'ɳ':
+				r = 'n'
+			case 'ɭ':
+				r = 'l'
+			case 'ɽ':
+				r = 'ɾ'
+			}
+			out.WriteRune(r)
 		case 'l', 'ɫ', 'n', 'm':
 			if i+1 < len(runes) && runes[i+1] == '̩' {
 				if pendingStress != 0 {
@@ -208,6 +284,20 @@ func NormalizePiperIPA(language Language, ipa string) (string, bool) {
 			}
 			out.WriteRune(r)
 		default:
+			if unicode.IsSpace(r) {
+				// multi-word IPA (fat finger, /aɪ piː siː siː/) is real
+				// dictionary data and the training text has word spaces; any
+				// whitespace feeds as one space and arms the next word's
+				// default stress (eSpeak's phrase output stresses every word)
+				out.WriteRune(' ')
+				if injectStress {
+					pendingStress = 'ˈ'
+				}
+				continue
+			}
+			if !piperSpeakable(language, r) {
+				return "", false // no engine of this language speaks it: fall back
+			}
 			if pendingStress != 0 && isIPAVowel(r) {
 				out.WriteRune(pendingStress)
 				pendingStress = 0
@@ -226,6 +316,53 @@ func isIPAVowel(r rune) bool {
 	// only the common English/Spanish subset. Stress must move past an onset
 	// to the first nucleus even when the transcription uses less common vowels.
 	return strings.ContainsRune("iyɨʉɯuɪʏʊeøɘɵɤoəɛœɜɞʌɔæɐaɶɑɒɚɝᵻ", r)
+}
+
+// piperNotation lists notation every normalized Piper stream may carry. The
+// symbols are in the voice maps or handled by the adapter's diacritic drop.
+var piperNotation = map[rune]bool{'ˈ': true, 'ˌ': true, 'ː': true, '(': true, ')': true}
+
+// piperExtras lists phones the pinned voices demonstrably speak that sit
+// outside the eSpeak mnemonic tables: ɐ (eSpeak's own word-initial unstressed
+// vowel), ʰ aspiration, ʍ (which), x (loch), ʔ (glottal stop) and ᵻ — all in
+// the installed voice maps and exercised by real dictionary transcriptions.
+// Anything else beyond the mnemonic tables is exotic (retroflexes are folded
+// before this check; clicks and implosives are not) and must fall back: the
+// maps carry every IPA symbol, so the model would happily synthesise
+// untrained noise for them (the eight /eʈ/ report).
+var piperExtras = map[Language]map[rune]bool{
+	English: {'ɐ': true, 'ʰ': true, 'ʍ': true, 'x': true, 'ʔ': true, 'ᵻ': true},
+	Spanish: {},
+}
+
+// piperTableRunes expands the per-language IPA→mnemonic table keys into the
+// set of base phones the language's engines speak.
+var piperTableRunes = func() map[Language]map[rune]bool {
+	out := make(map[Language]map[rune]bool, len(ipaMnemonics))
+	for language, table := range ipaMnemonics {
+		runes := make(map[rune]bool, len(table)*2)
+		for key := range table {
+			for _, r := range key {
+				runes[r] = true
+			}
+		}
+		out[language] = runes
+	}
+	return out
+}()
+
+// piperSpeakable reports whether the language's engines speak one rune of a
+// normalized transcription: notation, combining diacritics (the adapter drops
+// those the model lacks), the mnemonic tables' phones, or a documented extra.
+func piperSpeakable(language Language, r rune) bool {
+	if piperNotation[r] || unicode.Is(unicode.Mn, r) {
+		return true
+	}
+	if extras := piperExtras[language]; extras[r] {
+		return true
+	}
+	runes := piperTableRunes[language]
+	return runes[r]
 }
 
 // stripNonPhonemic prepares IPA for eSpeak's mnemonic converter. eSpeak does
@@ -289,6 +426,9 @@ var ipaMnemonics = map[Language]map[string]string{
 		"ɡ": "g", "g": "g", "ɹ": "r", "r": "r", "ɫ": "l", "l": "l", "ɾ": "R2",
 		"p": "p", "b": "b", "t": "t", "d": "d", "k": "k", "f": "f", "v": "v",
 		"s": "s", "z": "z", "m": "m", "n": "n", "h": "h", "w": "w", "j": "j",
+		// Indian-English retroflex series: fold to the nearest standard
+		// phone (matches NormalizePiperIPA, whose Piper feed folds the same)
+		"ʈ": "t", "ɖ": "d", "ʂ": "s", "ʐ": "z", "ɳ": "n", "ɭ": "l", "ɽ": "R2",
 	},
 	Spanish: {
 		// palatals and lenited fricatives (engine mnemonics)

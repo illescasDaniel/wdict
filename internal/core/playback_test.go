@@ -388,6 +388,37 @@ func TestNormalizePiperIPA(t *testing.T) {
 		{English, "/bəˈnɑnə/", "bənˈɑnə"},
 		// superscript nasal release is spoken as n
 		{English, "/ˈwɛdⁿnz.deɪ/", "wˈɛdnzdeɪ"},
+		// stress-less transcriptions gain the default primary stress eSpeak's
+		// own output always carries (eight → 'eIt): unstressed feeds render
+		// weakly or garble
+		{English, "/eɪt/", "ˈeɪt"},
+		{English, "/kæt/", "kˈæt"},
+		{English, "/oʊk/", "ˈoʊk"},
+		{Spanish, "sol", "sˈol"},
+		// Indian-English retroflex series folds to the nearest standard phone
+		{English, "/eʈ/", "ˈet"},
+		{English, "/ɛ(j)ʈ/", "ˈɛ(j)t"},
+		// precomposed umlaut vowels fold to the base vowel (out /ˈäʊ̯t/)
+		{English, "/ˈäʊ̯t/", "ˈaʊ̯t"},
+		// affix hyphens are notation (it /-aɪt/)
+		{English, "/-aɪt/", "ˈaɪt"},
+		// the GOAT diphthong folds to the engine's own realization oʊ (its
+		// table maps əʊ → oU) so the trained cluster merges: oak /əʊk/,
+		// slow /sləʊ/
+		{English, "/əʊk/", "ˈoʊk"},
+		{English, "/ˈəʊld/", "ˈoʊld"},
+		{English, "/sləʊ/", "slˈoʊ"},
+		// multi-word IPA is real dictionary data: whitespace feeds as one
+		// space (the voice maps carry it), marked words keep their stress
+		{English, "/ˈfæt ˈfɪŋɡə/", "fˈæt fˈɪŋɡə"},
+		// and a stress-less stream gains one stress per word (eSpeak's phrase
+		// output stresses every word: to say nothing of → t@ s'eI n'VTIN Vv)
+		{English, "/aʊt tɒp/", "ˈaʊt tˈɒp"},
+		{English, "/aɪ piː siː siː/", "ˈaɪ pˈiː sˈiː sˈiː"},
+		{Spanish, "poɾ ke", "pˈoɾ kˈe"},
+		// the liaison tie ‿ is notation (wɪ‿ðə): the joined sounds flow as
+		// one prosodic word
+		{English, "/wɪ‿ðə/", "wˈɪðə"},
 		{Spanish, "[ẽnˈrike]", "ẽnrˈike"},
 		{Spanish, "ˈẽn", "ˈẽn"},
 	} {
@@ -396,7 +427,10 @@ func TestNormalizePiperIPA(t *testing.T) {
 			t.Errorf("NormalizePiperIPA(%s, %q) = %q (%v), want %q", tc.language, tc.input, got, ok, tc.want)
 		}
 	}
-	for _, input := range []string{"ˈ", "ˈˌa"} {
+	// phones no engine of the language speaks are rejected so playback falls
+	// back instead of synthesising untrained noise (the voice maps carry
+	// every IPA symbol — e.g. the click ǂ — but no voice was trained on them)
+	for _, input := range []string{"ˈ", "ˈˌa", "/eǂ/", "/ɓa/", "ǂ", "ǃ"} {
 		if got, ok := NormalizePiperIPA(English, input); ok {
 			t.Errorf("NormalizePiperIPA(%q) = %q, want rejection", input, got)
 		}
