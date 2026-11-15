@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.8.1] - 2026-11-15
+
+- Fix pronunciation voices dropping the start of words like `appearance` or `eight` and speaking noise for unsupported sounds (for example the Indian-English `ʈ`): transcriptions without stress marks now keep their vowel, and unsupported phones speak the headword instead.
+
 ## [0.8.0] - 2026-11-14
 
 - Play pronunciations aloud using the displayed pronunciation, with optional natural neural voices from Piper.
