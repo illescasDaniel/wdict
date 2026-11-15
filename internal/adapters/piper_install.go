@@ -133,13 +133,16 @@ func (i *VoicePackInstaller) List(_ context.Context) ([]core.VoicePack, error) {
 			pack.Installed = runtime
 			if !pythonOK {
 				pack.Blocked = piperPythonCopy
+				pack.Reason = core.VoiceBlockedPythonMissing
 			}
 		case core.VoicePackVoice:
 			pack.Installed = i.voiceInstalled(record.id)
 			if !pythonOK {
 				pack.Blocked = piperPythonCopy
+				pack.Reason = core.VoiceBlockedPythonMissing
 			} else if !runtime {
 				pack.Blocked = piperRuntimeFirstCopy
+				pack.Reason = core.VoiceBlockedRuntimeFirst
 			}
 		}
 		packs = append(packs, pack)

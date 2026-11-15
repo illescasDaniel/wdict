@@ -136,7 +136,7 @@ func TestGivenDiskStateWhenListedThenInstalledAndBlockedReflectIt(t *testing.T) 
 		t.Fatal("runtime reported installed on an empty dir")
 	}
 	for _, v := range list[1:] {
-		if v.Installed || v.Blocked != "Download the Piper runtime first." {
+		if v.Installed || v.Blocked != "Download the Piper runtime first." || v.Reason != core.VoiceBlockedRuntimeFirst {
 			t.Fatalf("voice entry %+v", v)
 		}
 	}
@@ -148,13 +148,13 @@ func TestGivenDiskStateWhenListedThenInstalledAndBlockedReflectIt(t *testing.T) 
 		t.Fatal(err)
 	}
 	// then
-	if !list[0].Installed || list[0].Blocked != "" {
+	if !list[0].Installed || list[0].Blocked != "" || list[0].Reason != "" {
 		t.Fatalf("runtime entry %+v", list[0])
 	}
-	if !list[1].Installed || list[1].Blocked != "" {
+	if !list[1].Installed || list[1].Blocked != "" || list[1].Reason != "" {
 		t.Fatalf("alba entry %+v", list[1])
 	}
-	if list[2].Installed || list[2].Blocked != "" {
+	if list[2].Installed || list[2].Blocked != "" || list[2].Reason != "" {
 		t.Fatalf("amy entry %+v", list[2])
 	}
 }
@@ -168,7 +168,7 @@ func TestGivenPythonMissingWhenListedThenEveryEntryIsBlockedWithTheF4Copy(t *tes
 	}
 	const copy = "Python 3 is required for natural voices. Install Python 3 and retry."
 	for n, pack := range list {
-		if pack.Installed || pack.Blocked != copy {
+		if pack.Installed || pack.Blocked != copy || pack.Reason != core.VoiceBlockedPythonMissing {
 			t.Fatalf("entry %d = %+v", n, pack)
 		}
 	}

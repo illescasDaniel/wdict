@@ -89,6 +89,8 @@ The script installs frontend dependencies locally, builds the app and invokes th
 
 Build on an appropriately old supported Linux distribution for wider compatibility: system library versions from the build host affect which other distributions can run the image. The bundled GTK/WebKit stack and its licenses should be reviewed before distribution. Offline dictionary data remains in the user's data directory, outside the AppImage.
 
+The AppImage also bundles the unmodified [eSpeak-NG](https://github.com/espeak-ng/espeak-ng) CLI (the build host's package, plus its data directory, ≈ 20 MB) so the eSpeak-NG playback fallback works on systems without it. eSpeak-NG is GPLv3; it runs as a separate process (an aggregate under GPL-3.0 §5, so the application's MIT license is unaffected) and the image ships the license text and a source offer under `usr/share/licenses/wdict/`. Requires `espeak-ng` on the build machine's PATH; the build fails without it.
+
 ## Natural voices
 
 Pronunciation playback can optionally use natural neural voices ([Piper](https://github.com/OHF-Voice/piper1-gpl)): when a voice pack is installed, play buttons read the shown IPA transcription with a natural voice instead of eSpeak-NG; without one, playback is unchanged and eSpeak-NG remains the automatic fallback.

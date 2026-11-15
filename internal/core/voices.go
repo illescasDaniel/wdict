@@ -17,10 +17,20 @@ const (
 	VoicePackVoice   VoicePackKind = "voice"
 )
 
+// Stable machine-readable reasons for a blocked pack, reported in
+// VoicePack.Reason so the frontend can translate them (the English copy in
+// Blocked is only a fallback).
+const (
+	VoiceBlockedPythonMissing = "python-missing" // python3 is not on the PATH
+	VoiceBlockedRuntimeFirst  = "runtime-first"  // the Piper runtime is not installed yet
+)
+
 // VoicePack is one natural-voices catalog entry as shown in the Voices
 // section. Blocked carries the user-facing copy when downloading is not
-// possible (F4); empty means downloadable. URLs and checksums stay in the
-// adapter, as with dictionaries.
+// possible (F4); Reason carries the same condition as a stable
+// machine-readable value (VoiceBlocked* constants) the frontend can
+// translate. Empty on both means downloadable. URLs and checksums stay in
+// the adapter, as with dictionaries.
 type VoicePack struct {
 	ID        VoicePackID
 	Kind      VoicePackKind
@@ -29,7 +39,8 @@ type VoicePack struct {
 	SizeBytes int64    // exact primary artifact size
 	Source    Source
 	Installed bool
-	Blocked   string // user-facing copy when the download cannot start
+	Blocked   string // user-facing English copy when the download cannot start
+	Reason    string // stable machine-readable reason (VoiceBlocked* constants); empty means downloadable
 }
 
 // VoiceCatalog exposes the pinned natural-voices entries and their installed

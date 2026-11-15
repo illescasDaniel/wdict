@@ -78,6 +78,9 @@ export const resources = {
       naturalVoices: "Natural voices",
       piperOptional: "Piper · optional",
       voiceDownload: "Natural voices download",
+      voiceBlockedPythonMissing:
+        "Python 3 is required for natural voices. Install Python 3 and retry.",
+      voiceBlockedRuntimeFirst: "Download the Piper runtime first.",
     },
   },
   es: {
@@ -164,6 +167,9 @@ export const resources = {
       naturalVoices: "Voces naturales",
       piperOptional: "Piper · opcional",
       voiceDownload: "Descarga de voces naturales",
+      voiceBlockedPythonMissing:
+        "Se necesita Python 3 para las voces naturales. Instala Python 3 y vuelve a intentarlo.",
+      voiceBlockedRuntimeFirst: "Descarga primero el runtime de Piper.",
     },
   },
 };

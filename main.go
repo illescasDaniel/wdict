@@ -326,6 +326,32 @@ func initialWindowSize(width, height int) (int, int) {
 	return int(float64(refWidth)*scale + 0.5), int(float64(refHeight)*scale + 0.5)
 }
 
+// bundledEspeak locates the espeak-ng CLI and its data bundled with the
+// application instead of the system copies (AppImage packaging, GPLv3 §5
+// aggregation decision: the bundled CLI ships alongside the app but stays a
+// separate program). Two layouts are covered: the AppImage one, where the
+// executable sits next to espeak-ng in .../usr/bin and the data in
+// ../share/espeak-ng-data, and an install where the executable is two
+// directory levels below a bin/ holding espeak-ng. Each return value is
+// empty when that piece is absent, so the data directory can be reported
+// even without the binary.
+func bundledEspeak(exePath string) (binary string, dataDir string) {
+	exeDir := filepath.Dir(exePath)
+	for _, binDir := range []string{exeDir, filepath.Join(exeDir, "..", "bin")} {
+		if binary == "" {
+			if info, err := os.Stat(filepath.Join(binDir, "espeak-ng")); err == nil && !info.IsDir() {
+				binary = filepath.Join(binDir, "espeak-ng")
+			}
+		}
+		if dataDir == "" {
+			if info, err := os.Stat(filepath.Join(binDir, "..", "share", "espeak-ng-data")); err == nil && info.IsDir() {
+				dataDir = filepath.Join(binDir, "..", "share", "espeak-ng-data")
+			}
+		}
+	}
+	return binary, dataDir
+}
+
 func main() {
 	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-v") {
 		fmt.Println("wdict " + currentVersion())
@@ -346,7 +372,20 @@ func main() {
 	piperDir := filepath.Join(xdg.DataHome, "wdict", "piper")
 	voicePacks := &adapters.VoicePackInstaller{Dir: piperDir}
 	piper := &adapters.PiperVoices{Dir: piperDir, CacheDir: audioCacheDir(os.UserCacheDir)}
-	playback := &core.PronunciationAudioService{Recordings: audioRecordings(os.UserCacheDir), Piper: piper, Voices: &adapters.EspeakVoices{}}
+	// prefer the bundled espeak-ng (AppImage) over the PATH copy; child
+	// processes inherit the environment, and espeak-ng honours
+	// ESPEAK_DATA_PATH for its data directory
+	espeak := &adapters.EspeakVoices{}
+	if exe, err := os.Executable(); err == nil {
+		binary, dataDir := bundledEspeak(exe)
+		if binary != "" {
+			espeak.Binary = binary
+		}
+		if dataDir != "" {
+			os.Setenv("ESPEAK_DATA_PATH", dataDir)
+		}
+	}
+	playback := &core.PronunciationAudioService{Recordings: audioRecordings(os.UserCacheDir), Piper: piper, Voices: espeak}
 	bilingual := &core.BilingualService{Sources: sourceResolver{english: core.LanguageSources{Offline: &adapters.OfflineDictionary{IFO: installer.CurrentIFO(), Source: adapters.DictionarySourceInfo}, Online: adapters.OnlineDictionary{}, Provider: "free-dictionary-api"}, spanish: core.LanguageSources{Offline: &adapters.OfflineDictionary{IFO: spanish.CurrentIFO(), Source: adapters.SpanishDictionarySourceInfo, Language: core.Spanish}, Online: adapters.SpanishOnlineDictionary{}, Provider: "spanish-wiktionary"}}, Memory: memory, Disk: disk, Clock: clock{}}
 	appService := &App{
 		dictionaries:  &core.DictionaryService{Catalog: catalog, Installer: catalog},

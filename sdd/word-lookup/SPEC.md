@@ -152,3 +152,13 @@ Use the pure-Go `github.com/ianlewis/go-stardict` reader as the selected candida
 - Spanish support is desirable but not required for release.
 - Inflected form resolution, spelling suggestions, and comprehensive morphology are deferred and recorded in project memory.
 - Accounts, history, translation and a public application API.
+
+## Revisions
+
+### 2026-11-15 — offline result ranking (approved in chat)
+
+**Problem** (forensics against the installed xxyzz 20261018 dictionaries): `scanDictionary` returned matches in raw index order with no preference for the queried headword, so alias-redirected and folded matches could precede the exact headword — and the app shows the first card's pronunciation line only. Verified: "año" showed the `-ano` suffix card [ˈano] before año's own [ˈaɲo] (the raw data is correct; `foldWord` strips ñ's combining tilde); "thought" showed think's alias-redirected cards before thought's own entry; "sing" showed `shit` cards first (censored aliases `s****ing`/`s—ing` fold to "sing"). An earlier survey note ("think's entry for thought/sing") was accurate only for thought — no sing→think alias exists in the data.
+
+**Amendment**: offline results are tiered with a stable sort — (1) exact headword (raw equality, case-insensitive only — no diacritic/punctuation folding, so ñ ≠ n), (2) folded match (previous `matches` behaviour), (3) alias-redirected (.syn mapping) — index order preserved within a tier; the once-per-entry dedup (v0.7.1) is unchanged. Offline-first ordering, the online-on-miss chain and alias-only lookups (quiso→querer) are unchanged.
+
+**Recorded as upstream, no in-app fix possible**: "quiso" has no index entry (only .syn aliases → querer, whose stored pronunciation is the infinitive [keˈɾeɾ]; the form pronunciation [ˈkiso] is absent from the data), and many common headwords (cinco, zarpa, llave, song, new, girl, world…) have no pronunciation items at all.

@@ -11,6 +11,11 @@ vi.mock("../lib-api.js", () => ({
 // S8 F4 copy comes from Go verbatim (adapters/voices_catalog.go).
 const PythonCopy =
   "Python 3 is required for natural voices. Install Python 3 and retry.";
+const RuntimeCopy = "Download the Piper runtime first.";
+// Localized copies for the known VoicePack.Reason values (language.js).
+const SpanishPythonCopy =
+  "Se necesita Python 3 para las voces naturales. Instala Python 3 y vuelve a intentarlo.";
+const SpanishRuntimeCopy = "Descarga primero el runtime de Piper.";
 
 function pack(id, name, size, extra = {}) {
   return {
@@ -79,12 +84,16 @@ describe("natural voices section (C7)", () => {
   });
 
   it("given_python_missing_when_section_renders_then_downloads_are_disabled_with_the_verbatim_f4_copy", async () => {
-    // given (S8 UI part, F4)
+    // given (S8 UI part, F4; Reason "python-missing" carries the Go copy)
     call.mockImplementation(async (method) =>
       method === "Dictionaries"
         ? []
         : method === "ListVoices"
-          ? packs.map((p) => ({ ...p, Blocked: PythonCopy }))
+          ? packs.map((p) => ({
+              ...p,
+              Blocked: PythonCopy,
+              Reason: "python-missing",
+            }))
           : {},
     );
     // when
@@ -242,7 +251,7 @@ describe("natural voices section (C7)", () => {
           ? packs.map((p) =>
               p.ID === "piper-runtime"
                 ? p
-                : { ...p, Blocked: "Download the Piper runtime first." },
+                : { ...p, Blocked: RuntimeCopy, Reason: "runtime-first" },
             )
           : {},
     );
@@ -254,6 +263,82 @@ describe("natural voices section (C7)", () => {
     expect(buttons[0].hasAttribute("disabled")).toBe(false);
     for (const button of buttons.slice(1))
       expect(button.hasAttribute("disabled")).toBe(true);
-    expect(screen.getAllByText("Download the Piper runtime first.").length).toBe(3);
+    expect(screen.getAllByText(RuntimeCopy).length).toBe(3);
+  });
+
+  it("given_python_missing_when_the_interface_is_spanish_then_the_python_copy_is_localized", async () => {
+    // given (S8: Reason "python-missing" renders localized copy)
+    call.mockImplementation(async (method) =>
+      method === "Dictionaries"
+        ? []
+        : method === "ListVoices"
+          ? packs.map((p) => ({
+              ...p,
+              Blocked: PythonCopy,
+              Reason: "python-missing",
+            }))
+          : {},
+    );
+    render(Page);
+    await openDictionaries();
+    // when
+    await fireEvent.change(screen.getByLabelText("Language"), {
+      target: { value: "es" },
+    });
+    // then: the Spanish copy replaces the English Go copy
+    await waitFor(() =>
+      expect(
+        screen.getAllByText(SpanishPythonCopy).length,
+      ).toBeGreaterThanOrEqual(1),
+    );
+    expect(screen.queryByText(PythonCopy)).toBeNull();
+  });
+
+  it("given_runtime_first_when_the_interface_is_spanish_then_the_runtime_copy_is_localized", async () => {
+    // given (C7: Reason "runtime-first" renders localized copy)
+    call.mockImplementation(async (method) =>
+      method === "Dictionaries"
+        ? []
+        : method === "ListVoices"
+          ? packs.map((p) =>
+              p.ID === "piper-runtime"
+                ? p
+                : { ...p, Blocked: RuntimeCopy, Reason: "runtime-first" },
+            )
+          : {},
+    );
+    render(Page);
+    await openDictionaries();
+    // when
+    await fireEvent.change(screen.getByLabelText("Language"), {
+      target: { value: "es" },
+    });
+    // then
+    await waitFor(() =>
+      expect(
+        screen.getAllByText(SpanishRuntimeCopy).length,
+      ).toBeGreaterThanOrEqual(1),
+    );
+    expect(screen.queryByText(RuntimeCopy)).toBeNull();
+  });
+
+  it("given_empty_reason_when_the_interface_is_spanish_then_the_go_copy_is_shown_verbatim", async () => {
+    // given (fallback: an empty Reason keeps the Go copy)
+    call.mockImplementation(async (method) =>
+      method === "Dictionaries"
+        ? []
+        : method === "ListVoices"
+          ? packs.map((p) => ({ ...p, Blocked: PythonCopy, Reason: "" }))
+          : {},
+    );
+    render(Page);
+    await openDictionaries();
+    // when
+    await fireEvent.change(screen.getByLabelText("Language"), {
+      target: { value: "es" },
+    });
+    // then: the Go copy is not replaced by the Spanish translation
+    expect(screen.getAllByText(PythonCopy).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText(SpanishPythonCopy)).toBeNull();
   });
 });

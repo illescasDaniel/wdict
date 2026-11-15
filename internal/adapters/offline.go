@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"unicode"
@@ -225,6 +226,21 @@ func foldedMatch(word, key string) bool {
 // scanIndex is a seam so tests can count index scans.
 var scanIndex = scanDictionary
 
+// Match tiers of a scanned index word, in ranking order: lower tiers come
+// first, and within a tier the raw index order is preserved.
+const (
+	exactTier = iota + 1 // the raw word equals the raw query ignoring case, without diacritic or punctuation folding
+	foldedTier           // the word matches after StarDict folding (case, accents, punctuation)
+	aliasTier            // the word matched only through a .syn alias redirect
+)
+
+// tieredWord keeps the match tier found during the single scan pass so the
+// results can be stably sorted by tier at the end.
+type tieredWord struct {
+	word *idx.Word
+	tier int
+}
+
 // scanDictionary reads the original StarDict indexes without constructing a
 // multi-million-entry in-memory search index. Alias positions refer to .idx.
 func scanDictionary(ctx context.Context, d *stardict.Stardict, path, query string) ([]*idx.Word, error) {
@@ -272,7 +288,7 @@ func scanDictionary(ctx context.Context, d *stardict.Stardict, path, query strin
 		return nil, err
 	}
 	defer s.Close()
-	var results []*idx.Word
+	var results []tieredWord
 	for i := uint32(0); s.Scan(); i++ {
 		if i%8192 == 0 {
 			if err := ctx.Err(); err != nil {
@@ -281,9 +297,23 @@ func scanDictionary(ctx context.Context, d *stardict.Stardict, path, query strin
 		}
 		w := s.Word()
 		// The word is reported once even when matching synonym aliases, which
-		// can repeat or fold to the word itself, also point at its index entry.
-		if matches(w.Word) || aliases[i] > 0 {
-			results = append(results, w)
+		// can repeat or fold to the word itself, also point at its index
+		// entry. The recorded tier ranks the results afterwards: the app shows
+		// the pronunciation line of the first card only, so alias-redirected
+		// and folded matches must not outrank the queried headword ("año" vs
+		// the "-ano" suffix card, "thought" vs think's .syn redirects, "sing"
+		// vs the censored "s****ing" aliases that fold to "sing").
+		tier := 0
+		switch {
+		case strings.EqualFold(w.Word, query):
+			tier = exactTier
+		case matches(w.Word):
+			tier = foldedTier
+		case aliases[i] > 0:
+			tier = aliasTier
+		}
+		if tier != 0 {
+			results = append(results, tieredWord{word: w, tier: tier})
 		}
 		delete(aliases, i)
 	}
@@ -293,7 +323,12 @@ func scanDictionary(ctx context.Context, d *stardict.Stardict, path, query strin
 	if len(aliases) != 0 {
 		return nil, errors.New("invalid synonym index")
 	}
-	return results, nil
+	sort.SliceStable(results, func(a, b int) bool { return results[a].tier < results[b].tier })
+	words := make([]*idx.Word, len(results))
+	for i, r := range results {
+		words[i] = r.word
+	}
+	return words, nil
 }
 
 // htmlMeanings extracts the entry's ordered definition list, without exposing

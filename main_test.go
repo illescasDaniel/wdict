@@ -5,6 +5,8 @@ import (
 	"errors"
 	"github.com/illescasDaniel/wdict/internal/adapters"
 	"github.com/illescasDaniel/wdict/internal/core"
+	"os"
+	"path/filepath"
 	"runtime/debug"
 	"testing"
 )
@@ -28,6 +30,88 @@ func TestGivenDisplaySizeWhenChoosingInitialWindowThenReferenceProportionsFit(t 
 func (startupProvider) Find(context.Context, string, core.Language) ([]core.Entry, bool, error) {
 	return []core.Entry{{Headword: "hello"}}, true, nil
 }
+func TestGivenBundledEspeakLayoutWhenLocatedThenBinaryAndDataDirMatch(t *testing.T) {
+	// (AppImage packaging, GPLv3 §5 aggregation): the bundled CLI and its
+	// data are found in the layouts the build produces; each return value
+	// is empty when that piece is absent.
+	for _, tc := range []struct {
+		name        string
+		write       func(t *testing.T, dir string)
+		exe         func(dir string) string
+		wantBinary  func(dir string) string
+		wantDataDir func(dir string) string
+	}{
+		{
+			name: "appimage layout: executable and espeak-ng in usr/bin",
+			write: func(t *testing.T, dir string) {
+				bin := filepath.Join(dir, "usr", "bin")
+				if err := os.MkdirAll(bin, 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Join(bin, "espeak-ng"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.MkdirAll(filepath.Join(dir, "usr", "share", "espeak-ng-data"), 0o755); err != nil {
+					t.Fatal(err)
+				}
+			},
+			exe:         func(dir string) string { return filepath.Join(dir, "usr", "bin", "wdict") },
+			wantBinary:  func(dir string) string { return filepath.Join(dir, "usr", "bin", "espeak-ng") },
+			wantDataDir: func(dir string) string { return filepath.Join(dir, "usr", "share", "espeak-ng-data") },
+		},
+		{
+			name: "install layout: executable two directories below bin",
+			write: func(t *testing.T, dir string) {
+				if err := os.MkdirAll(filepath.Join(dir, "bin"), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Join(dir, "bin", "espeak-ng"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.MkdirAll(filepath.Join(dir, "share", "espeak-ng-data"), 0o755); err != nil {
+					t.Fatal(err)
+				}
+			},
+			exe:         func(dir string) string { return filepath.Join(dir, "lib", "wdict") },
+			wantBinary:  func(dir string) string { return filepath.Join(dir, "bin", "espeak-ng") },
+			wantDataDir: func(dir string) string { return filepath.Join(dir, "share", "espeak-ng-data") },
+		},
+		{
+			name: "data directory without the binary: only the data path is reported",
+			write: func(t *testing.T, dir string) {
+				if err := os.MkdirAll(filepath.Join(dir, "usr", "share", "espeak-ng-data"), 0o755); err != nil {
+					t.Fatal(err)
+				}
+			},
+			exe:         func(dir string) string { return filepath.Join(dir, "usr", "bin", "wdict") },
+			wantBinary:  func(string) string { return "" },
+			wantDataDir: func(dir string) string { return filepath.Join(dir, "usr", "share", "espeak-ng-data") },
+		},
+		{
+			name:        "flat directory without a bundle: nothing found",
+			write:       func(*testing.T, string) {},
+			exe:         func(dir string) string { return filepath.Join(dir, "wdict") },
+			wantBinary:  func(string) string { return "" },
+			wantDataDir: func(string) string { return "" },
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			dir := t.TempDir()
+			tc.write(t, dir)
+			// when
+			binary, dataDir := bundledEspeak(tc.exe(dir))
+			// then
+			if binary != tc.wantBinary(dir) {
+				t.Errorf("binary = %q, want %q", binary, tc.wantBinary(dir))
+			}
+			if dataDir != tc.wantDataDir(dir) {
+				t.Errorf("dataDir = %q, want %q", dataDir, tc.wantDataDir(dir))
+			}
+		})
+	}
+}
+
 func TestGivenCacheDirectoryUnavailableWhenStartingThenLookupStillWorks(t *testing.T) {
 	// given
 	disk := diskCache(func() (string, error) { return "", errors.New("unavailable") })

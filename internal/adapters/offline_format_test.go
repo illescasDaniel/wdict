@@ -119,7 +119,9 @@ func TestGivenRepeatedSynonymAliasesWhenScannedThenEachIndexEntryIsReturnedOnce(
 	for _, m := range matches {
 		got = append(got, m.Word)
 	}
-	want := []string{"dog food", "dog food", "dogfood"}
+	// The exact headword ranks first since the tiering fix; the duplicate
+	// "dog food" entries follow, still reported once each (c8977f6).
+	want := []string{"dogfood", "dog food", "dog food"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("headwords=%q, want %q", got, want)
 	}
@@ -158,5 +160,121 @@ func TestGivenDifferentASCIIWordsWhenMatchedThenFastMatcherAgreesWithFolding(t *
 				t.Errorf("word=%q query=%q got=%v want=%v", word, query, got, want)
 			}
 		}
+	}
+}
+
+// synAlias is one .syn record pointing at a zero-based .idx position.
+type synAlias struct {
+	word   string
+	target uint32
+}
+
+// rankingFixture writes a StarDict index with the given headwords in raw
+// order, plus optional synonym redirects, and returns the .ifo path.
+func rankingFixture(t *testing.T, words []string, aliases []synAlias) string {
+	t.Helper()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "dictionary.ifo")
+	var index, synonyms bytes.Buffer
+	for offset, word := range words {
+		index.WriteString(word + "\x00")
+		_ = binary.Write(&index, binary.BigEndian, uint32(offset))
+		_ = binary.Write(&index, binary.BigEndian, uint32(1))
+	}
+	for _, alias := range aliases {
+		synonyms.WriteString(alias.word + "\x00")
+		_ = binary.Write(&synonyms, binary.BigEndian, alias.target)
+	}
+	ifo := fmt.Sprintf("StarDict's dict ifo file\nversion=3.0.0\nbookname=Fixture\nwordcount=%d\nsynwordcount=%d\nidxfilesize=%d\n", len(words), len(aliases), index.Len())
+	if err := os.WriteFile(path, []byte(ifo), 0600); err != nil {
+		t.Fatal(err)
+	}
+	files := map[string][]byte{"dictionary.idx": index.Bytes()}
+	if len(aliases) > 0 {
+		files["dictionary.syn"] = synonyms.Bytes()
+	}
+	for name, content := range files {
+		if err := os.WriteFile(filepath.Join(dir, name), content, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return path
+}
+
+// TestGivenMixedMatchKindsWhenScannedThenExactHeadwordRanksFirst checks that
+// exact headword cards precede folded matches, which precede alias redirects,
+// with the raw index order preserved inside each tier: the app shows the
+// pronunciation line of the first card only (año/thought/sing reports).
+func TestGivenMixedMatchKindsWhenScannedThenExactHeadwordRanksFirst(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		words   []string
+		aliases []synAlias
+		query   string
+		want    []string
+	}{
+		{
+			// The raw order interleaves every tier: "año" and "Año" are exact
+			// matches (case only), while "ano", "anó" and the "-ano" suffix
+			// card only match once diacritics and punctuation are folded, so
+			// they must not precede the queried headword's [ˈaɲo] card.
+			name:  "exact beats folded",
+			words: []string{"ano", "-ano", "año", "anó", "Año"},
+			query: "año",
+			want:  []string{"año", "Año", "ano", "-ano", "anó"},
+		},
+		{
+			// "thought" sits last in the raw index but must come first; the
+			// think and thinking cards follow through the .syn redirect, and
+			// the alias that points at the queried word itself does not
+			// duplicate it.
+			name:    "exact beats alias",
+			words:   []string{"think", "thinking", "thought"},
+			aliases: []synAlias{{"thought", 0}, {"thought", 1}, {"thought", 2}},
+			query:   "thought",
+			want:    []string{"thought", "think", "thinking"},
+		},
+		{
+			// The censored aliases "s****ing" and "s—ing" fold to "sing" and
+			// redirect to the "shit" card, which must not outrank the queried
+			// headword.
+			name:    "folded alias redirects rank last",
+			words:   []string{"shit", "sing"},
+			aliases: []synAlias{{"s****ing", 0}, {"s—ing", 0}},
+			query:   "sing",
+			want:    []string{"sing", "shit"},
+		},
+		{
+			// An alias redirect still returns results when nothing matches
+			// exactly or after folding (the quiso → querer shape).
+			name:    "alias-only match",
+			words:   []string{"querer"},
+			aliases: []synAlias{{"quiso", 0}},
+			query:   "quiso",
+			want:    []string{"querer"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			path := rankingFixture(t, tc.words, tc.aliases)
+			d, err := stardict.Open(path, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer d.Close()
+			// when
+			matches, err := scanDictionary(context.Background(), d, path, tc.query)
+			// then
+			if err != nil {
+				t.Fatal(err)
+			}
+			var got []string
+			for _, m := range matches {
+				got = append(got, m.Word)
+			}
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("headwords=%q, want %q", got, tc.want)
+			}
+		})
 	}
 }

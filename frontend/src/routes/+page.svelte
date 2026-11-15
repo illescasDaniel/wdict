@@ -351,6 +351,13 @@
       return "installing";
     return "notInstalled";
   }
+  // VoicePack.Reason maps to a translation key; for an unknown or empty
+  // reason the Go copy (VoicePack.Blocked) is shown verbatim.
+  function voiceBlockedKey(reason) {
+    if (reason === "python-missing") return "voiceBlockedPythonMissing";
+    if (reason === "runtime-first") return "voiceBlockedRuntimeFirst";
+    return "";
+  }
   async function downloadVoice(pack) {
     if (voiceDownloadActive) return;
     voiceDownloadActive = true;
@@ -775,7 +782,9 @@
                 >{t("downloadLabel")}</button
               >{/if}
             {#if !pack.Installed && pack.Blocked}<p class="hint">
-                {pack.Blocked}
+                {voiceBlockedKey(pack.Reason)
+                  ? t(voiceBlockedKey(pack.Reason))
+                  : pack.Blocked}
               </p>{/if}
             {#if voiceError && voiceErrorID === pack.ID}<p class="error" role="alert">
                 {t(voiceError)}
