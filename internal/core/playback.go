@@ -158,19 +158,10 @@ func NormalizePiperIPA(language Language, ipa string) (string, bool) {
 	// which reads as the word missing its start. ɐ is the same unstressed
 	// central vowel to the ear; a mid-word ə is common in training and
 	// stays as written.
-	// GOAT diphthong: the engine realises əʊ as oʊ in every position (its own
-	// mnemonic table folds əʊ → oU, espeak-ng 1.52 verified), and the voices'
-	// cluster list merges oʊ as one trained phone while ə+ʊ stays an untrained
-	// split pair (oak /əʊk/ fed ɐʊk before this fold). Runs before the
-	// word-initial rule below so the diphthong is folded, not split.
-	if language == English {
-		for i := 0; i+1 < len(runes); i++ {
-			if runes[i] == 'ə' && runes[i+1] == 'ʊ' {
-				runes[i] = 'o'
-			}
-		}
-	}
-	if language == English && len(runes) > 0 && runes[0] == 'ə' {
+	// The GB model's text phonemizer emits ə, ʊ separately for GOAT,
+	// whereas the US model emits the clustered oʊ. Preserve the displayed
+	// transcription and do not treat an initial diphthong as a prefix schwa.
+	if language == English && len(runes) > 0 && runes[0] == 'ə' && (len(runes) == 1 || runes[1] != 'ʊ') {
 		runes[0] = 'ɐ'
 	}
 	var out strings.Builder

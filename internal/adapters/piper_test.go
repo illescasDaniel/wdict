@@ -97,7 +97,7 @@ func TestGivenVoicePackInstalledWhenSpokenThenTheSubprocessUsesModelPhones(t *te
 		t.Fatalf("shell involved: %q %q", runner.name, runner.args)
 	}
 	// Cache key includes the synthesis pipeline version.
-	key := fmt.Sprintf("piper:v2:%s:%s", "en_GB-alba-medium", "nˈɒlɪdʒ")
+	key := fmt.Sprintf("piper:v3:%s:%s", "en_GB-alba-medium", "nˈɒlɪdʒ")
 	sum := sha256.Sum256([]byte(key))
 	if _, err := os.Stat(filepath.Join(p.CacheDir, hex.EncodeToString(sum[:]))); err != nil {
 		t.Fatalf("cache miss after synthesis: %v", err)
@@ -121,12 +121,12 @@ func containsAll(args []string, want ...string) bool {
 }
 
 func TestGivenCachedResultWhenSpokenThenNoSubprocessRuns(t *testing.T) {
-	// given (S9): a result cached under sha256("piper:v2:<voice id>:<ipa>")
+	// given (S9): a result cached under sha256("piper:v3:<voice id>:<ipa>")
 	runner := &fakePiperRunner{wav: fakeWav(2000)}
 	cacheDir := t.TempDir()
 	p := newTestPiper(t, runner, cacheDir)
 	ipa := "nˈɒlɪdʒ"
-	key := fmt.Sprintf("piper:v2:%s:%s", "en_GB-alba-medium", ipa)
+	key := fmt.Sprintf("piper:v3:%s:%s", "en_GB-alba-medium", ipa)
 	sum := sha256.Sum256([]byte(key))
 	if err := os.WriteFile(filepath.Join(cacheDir, hex.EncodeToString(sum[:])), fakeWav(3000), 0600); err != nil {
 		t.Fatal(err)
@@ -148,7 +148,7 @@ func TestGivenLegacyCacheEntryWhenSpokenThenTheUpdatedPipelineSynthesisesAgain(t
 	cacheDir := t.TempDir()
 	p := newTestPiper(t, runner, cacheDir)
 	ipa := "nˈɒlɪdʒ"
-	legacyKey := fmt.Sprintf("piper:%s:%s", "en_GB-alba-medium", ipa)
+	legacyKey := fmt.Sprintf("piper:v2:%s:%s", "en_GB-alba-medium", ipa)
 	legacySum := sha256.Sum256([]byte(legacyKey))
 	if err := os.WriteFile(filepath.Join(cacheDir, hex.EncodeToString(legacySum[:])), fakeWav(3000), 0600); err != nil {
 		t.Fatal(err)

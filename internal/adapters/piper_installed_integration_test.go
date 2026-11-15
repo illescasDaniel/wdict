@@ -31,6 +31,26 @@ func TestGivenInstalledPiperModelsWhenDictionaryIPAIsSpokenThenModelPhonesAreUse
 		wantIDs    []int
 	}{
 		{
+			"though UK", core.English, "/ðəʊ/",
+			[]string{"ð", "ˈ", "ə", "ʊ"},
+			[]int{1, 0, 41, 0, 120, 0, 59, 0, 100, 0, 2},
+		},
+		{
+			"though US", core.English, "/ðoʊ/",
+			[]string{"ð", "ˈ", "oʊ"},
+			[]int{1, 0, 41, 0, 120, 0, 165, 0, 2},
+		},
+		{
+			"slow UK", core.English, "/sləʊ/",
+			[]string{"s", "l", "ˈ", "ə", "ʊ"},
+			[]int{1, 0, 31, 0, 24, 0, 120, 0, 59, 0, 100, 0, 2},
+		},
+		{
+			"oak UK", core.English, "/əʊk/",
+			[]string{"ˈ", "ə", "ʊ", "k"},
+			[]int{1, 0, 120, 0, 59, 0, 100, 0, 23, 0, 2},
+		},
+		{
 			"vegetable", core.English, "ˈvɛd͡ʒ.tə.bəl",
 			[]string{"v", "ˈ", "ɛ", "d", "ʒ", "t", "ə", "b", "ə", "l"},
 			[]int{1, 0, 34, 0, 120, 0, 61, 0, 17, 0, 108, 0, 32, 0, 59, 0, 15, 0, 59, 0, 24, 0, 2},

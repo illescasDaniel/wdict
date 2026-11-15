@@ -171,7 +171,7 @@ func (p *PiperVoices) Speak(ctx context.Context, language core.Language, ipa str
 	if strings.TrimSpace(ipa) == "" {
 		return nil, errors.New("piper: no pronunciation text")
 	}
-	key := fmt.Sprintf("piper:v2:%s:%s", entry.id, ipa)
+	key := fmt.Sprintf("piper:v3:%s:%s", entry.id, ipa)
 	if cache := p.disk(); cache != nil {
 		if data, ok := cache.get(key); ok {
 			return data, nil

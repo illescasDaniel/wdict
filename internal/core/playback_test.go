@@ -402,12 +402,12 @@ func TestNormalizePiperIPA(t *testing.T) {
 		{English, "/ˈäʊ̯t/", "ˈaʊ̯t"},
 		// affix hyphens are notation (it /-aɪt/)
 		{English, "/-aɪt/", "ˈaɪt"},
-		// the GOAT diphthong folds to the engine's own realization oʊ (its
-		// table maps əʊ → oU) so the trained cluster merges: oak /əʊk/,
-		// slow /sləʊ/
-		{English, "/əʊk/", "ˈoʊk"},
-		{English, "/ˈəʊld/", "ˈoʊld"},
-		{English, "/sləʊ/", "slˈoʊ"},
+		// Preserve the GB and US GOAT transcriptions independently.
+		{English, "/ðəʊ/", "ðˈəʊ"},
+		{English, "/ðoʊ/", "ðˈoʊ"},
+		{English, "/əʊk/", "ˈəʊk"},
+		{English, "/ˈəʊld/", "ˈəʊld"},
+		{English, "/sləʊ/", "slˈəʊ"},
 		// multi-word IPA is real dictionary data: whitespace feeds as one
 		// space (the voice maps carry it), marked words keep their stress
 		{English, "/ˈfæt ˈfɪŋɡə/", "fˈæt fˈɪŋɡə"},

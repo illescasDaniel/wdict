@@ -1,5 +1,9 @@
 # Active context
 
+## Though pronunciation repair (2026-11-15)
+
+Fixed an overbroad Piper normalization: British əʊ was rewritten to American oʊ despite the installed alba phonemizer emitting separate ə, ʊ phones. Both displayed variants are now preserved, onset schwa folding excludes əʊ, and the synthesis cache version changed. Terra implementation and independent review complete; full gate/build and installed-model regression passed per implementer. The user confirmed it works and authorized a commit on 2026-11-15. All agent checks stayed off screen and silent. Next step: investigate Spanish touch provenance/pronunciation and propose compact sense grouping through its Design gate. Existing one-voice-per-language selection can still speak US IPA using alba.
+
 ## Parked-item round (2026-11-15, in progress — commit pending AppImage verification)
 
 After v0.8.1, the user said "let's do these" for all parked items:
