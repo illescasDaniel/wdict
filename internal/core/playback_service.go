@@ -20,6 +20,16 @@ type PronunciationAudioService struct {
 // verbatim copy; errors are never returned because the method has no error
 // result at all.
 func (s *PronunciationAudioService) Play(ctx context.Context, request PlayRequest) PlayResult {
+	if request.Mode == PlaySpelling {
+		if s.Voices == nil || !s.Voices.Available() {
+			return PlayResult{Message: CopyNoSource}
+		}
+		voice := VoiceForAccent(request.Language, "")
+		if data, ok := s.synthesise(ctx, voice, request.Headword); ok {
+			return PlayResult{Audio: audioDataURI("audio/wav", data), Source: PlayVoice, Voice: voice}
+		}
+		return PlayResult{Message: CopyNoSynthesis}
+	}
 	// 1. Recording path: fetch only when not skipped and a source is wired.
 	//    The adapter validates the URL at the edge; a rejected URL behaves
 	//    exactly like a failed fetch here (S10).

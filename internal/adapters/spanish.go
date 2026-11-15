@@ -85,7 +85,7 @@ func (p SpanishOnlineDictionary) Find(ctx context.Context, query string, languag
 	if len(meanings) == 0 {
 		return nil, false, errors.New("unrecognized Spanish entry")
 	}
-	source := core.Source{ID: "spanish-wiktionary", Name: "Wikcionario", URL: "https://es.wiktionary.org/wiki/" + url.PathEscape(strings.ReplaceAll(data.Parse.Title, " ", "_")), Attribution: "Wiktionary contributors; definitions extracted and formatting changed by wdict", LicenseURL: "https://creativecommons.org/licenses/by-sa/4.0/"}
+	source := core.Source{ID: "spanish-wiktionary", Name: "Wikcionario", URL: "https://es.wiktionary.org/wiki/" + url.PathEscape(strings.ReplaceAll(data.Parse.Title, " ", "_")), Attribution: "Wiktionary contributors; adapted by wdict", LicenseURL: "https://creativecommons.org/licenses/by-sa/4.0/"}
 	return []core.Entry{{Headword: data.Parse.Title, Language: language, Pronunciations: core.NormalizePronunciations(spanishOnlinePronunciations(root)), Meanings: meanings, Source: source}}, true, nil
 }
 
@@ -120,7 +120,7 @@ func spanishMeanings(root *html.Node, offline bool) ([]core.Meaning, int) {
 				var b strings.Builder
 				var plain func(*html.Node)
 				plain = func(x *html.Node) {
-					if x.Type == html.ElementNode && (x.Data == "ul" || x.Data == "ol" || x.Data == "sup") {
+					if x.Type == html.ElementNode && (x.Data == "ul" || x.Data == "ol" || x.Data == "sup" || isNonContentElement(x)) {
 						return
 					}
 					if x.Type == html.TextNode {
@@ -237,7 +237,7 @@ func spanishSenseEvidence(root *html.Node, offline bool) map[*html.Node]string {
 					var b strings.Builder
 					var plain func(*html.Node)
 					plain = func(x *html.Node) {
-						if x.Type == html.ElementNode && (x.Data == "ul" || x.Data == "ol" || x.Data == "sup") {
+						if x.Type == html.ElementNode && (x.Data == "ul" || x.Data == "ol" || x.Data == "sup" || isNonContentElement(x)) {
 							return
 						}
 						if x.Type == html.TextNode {
@@ -280,10 +280,19 @@ func spanishSenseEvidence(root *html.Node, offline bool) map[*html.Node]string {
 	return result
 }
 
+// isNonContentElement reports elements whose text is code, not content
+// (MediaWiki TemplateStyles emit <style> inside definitions).
+func isNonContentElement(n *html.Node) bool {
+	return n.Type == html.ElementNode && (n.Data == "style" || n.Data == "script" || n.Data == "noscript")
+}
+
 func spanishNodeText(n *html.Node) string {
 	var b strings.Builder
 	var f func(*html.Node)
 	f = func(x *html.Node) {
+		if isNonContentElement(x) {
+			return
+		}
 		if x.Type == html.TextNode {
 			b.WriteString(x.Data)
 		}
@@ -415,6 +424,8 @@ func spanishCellValues(cell *html.Node) []core.Pronunciation {
 			switch {
 			case c.Type == html.TextNode:
 				current.WriteString(c.Data)
+			case isNonContentElement(c):
+				// TemplateStyles CSS and scripts are not pronunciation text.
 			case c.Type == html.ElementNode && c.Data == "br":
 				flush()
 			case c.Type == html.ElementNode && hasClass(c, "ext-phonos"):

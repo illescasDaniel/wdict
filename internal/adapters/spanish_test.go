@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/illescasDaniel/wdict/internal/core"
+	"golang.org/x/net/html"
 )
 
 func TestGivenMultipleLanguagesWhenSpanishParsedThenOnlySpanishDefinitionsAreReturned(t *testing.T) {
@@ -106,5 +107,48 @@ func TestGivenBadGatewayWhenEitherLanguageIsQueriedThenFailureIsSilent(t *testin
 				t.Fatalf("found=%v err=%v", found, err)
 			}
 		})
+	}
+}
+
+func TestGivenStyleInsideDefinitionWhenSpanishParsedThenCSSIsNotInDefinition(t *testing.T) {
+	// given
+	body := `{"parse":{"title":"Car","text":"<h2 id=\"Español\">Español</h2><h4><style data-mw-deduplicate=\"x\">.h{color:red}</style>Sustantivo propio</h4><dl><dt>1</dt><dd><style data-mw-deduplicate=\"TemplateStyles:r1\">.mw-parser-output .definicion-impropia{font-style:italic}</style>Apellido.<script>var leak=1</script><noscript>nojs</noscript></dd></dl>"}}`
+	p := SpanishOnlineDictionary{Client: &http.Client{Transport: transportFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(body)), Header: make(http.Header)}, nil
+	})}}
+	// when
+	entries, found, err := p.Find(context.Background(), "Car", core.Spanish)
+	// then
+	if err != nil || !found || len(entries) != 1 || len(entries[0].Meanings) != 1 {
+		t.Fatalf("%+v %v %v", entries, found, err)
+	}
+	m := entries[0].Meanings[0]
+	if m.Definitions[0] != "Apellido." || m.PartOfSpeech != "Sustantivo propio" {
+		t.Fatalf("leaked markup: %q / %q", m.Definitions[0], m.PartOfSpeech)
+	}
+}
+
+func TestGivenStyleInPronunciationCellWhenValuesReadThenCSSIsNotPronunciation(t *testing.T) {
+	// given
+	doc, err := html.Parse(strings.NewReader(`<table><tr><td><style>.x{color:red}</style>kar</td></tr></table>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cell *html.Node
+	var find func(*html.Node)
+	find = func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == "td" {
+			cell = n
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			find(c)
+		}
+	}
+	find(doc)
+	// when
+	values := spanishCellValues(cell)
+	// then
+	if len(values) != 1 || values[0].Text != "kar" {
+		t.Fatalf("%+v", values)
 	}
 }

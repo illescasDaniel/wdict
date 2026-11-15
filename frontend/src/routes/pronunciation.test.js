@@ -200,7 +200,7 @@ describe("pronunciation line", () => {
       screen.getByRole("group", { name: "Pronunciation" }).textContent.trim(),
     ).toBe("🇺🇸 /hɛˈloʊ/ · Northumbria /haˈlaʊ/");
   });
-  it("given_repeated_and_differing_lists_when_displayed_then_only_first_card_of_identical_list_shows_line", async () => {
+  it("given_repeated_and_differing_lists_when_displayed_then_every_record_shows_its_own_line", async () => {
     // given
     const same = [
       { Text: "/hɛˈloʊ/", Label: "🇺🇸", LabelTitle: "General American" },
@@ -225,7 +225,14 @@ describe("pronunciation line", () => {
     const lines = screen
       .getAllByRole("group", { name: "Pronunciation" })
       .map((line) => line.textContent.trim());
-    expect(lines).toEqual(["🇺🇸 /hɛˈloʊ/", "/ɹiːd/", "/ɹɛd/"]);
+    expect(lines).toEqual([
+      "🇺🇸 /hɛˈloʊ/",
+      "🇺🇸 /hɛˈloʊ/",
+      "🇺🇸 /hɛˈloʊ/",
+      "/ɹiːd/",
+      "/ɹiːd/",
+      "/ɹɛd/",
+    ]);
   });
   it("given_same_headword_and_list_in_two_languages_when_shown_as_previous_result_then_both_lines_are_shown", async () => {
     // given
@@ -253,5 +260,53 @@ describe("pronunciation line", () => {
       .getAllByRole("group", { name: "Pronunciation" })
       .map((line) => line.textContent.trim());
     expect(lines).toEqual(["/ˈola/", "/ˈola/"]);
+  });
+});
+
+describe("pronunciation clustering on the page", () => {
+  const groupedSource = { ...source, ID: "example" };
+  const grouped = (pronunciations, definition) => ({
+    ...entryWith(pronunciations),
+    Source: groupedSource,
+    Meanings: [{ PartOfSpeech: "noun", Definitions: [definition] }],
+  });
+  it("given_two_records_with_same_pronunciation_when_displayed_then_one_row_and_one_origin_hint_and_one_source", async () => {
+    // given
+    const same = [{ Text: "/kɑː/", Label: "🇬🇧" }];
+    mockBackend(() => ({
+      Status: "found",
+      Origin: "offline",
+      Entries: [grouped(same, "a greeting"), grouped(same, "second sense")],
+    }));
+    render(Page);
+    // when
+    await lookUp();
+    // then
+    expect(
+      screen.getAllByRole("group", { name: "Pronunciation" }),
+    ).toHaveLength(1);
+    expect(screen.getAllByText(/Offline result/)).toHaveLength(1);
+    expect(screen.getByText("a greeting")).toBeTruthy();
+    expect(screen.getByText("second sense")).toBeTruthy();
+    expect(screen.getAllByText(/Source: Example/)).toHaveLength(1);
+  });
+  it("given_two_records_with_different_pronunciation_when_displayed_then_rows_stay_separate", async () => {
+    // given
+    mockBackend(() => ({
+      Status: "found",
+      Origin: "offline",
+      Entries: [
+        grouped([{ Text: "/kɑː/", Label: "🇬🇧" }], "a greeting"),
+        grouped([{ Text: "/kɑʊ/", Label: "🇬🇧" }], "second sense"),
+      ],
+    }));
+    render(Page);
+    // when
+    await lookUp();
+    // then
+    expect(
+      screen.getAllByRole("group", { name: "Pronunciation" }),
+    ).toHaveLength(2);
+    expect(screen.getAllByText(/Offline result/)).toHaveLength(2);
   });
 });

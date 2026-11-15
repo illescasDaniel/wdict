@@ -9,7 +9,12 @@ import (
 )
 
 // PlayRequest carries one transcription item from the pronunciation line.
+type PlayMode string
+
+const PlaySpelling PlayMode = "spelling"
+
 type PlayRequest struct {
+	Mode          PlayMode
 	Text          string // transcription as shown, e.g. "/wɝːd/" (display/keying only)
 	Label         string // flags or source label as shown
 	LabelTitle    string // original accent label, e.g. "General American"

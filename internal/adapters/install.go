@@ -28,8 +28,8 @@ const dictionarySize int64 = 142487509
 const dictionaryVersion = "20261018"
 const dictionaryID = "wiktionary-en-20261018"
 
-var SpanishDictionarySourceInfo = core.Source{ID: "wiktionary-es-20261018", Name: "Wikcionario Español-Español", URL: "https://es.wiktionary.org/", Attribution: "Wiktionary contributors, CC BY-SA 4.0; compiled by xxyzz; definitions extracted and formatting changed by wdict", LicenseURL: "https://creativecommons.org/licenses/by-sa/4.0/", AdditionalURLs: []string{"https://xxyzz.github.io/wiktionary_stardict/"}}
-var DictionarySourceInfo = core.Source{ID: dictionaryID, Name: "Wiktionary English-English", URL: "https://en.wiktionary.org/", Attribution: "Wiktionary contributors, CC BY-SA 4.0; compiled by xxyzz; definitions extracted and formatting changed by wdict", LicenseURL: "https://creativecommons.org/licenses/by-sa/4.0/", AdditionalURLs: []string{"https://xxyzz.github.io/wiktionary_stardict/"}}
+var SpanishDictionarySourceInfo = core.Source{ID: "wiktionary-es-20261018", Name: "Wikcionario Español-Español", URL: "https://es.wiktionary.org/", Attribution: "Wiktionary contributors, CC BY-SA 4.0; compiled by xxyzz; adapted by wdict", LicenseURL: "https://creativecommons.org/licenses/by-sa/4.0/", AdditionalURLs: []string{"https://xxyzz.github.io/wiktionary_stardict/"}}
+var DictionarySourceInfo = core.Source{ID: dictionaryID, Name: "Wiktionary English-English", URL: "https://en.wiktionary.org/", Attribution: "Wiktionary contributors, CC BY-SA 4.0; compiled by xxyzz; adapted by wdict", LicenseURL: "https://creativecommons.org/licenses/by-sa/4.0/", AdditionalURLs: []string{"https://xxyzz.github.io/wiktionary_stardict/"}}
 
 type Installer struct {
 	Dir             string

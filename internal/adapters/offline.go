@@ -19,8 +19,6 @@ import (
 	"github.com/ianlewis/go-stardict/syn"
 	"github.com/illescasDaniel/wdict/internal/core"
 	"golang.org/x/net/html"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/unicode/norm"
 )
 
 // OfflineDictionary opens the dictionary lazily and scans its compact indexes.
@@ -145,47 +143,9 @@ func (d *OfflineDictionary) remember(key string, entries []core.Entry) {
 	}
 }
 
-// foldWord mirrors the default StarDict case, whitespace, accent and punctuation folding.
-func foldWord(word string) string {
-	if ascii(word) {
-		var b strings.Builder
-		space := false
-		started := false
-		for _, c := range word {
-			if unicode.IsSpace(c) {
-				if started {
-					space = true
-				}
-				continue
-			}
-			if space {
-				b.WriteByte(' ')
-				space = false
-			}
-			started = true
-			if unicode.IsPunct(c) {
-				continue
-			}
-			if c >= 'A' && c <= 'Z' {
-				c += 'a' - 'A'
-			}
-			b.WriteRune(c)
-		}
-		return b.String()
-	}
-	word = cases.Fold().String(norm.NFD.String(word))
-	word = strings.Join(strings.Fields(word), " ")
-	word = strings.Map(func(r rune) rune {
-		if unicode.Is(unicode.Mn, r) || unicode.IsPunct(r) {
-			return -1
-		}
-		return r
-	}, word)
-	return norm.NFC.String(word)
-}
-
+func foldWord(word string) string { return core.FoldWord(word) }
 func ascii(s string) bool {
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		if s[i] >= 128 {
 			return false
 		}
@@ -230,7 +190,7 @@ func foldedMatch(word, key string) bool {
 }
 
 // scanIndex is a seam so tests can count index scans.
-var scanIndex = scanDictionary
+var scanIndex = scanDictionaryCanonical
 
 // Match tiers of a scanned index word, in ranking order: lower tiers come
 // first, and within a tier the raw index order is preserved.
@@ -250,6 +210,12 @@ type tieredWord struct {
 // scanDictionary reads the original StarDict indexes without constructing a
 // multi-million-entry in-memory search index. Alias positions refer to .idx.
 func scanDictionary(ctx context.Context, d *stardict.Stardict, path, query string) ([]*idx.Word, error) {
+	return scanDictionaryWithOrder(ctx, d, path, query, false)
+}
+func scanDictionaryCanonical(ctx context.Context, d *stardict.Stardict, path, query string) ([]*idx.Word, error) {
+	return scanDictionaryWithOrder(ctx, d, path, query, true)
+}
+func scanDictionaryWithOrder(ctx context.Context, d *stardict.Stardict, path, query string, canonical bool) ([]*idx.Word, error) {
 	key := foldWord(query)
 	matches := func(word string) bool {
 		if key == "" {
@@ -329,7 +295,9 @@ func scanDictionary(ctx context.Context, d *stardict.Stardict, path, query strin
 	if len(aliases) != 0 {
 		return nil, errors.New("invalid synonym index")
 	}
-	sort.SliceStable(results, func(a, b int) bool { return results[a].tier < results[b].tier })
+	if !canonical {
+		sort.SliceStable(results, func(a, b int) bool { return results[a].tier < results[b].tier })
+	}
 	words := make([]*idx.Word, len(results))
 	for i, r := range results {
 		words[i] = r.word
@@ -392,7 +360,7 @@ func htmlFallbackText(n *html.Node) string {
 	var b strings.Builder
 	var walk func(*html.Node)
 	walk = func(n *html.Node) {
-		if n.Type == html.ElementNode && (n.Data == "script" || n.Data == "style") {
+		if n.Type == html.ElementNode && (n.Data == "script" || n.Data == "style" || n.Data == "noscript") {
 			return
 		}
 		if n.Type == html.TextNode {
@@ -413,7 +381,7 @@ func nodeText(n *html.Node) string {
 	var b strings.Builder
 	var walk func(*html.Node)
 	walk = func(n *html.Node) {
-		if n.Type == html.ElementNode && (n.Data == "script" || n.Data == "style" || n.Data == "dl" || n.Data == "ol" || n.Data == "ul") {
+		if n.Type == html.ElementNode && (n.Data == "script" || n.Data == "style" || n.Data == "noscript" || n.Data == "dl" || n.Data == "ol" || n.Data == "ul") {
 			return
 		}
 		if n.Type == html.TextNode {

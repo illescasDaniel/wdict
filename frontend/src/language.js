@@ -27,6 +27,13 @@ export const resources = {
       savedResult: "Saved result",
       source: "Source",
       pronunciation: "Pronunciation",
+      pronunciationUnavailable: "Pronunciation unavailable in this source",
+      readWordAloud: "Read word aloud",
+      spellingSynthesized:
+        "Synthesized from spelling; source pronunciation unavailable",
+      spellingNoSource:
+        "eSpeak-NG is not available. Install it or use the AppImage to read this word.",
+      spellingNoSynthesis: "Could not synthesize this word. Try again.",
       playPronunciation: "Play pronunciation",
       recordingSource: "Recording",
       playbackFailed: "Pronunciation playback failed. Try again.",
@@ -41,7 +48,8 @@ export const resources = {
       checkingAlternatives: "Checking possible alternatives…",
       alternativesUnavailable: "Suggestions are unavailable right now.",
       alternativesTimedOut: "Suggestions timed out.",
-      alternativesNeedDictionary: "Install the offline dictionary to see suggestions.",
+      alternativesNeedDictionary:
+        "Install the offline dictionary to see suggestions.",
       noAlternatives: "No suggestions found.",
       possibleBaseForms: "Possible base forms",
       didYouMean: "Did you mean?",
@@ -112,6 +120,14 @@ export const resources = {
       savedResult: "Resultado guardado",
       source: "Fuente",
       pronunciation: "Pronunciación",
+      pronunciationUnavailable: "Pronunciación no disponible en esta fuente",
+      readWordAloud: "Leer palabra en voz alta",
+      spellingSynthesized:
+        "Voz sintetizada a partir de la escritura; pronunciación de la fuente no disponible",
+      spellingNoSource:
+        "eSpeak-NG no está disponible. Instálalo o usa la AppImage para leer esta palabra.",
+      spellingNoSynthesis:
+        "No se pudo sintetizar esta palabra. Vuelve a intentarlo.",
       playPronunciation: "Reproducir la pronunciación",
       recordingSource: "Grabación",
       playbackFailed:
@@ -128,7 +144,8 @@ export const resources = {
       checkingAlternatives: "Buscando posibles alternativas…",
       alternativesUnavailable: "Las sugerencias no están disponibles ahora.",
       alternativesTimedOut: "Las sugerencias superaron el tiempo límite.",
-      alternativesNeedDictionary: "Instala el diccionario sin conexión para ver sugerencias.",
+      alternativesNeedDictionary:
+        "Instala el diccionario sin conexión para ver sugerencias.",
       noAlternatives: "No se encontraron sugerencias.",
       possibleBaseForms: "Posibles formas base",
       didYouMean: "¿Quizás quisiste decir?",

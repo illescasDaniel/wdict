@@ -1192,3 +1192,105 @@ describe("result order", () => {
     expect(document.querySelector(".version")).toBeNull();
   });
 });
+
+describe("grouped records and spelling playback", () => {
+  it("given_matching_records_without_ipa_when_displayed_then_one_card_preserves_both_records_and_reads_the_chosen_word", async () => {
+    // given
+    const source = {
+      ID: "wiktionary",
+      Name: "Example",
+      URL: "https://example.com/Car",
+      LicenseURL: "https://example.com/license",
+      AdditionalURLs: [],
+    };
+    const records = ["language", "surname"].map((definition) => ({
+      Headword: "Car",
+      Language: "en",
+      Source: source,
+      Meanings: [{ PartOfSpeech: "Proper noun", Definitions: [definition] }],
+    }));
+    mockBackend(async (method) =>
+      method === "Lookup"
+        ? { Status: "found", Origin: "offline", Entries: records }
+        : method === "PlayPronunciation"
+          ? { Message: "Could not synthesise this pronunciation." }
+          : method === "Dictionaries"
+            ? []
+            : null,
+    );
+    render(Page);
+    // when
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await screen.findByText("surname");
+    // then
+    expect(
+      screen.getAllByRole("heading", { name: "English · Car" }),
+    ).toHaveLength(1);
+    expect(
+      screen.getAllByText("Pronunciation unavailable in this source"),
+    ).toHaveLength(1);
+    expect(
+      screen.getAllByRole("button", { name: "Read word aloud" }),
+    ).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Read word aloud" }).title).toBe(
+      "Synthesized from spelling; source pronunciation unavailable",
+    );
+    expect(
+      document.getElementById(
+        screen
+          .getByRole("button", { name: "Read word aloud" })
+          .getAttribute("aria-describedby"),
+      ).textContent,
+    ).toBe("Synthesized from spelling; source pronunciation unavailable");
+    expect(screen.getByText("language").closest("article")).toBe(
+      screen.getByText("surname").closest("article"),
+    );
+    expect(
+      call.mock.calls.filter(([method]) => method === "PlayPronunciation"),
+    ).toHaveLength(0);
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Read word aloud" }),
+    );
+    await waitFor(() =>
+      expect(call).toHaveBeenCalledWith(
+        "PlayPronunciation",
+        expect.objectContaining({
+          Mode: "spelling",
+          Headword: "Car",
+          Language: "en",
+        }),
+      ),
+    );
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "Could not synthesize this word. Try again.",
+    );
+  });
+  it("given_spanish_interface_when_pronunciation_is_missing_then_spelling_action_is_localized", async () => {
+    // given
+    mockBackend(async (method) =>
+      method === "Lookup"
+        ? { Status: "found", Origin: "offline", Entries: [entry] }
+        : method === "Dictionaries"
+          ? []
+          : null,
+    );
+    render(Page);
+    await fireEvent.change(screen.getByLabelText("Language"), {
+      target: { value: "es" },
+    });
+    // when
+    await fireEvent.click(screen.getByRole("button", { name: "Buscar" }));
+    // then
+    expect(
+      await screen.findByText("Pronunciación no disponible en esta fuente"),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Leer palabra en voz alta" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Voz sintetizada a partir de la escritura; pronunciación de la fuente no disponible",
+      ),
+    ).toBeTruthy();
+  });
+});

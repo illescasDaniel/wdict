@@ -196,3 +196,18 @@ The earlier summary attributed missing regional/usage labels to the downloaded H
 ## 2026-11-15 — Compact senses Architecture
 
 User approved Architecture with “approved” (`src:0bca999a06584a994142`). Optional `Meaning.SenseGroup` records confirmed source-run provenance, isolated per offline payload; the frontend combines adjacent compatible senses without mutating stored arrays. Extraction-only coalescing was rejected because newly cached combined definitions would survive presentation rollback. Legacy caches remain separate without forced refresh. Automatic QA and independent grading remain enabled.
+
+
+## 2026-11-15 — Result ranking investigation
+
+EqualFold exact-tier ranking preserves source order and ties Car with car. Offline query caching also folds case, so a ranking repair must handle replay. Installed Car records lack IPA; source case variants such as Polish/polish can pronounce differently. Never fill missing proper-name IPA from a lowercase entry. Verified current code and Terra installed-dictionary inspection; evidence src:75bf6182301f5ac4a614. New ranking/grouping/audio design remains unapproved.
+
+
+## 2026-11-15 — Result ranking Design
+
+User approved sdd/result-ranking.html Design with “design approved” (src:2cca9d332e2fc00103b0). Exact-case ranking, conservative lexical preference, query-aware cache delivery, exact-spelling/source grouping retaining records and source pronunciation boundaries, and explicit absent IPA with labeled synthesized spelling reading are approved. Spec and Architecture need separate chat approvals.
+
+
+## 2026-11-15 — Result ranking Spec
+
+User approved Spec S1–S16 (src:55e21fb67d95cd2d1474). Architecture requires separate approval before tests and implementation.

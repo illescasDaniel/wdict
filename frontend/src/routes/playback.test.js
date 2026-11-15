@@ -232,6 +232,74 @@ describe("playback controller", () => {
     expect(tracked.current().playing).toBeNull();
     expect(tracked.current().message).toBeNull();
   });
+  it("given_pending_spelling_when_ipa_starts_then_late_spelling_cannot_replace_ipa", async () => {
+    // given
+    const pending = [];
+    call.mockImplementation(
+      () => new Promise((resolve) => pending.push(resolve)),
+    );
+    const spelling = {
+      Mode: "spelling",
+      Language: "en",
+      Headword: "Car",
+      SkipRecording: true,
+    };
+    controller.play("spelling", spelling);
+    controller.play("ipa", baseRequest);
+    // when
+    pending[1](backendResult);
+    await flush();
+    pending[0](backendResult);
+    await flush();
+    // then
+    expect(tracked.current().playing).toBe("ipa");
+    expect(audioFactory.created).toHaveLength(1);
+    expect(call.mock.calls.map(([, request]) => request)).toEqual([
+      spelling,
+      baseRequest,
+    ]);
+  });
+
+  it("given_pending_spelling_when_reset_cancels_then_late_audio_is_discarded", async () => {
+    // given
+    let resolve;
+    call.mockImplementation(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
+    controller.play("spelling", {
+      Mode: "spelling",
+      Language: "en",
+      Headword: "Car",
+      SkipRecording: true,
+    });
+    // when
+    controller.reset();
+    resolve(backendResult);
+    await flush();
+    // then
+    expect(audioFactory.created).toHaveLength(0);
+    expect(tracked.current().playing).toBeNull();
+    expect(tracked.current().message).toBeNull();
+  });
+
+  it("given_spelling_audio_when_decode_fails_then_error_is_shown_without_retry", async () => {
+    // given
+    await controller.play("spelling", {
+      Mode: "spelling",
+      Language: "en",
+      Headword: "Car",
+      SkipRecording: true,
+    });
+    // when
+    audioFactory.created[0].emit("error");
+    // then
+    expect(call).toHaveBeenCalledTimes(1);
+    expect(tracked.current().playing).toBeNull();
+    expect(tracked.current().message).toEqual({ key: "spelling", text: "" });
+  });
 });
 
 const source = {
@@ -367,7 +435,9 @@ describe("play button on the pronunciation line", () => {
       Origin: "online",
       Entries: [
         {
-          ...entryWith([{ Text: "/wɜːd/", AudioURL: "https://example.com/a.mp3" }]),
+          ...entryWith([
+            { Text: "/wɜːd/", AudioURL: "https://example.com/a.mp3" },
+          ]),
           Source: {
             Name: "Example",
             URL: "https://example.com",
@@ -429,7 +499,11 @@ describe("play button on the pronunciation line", () => {
     mockBackend(() => ({
       Status: "found",
       Origin: "online",
-      Entries: [entryWith([{ Text: "/wɝːd/", Label: "🇺🇸", LabelTitle: "General American" }])],
+      Entries: [
+        entryWith([
+          { Text: "/wɝːd/", Label: "🇺🇸", LabelTitle: "General American" },
+        ]),
+      ],
     }));
     render(Page);
     await lookUp();
@@ -452,7 +526,11 @@ describe("play button on the pronunciation line", () => {
     mockBackend(() => ({
       Status: "found",
       Origin: "online",
-      Entries: [entryWith([{ Text: "/wɝːd/", Label: "🇺🇸", LabelTitle: "General American" }])],
+      Entries: [
+        entryWith([
+          { Text: "/wɝːd/", Label: "🇺🇸", LabelTitle: "General American" },
+        ]),
+      ],
     }));
     render(Page);
     await lookUp();
@@ -482,9 +560,7 @@ describe("play button on the pronunciation line", () => {
     expect(FakeAudio.instances[0].paused).toBe(false);
     expect(playButton("Play pronunciation").className).toMatch(/playing/);
     // no audio URI ever becomes a link
-    expect(
-      document.querySelectorAll('a[href^="data:audio"]').length,
-    ).toBe(0);
+    expect(document.querySelectorAll('a[href^="data:audio"]').length).toBe(0);
   });
 
   it("given_nothing_can_play_when_backend_returns_f1_copy_then_copy_shows_inline_and_button_stays_enabled", async () => {

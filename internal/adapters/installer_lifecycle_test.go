@@ -103,7 +103,7 @@ func TestGivenCuratedPackageWhenInstalledThenProgressAndOfflineLookupPersistAfte
 	if entries[0].Source.URL != "https://en.wiktionary.org/wiki/hello" || entries[0].Source.LicenseURL == "" {
 		t.Fatal("missing entry attribution")
 	}
-	if !strings.Contains(entries[0].Source.Attribution, "formatting changed") {
+	if !strings.Contains(entries[0].Source.Attribution, "adapted by") {
 		t.Fatal("missing change notice")
 	}
 	// when

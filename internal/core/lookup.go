@@ -36,7 +36,7 @@ func (s *LookupService) Lookup(ctx context.Context, request LookupRequest) (Look
 			return LookupResult{}, err
 		}
 		if found && len(entries) > 0 {
-			return LookupResult{Status: Found, Entries: entries, Origin: OriginOffline}, nil
+			return LookupResult{Status: Found, Entries: RankEntries(query, entries), Origin: OriginOffline}, nil
 		}
 	}
 	key := CacheKey{Provider: s.Provider, Language: request.Language, NormalizedQuery: norm.NFC.String(cases.Fold().String(norm.NFC.String(query)))}
@@ -60,7 +60,7 @@ func (s *LookupService) Lookup(ctx context.Context, request LookupRequest) (Look
 			if tier.origin == OriginDisk && s.Memory != nil {
 				_ = s.Memory.Put(ctx, rec)
 			}
-			return LookupResult{Status: Found, Entries: rec.Entries, Origin: tier.origin, FetchedAt: rec.FetchedAt}, nil
+			return LookupResult{Status: Found, Entries: RankEntries(query, rec.Entries), Origin: tier.origin, FetchedAt: rec.FetchedAt}, nil
 		}
 		if !rec.FetchedAt.After(now) && (stale == nil || rec.FetchedAt.After(stale.FetchedAt)) {
 			copy := rec
@@ -74,7 +74,7 @@ func (s *LookupService) Lookup(ctx context.Context, request LookupRequest) (Look
 	}
 	if err != nil || (found && len(entries) == 0) {
 		if stale != nil {
-			return LookupResult{Status: Found, Entries: stale.Entries, Origin: staleOrigin, FetchedAt: stale.FetchedAt, Stale: true}, nil
+			return LookupResult{Status: Found, Entries: RankEntries(query, stale.Entries), Origin: staleOrigin, FetchedAt: stale.FetchedAt, Stale: true}, nil
 		}
 		if errors.Is(err, ErrSilentUnavailable) {
 			return LookupResult{Status: SilentUnavailable}, nil
@@ -91,7 +91,7 @@ func (s *LookupService) Lookup(ctx context.Context, request LookupRequest) (Look
 	if s.Disk != nil {
 		_ = s.Disk.Put(ctx, rec)
 	}
-	return LookupResult{Status: Found, Entries: entries, Origin: OriginOnline, FetchedAt: now}, nil
+	return LookupResult{Status: Found, Entries: RankEntries(query, entries), Origin: OriginOnline, FetchedAt: now}, nil
 }
 
 func (s *LookupService) validateOnly(input string) (LookupResult, error) {

@@ -278,3 +278,27 @@ func TestGivenMixedMatchKindsWhenScannedThenExactHeadwordRanksFirst(t *testing.T
 		})
 	}
 }
+
+func TestGivenInterleavedMatchesWhenScanningForCacheThenIndexOrderIsCanonical(t *testing.T) {
+	// given
+	path := rankingFixture(t, []string{"ano", "-ano", "año", "anó", "Año"}, nil)
+	d, err := stardict.Open(path, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	// when
+	matches, err := scanDictionaryCanonical(context.Background(), d, path, "año")
+	// then
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := make([]string, 0, len(matches))
+	for _, m := range matches {
+		got = append(got, m.Word)
+	}
+	want := []string{"ano", "-ano", "año", "anó", "Año"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %q want %q", got, want)
+	}
+}

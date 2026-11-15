@@ -3,34 +3,6 @@
   import { createLanguageController } from "../language.js";
   let languageController = createLanguageController();
   let interfaceLanguage = "en";
-  function pronunciationItems(entry) {
-    return (
-      Array.isArray(entry.Pronunciations) ? entry.Pronunciations : []
-    ).filter((item) => item && item.Text);
-  }
-  function pronunciationKey(entry) {
-    return JSON.stringify(
-      pronunciationItems(entry).map((item) => [item.Text, item.Label || ""]),
-    );
-  }
-  // Items to show for a card; empty when an earlier card of the same result has
-  // the same headword (case-insensitive), language and identical list.
-  function pronunciationFor(entries, index) {
-    const entry = entries[index];
-    const items = pronunciationItems(entry);
-    if (!items.length) return [];
-    const key = pronunciationKey(entry);
-    const headword = String(entry.Headword).toLowerCase();
-    const repeated = entries
-      .slice(0, index)
-      .some(
-        (earlier) =>
-          String(earlier.Headword).toLowerCase() === headword &&
-          earlier.Language === entry.Language &&
-          pronunciationKey(earlier) === key,
-      );
-    return repeated ? [] : items;
-  }
   $: t = (key, options) => {
     interfaceLanguage;
     return languageController.translate(key, options);
@@ -44,6 +16,11 @@
   import { call, onLookupResult, onLookupAlternatives } from "../lib-api.js";
   import { createPlaybackController } from "./playback.js";
   import { compactMeanings } from "./senses.js";
+  import {
+    groupRecords,
+    clusterByPronunciation,
+    pronunciationItems,
+  } from "./result-groups.js";
   import {
     readAppearance,
     saveAppearance,
@@ -185,25 +162,37 @@
         return;
       }
       if (outcome.SearchID === activeSearch) acceptOutcome(outcome);
-    }).then((off) => {
-      if (disposed) off?.();
-      else unsubscribe = off;
-      return true;
-    }).catch(() => false);
-    const alternativesReady = Promise.resolve().then(() => onLookupAlternatives((outcome) => {
-      if (!activeSearch) {
-        (buffered[outcome.SearchID] ||= []).push({ kind: "alternatives", outcome });
-        return;
-      }
-      acceptAlternatives(outcome);
-    })).then((off) => {
-      if (disposed) off?.();
-      else {
-        unsubscribeAlternatives = off;
-        alternativesListenerReady = true;
-      }
-    }).catch(() => {});
-    eventReady = Promise.all([lookupReady, alternativesReady]).then(([ok]) => ok);
+    })
+      .then((off) => {
+        if (disposed) off?.();
+        else unsubscribe = off;
+        return true;
+      })
+      .catch(() => false);
+    const alternativesReady = Promise.resolve()
+      .then(() =>
+        onLookupAlternatives((outcome) => {
+          if (!activeSearch) {
+            (buffered[outcome.SearchID] ||= []).push({
+              kind: "alternatives",
+              outcome,
+            });
+            return;
+          }
+          acceptAlternatives(outcome);
+        }),
+      )
+      .then((off) => {
+        if (disposed) off?.();
+        else {
+          unsubscribeAlternatives = off;
+          alternativesListenerReady = true;
+        }
+      })
+      .catch(() => {});
+    eventReady = Promise.all([lookupReady, alternativesReady]).then(
+      ([ok]) => ok,
+    );
     let timer = setInterval(() => {
       if (
         progress?.State === "downloading" ||
@@ -224,11 +213,16 @@
   function acceptOutcome(outcome) {
     if (outcome.SearchID !== activeSearch) return;
     if (!["en", "es"].includes(outcome.Language)) return;
-    const attempt = outcome.Attempt ?? (attempts[outcome.Language] ?? 1);
+    const attempt = outcome.Attempt ?? attempts[outcome.Language] ?? 1;
     if (attempt !== (attempts[outcome.Language] ?? 1)) return;
     results = { ...results, [outcome.Language]: outcome.Result };
     if (outcome.Result.Status === "not_found") {
-      alternatives = { ...alternatives, [outcome.Language]: { Status: alternativesListenerReady ? "loading" : "unavailable" } };
+      alternatives = {
+        ...alternatives,
+        [outcome.Language]: {
+          Status: alternativesListenerReady ? "loading" : "unavailable",
+        },
+      };
       const pending = pendingAlternatives[outcome.Language];
       if (pending?.Attempt === attempt) acceptAlternatives(pending);
     } else {
@@ -252,12 +246,19 @@
     }
   }
   function acceptAlternatives(outcome) {
-    if (outcome.SearchID !== activeSearch || outcome.Query !== searchQuery ||
-        !["en", "es"].includes(outcome.Language)) return;
+    if (
+      outcome.SearchID !== activeSearch ||
+      outcome.Query !== searchQuery ||
+      !["en", "es"].includes(outcome.Language)
+    )
+      return;
     const attempt = outcome.Attempt ?? 1;
     if (attempt !== (attempts[outcome.Language] ?? 1)) return;
     if (!results[outcome.Language]) {
-      pendingAlternatives = { ...pendingAlternatives, [outcome.Language]: outcome };
+      pendingAlternatives = {
+        ...pendingAlternatives,
+        [outcome.Language]: outcome,
+      };
       return;
     }
     if (results[outcome.Language].Status !== "not_found") return;
@@ -409,6 +410,20 @@
       entry.Source.Attribution ? ` · ${entry.Source.Attribution}` : ""
     }`;
   }
+  function playSpelling(entry, index, language) {
+    playback.play(playbackKey(entry, index, "spelling"), {
+      Mode: "spelling",
+      Headword: entry.Headword,
+      Language: language,
+      SkipRecording: true,
+    });
+  }
+  function spellingMessage(message) {
+    if (!message) return t("playbackFailed");
+    return message.startsWith("No recording")
+      ? t("spellingNoSource")
+      : t("spellingNoSynthesis");
+  }
   function playItem(entry, entryIndex, position, language, item) {
     playback.play(playbackKey(entry, entryIndex, position), {
       Text: item.Text,
@@ -423,7 +438,58 @@
 </script>
 
 <svelte:head><title>wdict</title></svelte:head>
-<main>
+{#snippet pronunciation(entry, index, language)}
+  {#if pronunciationItems(entry).length}<p
+      class="pronunciation"
+      role="group"
+      aria-label={t("pronunciation")}
+    >
+      {#each pronunciationItems(entry) as item, position}{#if position}{" · "}{/if}{#if item.Label}{#if item.LabelTitle}<span
+              role="img"
+              title={item.LabelTitle}
+              aria-label={item.LabelTitle}>{item.Label}</span
+            >{:else}{item.Label}{/if}{" "}{/if}{item.Text}<button
+          class="play-button"
+          class:playing={$playback.playing ===
+            playbackKey(entry, index, position)}
+          type="button"
+          aria-label={playName(t, item)}
+          title={playTitle(
+            t,
+            entry,
+            item,
+            $playback.voices[playbackKey(entry, index, position)],
+          )}
+          onclick={() => playItem(entry, index, position, language, item)}
+          ><svg viewBox="0 0 24 24" aria-hidden="true"
+            ><path d="M8 5v14l11-7z" /></svg
+          ></button
+        >{#if $playback.message?.key === playbackKey(entry, index, position)}<span
+            class="playback-message"
+            role="alert">{$playback.message.text || t("playbackFailed")}</span
+          >{/if}{/each}
+    </p>{:else}<p class="hint pronunciation-missing">
+      {t("pronunciationUnavailable")}<button
+        class="play-button"
+        class:playing={$playback.playing ===
+          playbackKey(entry, index, "spelling")}
+        type="button"
+        aria-label={t("readWordAloud")}
+        aria-describedby={`spelling-note-${language}-${index}`}
+        title={t("spellingSynthesized")}
+        onclick={() => playSpelling(entry, index, language)}
+        ><svg viewBox="0 0 24 24" aria-hidden="true"
+          ><path d="M8 5v14l11-7z" /></svg
+        ></button
+      ><span class="sr-only" id={`spelling-note-${language}-${index}`}
+        >{t("spellingSynthesized")}</span
+      >{#if $playback.message?.key === playbackKey(entry, index, "spelling")}<span
+          class="playback-message"
+          role="alert">{spellingMessage($playback.message.text)}</span
+        >{/if}
+    </p>{/if}
+{/snippet}
+<div class="scroll"><main>
   <header>
     <strong>wdict</strong>{#if page === "lookup"}<button
         class="link"
@@ -461,83 +527,66 @@
     {#if status}<div class="notice" role="status">{t(status)}</div>{/if}
     {#each languageOrder as language}
       {#if results[language]?.Status === "found"}
-        {#each results[language].Entries as entry, index}<article>
+        {#each groupRecords(results[language].Entries) as group}<article>
             <h2>
-              {t(language === "en" ? "english" : "spanish")} · {entry.Headword}
+              {t(language === "en" ? "english" : "spanish")} · {group.headword}
             </h2>
-            {#if pronunciationFor(results[language].Entries, index).length}<p
-              class="pronunciation"
-              role="group"
-              aria-label={t("pronunciation")}
-            >
-              {#each pronunciationFor(results[language].Entries, index) as item, position}{#if position}{" · "}{/if}{#if item.Label}{#if item.LabelTitle}<span
-                      role="img"
-                      title={item.LabelTitle}
-                      aria-label={item.LabelTitle}>{item.Label}</span
-                    >{:else}{item.Label}{/if}{" "}{/if}{item.Text}<button
-                      class="play-button"
-                      class:playing={$playback.playing ===
-                        playbackKey(entry, index, position)}
-                      type="button"
-                      aria-label={playName(t, item)}
-                      title={playTitle(t, entry, item, $playback.voices[playbackKey(entry, index, position)])}
-                      onclick={() =>
-                        playItem(entry, index, position, language, item)
-                      }><svg viewBox="0 0 24 24" aria-hidden="true"
-                      ><path d="M8 5v14l11-7z" /></svg
-                    ></button>{#if $playback.message?.key ===
-                      playbackKey(entry, index, position)}<span
-                      class="playback-message"
-                      role="alert">{$playback.message.text ||
-                        t("playbackFailed")}</span
-                    >{/if}{/each}
-            </p>{/if}
-            <p class="hint">
-              {results[language].Stale
-                ? t("staleResult")
-                : results[language].Origin === "offline"
-                  ? t("offlineResult")
-                  : results[language].Origin === "online"
-                    ? t("onlineResult")
-                    : t("savedResult")}{results[language].FetchedAt &&
-              results[language].Origin !== "offline"
-                ? " · " +
-                  new Date(results[language].FetchedAt).toLocaleDateString(
-                    interfaceLanguage,
-                  )
-                : ""}
-            </p>
-            {#each compactMeanings(entry.Meanings) as meaning}<section>
-                {#if meaning.PartOfSpeech?.trim()}<h3>{meaning.PartOfSpeech}</h3>{/if}
-                <ol>
-                  {#each meaning.Definitions as definition}<li>
-                      {definition}
-                    </li>{/each}
-                </ol>
-              </section>{/each}
-            <p class="source">
-              {t("source")}: {entry.Source.Name}
-              {entry.Source.Attribution || ""}
-              {#if safeLink(entry.Source.URL)}
-                · <a
-                  href={safeLink(entry.Source.URL)}
-                  target="_blank"
-                  rel="noreferrer">{t("source")}</a
-                >{/if}
-              {#if safeLink(entry.Source.LicenseURL)}
-                · <a
-                  href={safeLink(entry.Source.LicenseURL)}
-                  target="_blank"
-                  rel="noreferrer">{t("license")}</a
-                >{/if}
-              {#each entry.Source.AdditionalURLs || [] as url}{#if safeLink(url)}
-                  · <a href={safeLink(url)} target="_blank" rel="noreferrer"
-                    >{t("moreInformation")}</a
-                  >{/if}{/each}
-            </p>
-            {#if !safeLink(entry.Source?.URL) || !safeLink(entry.Source?.LicenseURL)}
-              <p class="hint">{t("missingAttribution")}</p>
-            {/if}
+            {#each clusterByPronunciation(group) as cluster}
+              {@const first = cluster.records[0]}
+              {@const firstIndex = cluster.indexes[0]}
+              <div class="record">
+                {@render pronunciation(first, firstIndex, language)}
+                <p class="hint">
+                  {results[language].Stale
+                    ? t("staleResult")
+                    : results[language].Origin === "offline"
+                      ? t("offlineResult")
+                      : results[language].Origin === "online"
+                        ? t("onlineResult")
+                        : t("savedResult")}{results[language].FetchedAt &&
+                  results[language].Origin !== "offline"
+                    ? " · " +
+                      new Date(results[language].FetchedAt).toLocaleDateString(
+                        interfaceLanguage,
+                      )
+                    : ""}
+                </p>
+                {#each cluster.records as entry}
+                {#each compactMeanings(entry.Meanings) as meaning}<section>
+                    {#if meaning.PartOfSpeech?.trim()}<h3>
+                        {meaning.PartOfSpeech}
+                      </h3>{/if}
+                    <ol>
+                      {#each meaning.Definitions as definition}<li>
+                          {definition}
+                        </li>{/each}
+                    </ol>
+                  </section>{/each}
+                {/each}
+                <p class="source">
+                  {t("source")}: {first.Source.Name}
+                  {first.Source.Attribution || ""}
+                  {#if safeLink(first.Source.URL)}
+                    · <a
+                      href={safeLink(first.Source.URL)}
+                      target="_blank"
+                      rel="noreferrer">{t("source")}</a
+                    >{/if}
+                  {#if safeLink(first.Source.LicenseURL)}
+                    · <a
+                      href={safeLink(first.Source.LicenseURL)}
+                      target="_blank"
+                      rel="noreferrer">{t("license")}</a
+                    >{/if}
+                  {#each first.Source.AdditionalURLs || [] as url}{#if safeLink(url)}
+                      · <a href={safeLink(url)} target="_blank" rel="noreferrer"
+                        >{t("moreInformation")}</a
+                      >{/if}{/each}
+                </p>
+                {#if !safeLink(first.Source?.URL) || !safeLink(first.Source?.LicenseURL)}
+                  <p class="hint">{t("missingAttribution")}</p>
+                {/if}
+              </div>{/each}
           </article>{/each}
       {:else if results[language]?.Status === "source_unavailable"}
         <p class="error">
@@ -571,7 +620,14 @@
                 <strong>{t("possibleBaseForms")}</strong>
                 <div class="alternative-buttons">
                   {#each alternatives[language].BaseForms as candidate}
-                    <button class="alternative-button" type="button" onclick={() => { query = candidate; lookup(); }}>{candidate}</button>
+                    <button
+                      class="alternative-button"
+                      type="button"
+                      onclick={() => {
+                        query = candidate;
+                        lookup();
+                      }}>{candidate}</button
+                    >
                   {/each}
                 </div>
               </div>
@@ -581,7 +637,14 @@
                 <strong>{t("didYouMean")}</strong>
                 <div class="alternative-buttons">
                   {#each alternatives[language].Spelling as candidate}
-                    <button class="alternative-button" type="button" onclick={() => { query = candidate; lookup(); }}>{candidate}</button>
+                    <button
+                      class="alternative-button"
+                      type="button"
+                      onclick={() => {
+                        query = candidate;
+                        lookup();
+                      }}>{candidate}</button
+                    >
                   {/each}
                 </div>
               </div>
@@ -600,72 +663,53 @@
       {/if}
     {/each}
     {#if !Object.values(results).some((v) => v?.Status === "found") && entries.length}
-      {#each entries as entry, index}<article>
+      {#each groupRecords(entries) as group}<article>
           <h2>
-            {entry.Language === "en"
+            {group.language === "en"
               ? t("english") + " · "
-              : entry.Language === "es"
+              : group.language === "es"
                 ? t("spanish") + " · "
-                : ""}{entry.Headword}
+                : ""}{group.headword}
           </h2>
-          {#if pronunciationFor(entries, index).length}<p
-            class="pronunciation"
-            role="group"
-            aria-label={t("pronunciation")}
-          >
-            {#each pronunciationFor(entries, index) as item, position}{#if position}{" · "}{/if}{#if item.Label}{#if item.LabelTitle}<span
-                    role="img"
-                    title={item.LabelTitle}
-                    aria-label={item.LabelTitle}>{item.Label}</span
-                  >{:else}{item.Label}{/if}{" "}{/if}{item.Text}<button
-                    class="play-button"
-                    class:playing={$playback.playing ===
-                      playbackKey(entry, index, position)}
-                    type="button"
-                    aria-label={playName(t, item)}
-                    title={playTitle(t, entry, item, $playback.voices[playbackKey(entry, index, position)])}
-                    onclick={() =>
-                      playItem(
-                        entry,
-                        index,
-                        position,
-                        entry.Language === "es" ? "es" : "en",
-                        item,
-                      )}><svg viewBox="0 0 24 24" aria-hidden="true"
-                    ><path d="M8 5v14l11-7z" /></svg
-                  ></button>{#if $playback.message?.key ===
-                    playbackKey(entry, index, position)}<span
-                    class="playback-message"
-                    role="alert">{$playback.message.text ||
-                      t("playbackFailed")}</span
-                  >{/if}{/each}
-          </p>{/if}
-          {#each compactMeanings(entry.Meanings) as meaning}<section>
-              {#if meaning.PartOfSpeech?.trim()}<h3>{meaning.PartOfSpeech}</h3>{/if}
-              <ol>
-                {#each meaning.Definitions as definition}<li>
-                    {definition}
-                  </li>{/each}
-              </ol>
-            </section>{/each}
-          <p class="hint">{t("previousResult", { query: previousQuery })}</p>
-          <p class="source">
-            {t("source")}: {entry.Source.Name}
-            {entry.Source.Attribution || ""}{#if safeLink(entry.Source.URL)}
-              · <a
-                href={safeLink(entry.Source.URL)}
-                target="_blank"
-                rel="noreferrer">{t("source")}</a
-              >{/if}{#if safeLink(entry.Source.LicenseURL)}
-              · <a
-                href={safeLink(entry.Source.LicenseURL)}
-                target="_blank"
-                rel="noreferrer">{t("license")}</a
-              >{/if}
-          </p>
-          {#if !safeLink(entry.Source?.URL) || !safeLink(entry.Source?.LicenseURL)}
-            <p class="hint">{t("missingAttribution")}</p>
-          {/if}
+          {#each clusterByPronunciation(group) as cluster}
+            {@const first = cluster.records[0]}
+            {@const firstIndex = cluster.indexes[0]}
+            {@const firstLanguage = first.Language === "es" ? "es" : "en"}
+            <div class="record">
+              {@render pronunciation(first, firstIndex, firstLanguage)}
+              <p class="hint">
+                {t("previousResult", { query: previousQuery })}
+              </p>
+              {#each cluster.records as entry}
+              {#each compactMeanings(entry.Meanings) as meaning}<section>
+                  {#if meaning.PartOfSpeech?.trim()}<h3>
+                      {meaning.PartOfSpeech}
+                    </h3>{/if}
+                  <ol>
+                    {#each meaning.Definitions as definition}<li>
+                        {definition}
+                      </li>{/each}
+                  </ol>
+                </section>{/each}
+              {/each}
+              <p class="source">
+                {t("source")}: {first.Source.Name}
+                {first.Source.Attribution || ""}{#if safeLink(first.Source.URL)}
+                  · <a
+                    href={safeLink(first.Source.URL)}
+                    target="_blank"
+                    rel="noreferrer">{t("source")}</a
+                  >{/if}{#if safeLink(first.Source.LicenseURL)}
+                  · <a
+                    href={safeLink(first.Source.LicenseURL)}
+                    target="_blank"
+                    rel="noreferrer">{t("license")}</a
+                  >{/if}
+              </p>
+              {#if !safeLink(first.Source?.URL) || !safeLink(first.Source?.LicenseURL)}
+                <p class="hint">{t("missingAttribution")}</p>
+              {/if}
+            </div>{/each}
         </article>{/each}
     {:else if !entries.length && !busy}
       <div class="notice">
@@ -764,8 +808,7 @@
             <p class="hint">
               {t("downloadLabel")}: {(pack.SizeBytes / 1000000).toFixed(0)} MB
             </p>
-            {#if voiceProgress?.DictionaryID === pack.ID &&
-              voiceProgress?.State === "downloading"}<progress
+            {#if voiceProgress?.DictionaryID === pack.ID && voiceProgress?.State === "downloading"}<progress
                 aria-label={t("voiceDownload")}
                 max={voiceProgress.TotalBytes}
                 value={voiceProgress.BytesRead}
@@ -775,29 +818,32 @@
                   read: (voiceProgress.BytesRead / 1000000).toFixed(1),
                   total: (voiceProgress.TotalBytes / 1000000).toFixed(0),
                 })}
-              </p>{:else if voiceProgress?.DictionaryID === pack.ID &&
-                voiceProgress?.State === "installing"}<p class="notice">
+              </p>{:else if voiceProgress?.DictionaryID === pack.ID && voiceProgress?.State === "installing"}<p
+                class="notice"
+              >
                 {t("checking")}
               </p>{:else if voiceError && voiceErrorID === pack.ID}<button
                 onclick={() => downloadVoice(pack)}>{t("tryAgain")}</button
               >{:else if !pack.Installed}<button
                 disabled={!!pack.Blocked}
-                onclick={() => downloadVoice(pack)}
-                >{t("downloadLabel")}</button
+                onclick={() => downloadVoice(pack)}>{t("downloadLabel")}</button
               >{/if}
             {#if !pack.Installed && pack.Blocked}<p class="hint">
                 {voiceBlockedKey(pack.Reason)
                   ? t(voiceBlockedKey(pack.Reason))
                   : pack.Blocked}
               </p>{/if}
-            {#if voiceError && voiceErrorID === pack.ID}<p class="error" role="alert">
+            {#if voiceError && voiceErrorID === pack.ID}<p
+                class="error"
+                role="alert"
+              >
                 {t(voiceError)}
               </p>{/if}
           </div>
         {/each}
       </article>
     {/if}{/if}
-</main>
+</main></div>
 <footer>
   <div class="footer-inner">
     <div class="setting">
@@ -1000,9 +1046,25 @@
     max-width: 760px;
     margin: 0 auto;
     padding: 28px;
+  }
+  .scroll {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    /* Contain the absolutely positioned .sr-only elements, or they extend the
+       page and the window gets a second scrollbar. */
+    position: relative;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .pronunciation-missing {
+    margin: 0 0 0.75rem;
   }
   header {
     display: flex;
@@ -1151,6 +1213,11 @@
     border-radius: 10px;
     margin-top: 20px;
     padding: 20px;
+  }
+  .record + .record {
+    border-top: 1px solid var(--rule);
+    margin-top: 16px;
+    padding-top: 16px;
   }
   .title {
     display: flex;
