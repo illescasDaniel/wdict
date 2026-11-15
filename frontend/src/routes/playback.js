@@ -1,8 +1,10 @@
 // Owns the pronunciation playback flow (C7): the App.PlayPronunciation
-// request, newest-wins play state, the audio element lifecycle, and the F5
-// audio-error fallback that re-requests the same item with SkipRecording.
-// Audio data URIs are assigned to one element per play; they are never
-// exposed as links or anywhere else.
+// request, newest-wins play state and the audio element lifecycle. The host
+// normally plays natively: the bound call blocks until the sound ends and
+// returns Played (no Audio), so the item stays "playing" until it resolves
+// and StopPronunciation cancels it. Without native playback the result carries
+// an Audio data URI that is assigned to one element per play; it is never
+// exposed as a link or anywhere else.
 
 export function createPlaybackController({
   call,
@@ -27,6 +29,13 @@ export function createPlaybackController({
     } catch {}
   }
 
+  function stopNative() {
+    // Fire and forget: cancels any native playback; failures are irrelevant.
+    try {
+      Promise.resolve(call("StopPronunciation")).catch(() => {});
+    } catch {}
+  }
+
   async function request(token, key, item) {
     let result;
     try {
@@ -37,11 +46,10 @@ export function createPlaybackController({
       result = { Audio: "", Message: "" };
     }
     if (token !== seq) return; // a newer play replaced this one
-    if (result.Audio) {
+    if (result.Played || result.Audio) {
       // C7 hover: once the Go side resolved the voice, the item's hover text
       // names it ("eSpeak-NG · en-us") or, for Piper results (C5 of the
-      // piper-voices page), the natural voice ("Piper · alba"); recordings
-      // keep their source title.
+      // piper-voices page), the natural voice ("Piper · alba").
       if (result.Voice)
         update({
           voices: {
@@ -49,38 +57,32 @@ export function createPlaybackController({
             [key]: { Source: result.Source || "", Voice: result.Voice },
           },
         });
-      startAudio(token, key, item, result.Audio);
+      if (result.Played) {
+        update({ playing: null, message: null });
+        return;
+      }
+      startAudio(token, key, result.Audio);
       return;
     }
     update({ playing: null, message: { key, text: result.Message || "" } });
   }
 
-  function startAudio(token, key, item, src) {
+  function startAudio(token, key, src) {
     const element = createAudio();
     audio = element;
     element.addEventListener("ended", () => {
       if (audio === element && token === seq) update({ playing: null });
     });
-    element.addEventListener("error", () => {
+    const failed = () => {
       if (audio !== element || token !== seq) return;
       audio = null;
-      // F5: the recording decoded but is not playable; fall back to the
-      // voice path immediately, once.
-      if (item.SkipRecording)
-        update({ playing: null, message: { key, text: "" } });
-      else request(token, key, { ...item, SkipRecording: true });
-    });
+      update({ playing: null, message: { key, text: "" } });
+    };
+    element.addEventListener("error", failed);
     element.src = src;
     update({ playing: key });
     const playing = element.play?.();
-    if (playing?.catch)
-      playing.catch(() => {
-        if (audio !== element || token !== seq) return;
-        audio = null;
-        if (item.SkipRecording)
-          update({ playing: null, message: { key, text: "" } });
-        else request(token, key, { ...item, SkipRecording: true });
-      });
+    if (playing?.catch) playing.catch(failed);
   }
 
   return {
@@ -90,14 +92,22 @@ export function createPlaybackController({
       return () => subscribers.delete(run);
     },
     play(key, item) {
+      const wasPlaying = state.playing;
       const token = ++seq;
       stopAudio(); // newest wins: no queue, no double audio (S12)
+      if (wasPlaying !== null) stopNative();
+      if (wasPlaying === key) {
+        // Clicking the playing item again stops it.
+        update({ playing: null, message: null });
+        return Promise.resolve();
+      }
       update({ playing: key, message: null });
       return request(token, key, item);
     },
     reset() {
       ++seq;
       stopAudio();
+      if (state.playing !== null) stopNative();
       update({ playing: null, message: null, voices: {} });
     },
   };

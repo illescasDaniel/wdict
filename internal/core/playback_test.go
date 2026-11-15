@@ -14,17 +14,6 @@ const (
 	copyNoSynthesis = "Could not synthesise this pronunciation."
 )
 
-type fakeRecordings struct {
-	data []byte
-	err  error
-	urls []string
-}
-
-func (f *fakeRecordings) Fetch(_ context.Context, audioURL string) ([]byte, error) {
-	f.urls = append(f.urls, audioURL)
-	return f.data, f.err
-}
-
 // voiceCall records one synthesis attempt: phonemes marks the mnemonic mode
 // (C5, revision 3); text marks the plain-text headword fallback (F4).
 type voiceCall struct {
@@ -67,12 +56,8 @@ func (e errNoFakeOutput) Error() string {
 	return "no fake output for " + e.call.voice + "/" + e.call.text
 }
 
-func service(recordings *fakeRecordings, voices *fakeVoices) *PronunciationAudioService {
-	s := &PronunciationAudioService{Voices: voices}
-	if recordings != nil {
-		s.Recordings = recordings
-	}
-	return s
+func service(voices *fakeVoices) *PronunciationAudioService {
+	return &PronunciationAudioService{Voices: voices}
 }
 
 const wavBytes = "WAVDATA"
@@ -445,7 +430,7 @@ func TestGivenTieBarredTranscriptionWhenPlayedThenTheConversionSucceeds(t *testi
 	// "vegetable" items carry the d͡ʒ tie and syllable dots — they must be
 	// spoken via the mnemonic conversion, not the headword fallback
 	voices := &fakeVoices{available: true, outputs: phonemeResult("en-gb", "v'EdZt@b@l")}
-	s := service(nil, voices)
+	s := service(voices)
 	result := s.Play(context.Background(), PlayRequest{
 		Text: "/ˈvɛd͡ʒ.tə.bəl/", Label: "🇬🇧", LabelTitle: "Received Pronunciation", Language: English, Headword: "vegetable",
 	})
@@ -462,7 +447,7 @@ func TestGivenNasalisedTranscriptionWhenPlayedThenTheConversionSucceeds(t *testi
 	// the real offline "Enrique" item is [ẽnˈrike] — the nasal tilde is
 	// notation; the conversion now speaks it instead of falling back
 	voices := &fakeVoices{available: true, outputs: phonemeResult("es", "enr'ike")}
-	s := service(nil, voices)
+	s := service(voices)
 	result := s.Play(context.Background(), PlayRequest{
 		Text: "[ẽnˈrike]", Language: Spanish, Headword: "Enrique",
 	})
@@ -488,30 +473,10 @@ func TestStripPronunciationDelimiters(t *testing.T) {
 	}
 }
 
-func TestGivenRecordingURLWhenPlayedThenRecordingBytesComeBackAsDataURI(t *testing.T) {
-	// given (S1)
-	rec := &fakeRecordings{data: []byte("MP3DATA")}
-	voices := &fakeVoices{available: true}
-	s := service(rec, voices)
-	// when
-	result := s.Play(context.Background(), PlayRequest{
-		Text: "/wɝːd/", Label: "🇺🇸", LabelTitle: "General American", Language: English,
-		AudioURL: "https://example.test/a.mp3", Headword: "word",
-	})
-	// then
-	want := "data:audio/mpeg;base64," + base64.StdEncoding.EncodeToString([]byte("MP3DATA"))
-	if result.Audio != want || result.Source != PlayRecording || result.Message != "" {
-		t.Fatalf("got %+v", result)
-	}
-	if len(voices.calls) != 0 {
-		t.Fatalf("voice path used: %+v", voices.calls)
-	}
-}
-
 func TestGivenNoURLAndNoSynthesiserWhenPlayedThenTheF1CopyIsShown(t *testing.T) {
 	// given (S4, F1)
 	voices := &fakeVoices{available: false}
-	s := service(nil, voices)
+	s := service(voices)
 	// when
 	result := s.Play(context.Background(), PlayRequest{Text: "/wɝːd/", Language: English, Headword: "word"})
 	// then
@@ -526,7 +491,7 @@ func TestGivenNoURLAndNoSynthesiserWhenPlayedThenTheF1CopyIsShown(t *testing.T) 
 func TestGivenMappableTranscriptionWhenPlayedThenTheMnemonicsAreSpoken(t *testing.T) {
 	// given (S2, revision 3): the shown IPA is fully covered by the table
 	voices := &fakeVoices{available: true, outputs: phonemeResult("en-us", "w3:d")}
-	s := service(nil, voices)
+	s := service(voices)
 	// when
 	result := s.Play(context.Background(), PlayRequest{
 		Text: "/wɝːd/", Label: "🇺🇸", LabelTitle: "General American", Language: English, Headword: "word",
@@ -547,9 +512,8 @@ func TestGivenMappableTranscriptionWhenPlayedThenTheMnemonicsAreSpoken(t *testin
 func TestGivenFailedRecordingWhenPlayedThenTheAccentVoicePlaysInstead(t *testing.T) {
 	// given (S5, F2, revision 3): the mappable transcription is spoken as
 	// mnemonic phonemes
-	rec := &fakeRecordings{err: context.DeadlineExceeded}
 	voices := &fakeVoices{available: true, outputs: phonemeResult("en-us", "w3:d")}
-	s := service(rec, voices)
+	s := service(voices)
 	// when
 	result := s.Play(context.Background(), PlayRequest{
 		Text: "/wɝːd/", Label: "🇺🇸", LabelTitle: "General American", Language: English,
@@ -573,7 +537,7 @@ func TestGivenUnmappableTranscriptionWhenPlayedThenTheHeadwordIsSpoken(t *testin
 	// non-phonemic strip (the /ˈbʌtn̩/ syllabic case now CONVERTS: the mark
 	// is notation, not sound)
 	voices := &fakeVoices{available: true, outputs: voiceResult("en-us", "button")}
-	s := service(nil, voices)
+	s := service(voices)
 	// when
 	result := s.Play(context.Background(), PlayRequest{
 		Text: "/bʌtø/", Label: "🇺🇸", LabelTitle: "General American", Language: English, Headword: "button",
@@ -599,7 +563,7 @@ func TestGivenMnemonicSynthesisFailureWhenPlayedThenTheHeadwordIsSpoken(t *testi
 		errs:      map[voiceCall]error{{phonemes: true, voice: "en-us", text: "w3:d"}: context.DeadlineExceeded},
 		outputs:   voiceResult("en-us", "word"),
 	}
-	s := service(nil, voices)
+	s := service(voices)
 	// when
 	result := s.Play(context.Background(), PlayRequest{
 		Text: "/wɝːd/", Label: "🇺🇸", LabelTitle: "General American", Language: English, Headword: "word",
@@ -618,12 +582,11 @@ func TestGivenMnemonicSynthesisFailureWhenPlayedThenTheHeadwordIsSpoken(t *testi
 
 func TestGivenSynthesisFailureWhenPlayedThenTheF4CopyIsShown(t *testing.T) {
 	// given (S7, F4, revision 3): both voice-path attempts fail
-	rec := &fakeRecordings{err: context.DeadlineExceeded}
 	voices := &fakeVoices{available: true, errs: map[voiceCall]error{
 		{phonemes: true, voice: "en-us", text: "w3:d"}: context.DeadlineExceeded,
 		{voice: "en-us", text: "word"}:                 context.DeadlineExceeded,
 	}}
-	s := service(rec, voices)
+	s := service(voices)
 	// when
 	result := s.Play(context.Background(), PlayRequest{
 		Text: "/wɝːd/", Language: English, AudioURL: "https://example.test/a.mp3", Headword: "word",
@@ -639,14 +602,13 @@ func TestGivenSynthesisFailureWhenPlayedThenTheF4CopyIsShown(t *testing.T) {
 
 func TestGivenEmptyVoiceOutputWhenPlayedThenTheF4CopyIsShown(t *testing.T) {
 	// given (S7): empty output counts as a failure on both attempts
-	rec := &fakeRecordings{err: context.DeadlineExceeded}
 	voices := &fakeVoices{
 		available: true,
 		outputs: map[voiceCall][]byte{
 			{phonemes: true, voice: "en-us", text: "w3:d"}: nil,
 		},
 	}
-	s := service(rec, voices)
+	s := service(voices)
 	// when
 	result := s.Play(context.Background(), PlayRequest{
 		Text: "/wɝːd/", Language: English, AudioURL: "https://example.test/a.mp3", Headword: "word",
@@ -660,74 +622,11 @@ func TestGivenEmptyVoiceOutputWhenPlayedThenTheF4CopyIsShown(t *testing.T) {
 	}
 }
 
-func TestGivenSkipRecordingWhenPlayedThenTheRecordingIsNeverFetched(t *testing.T) {
-	// given (S8, F5)
-	rec := &fakeRecordings{data: []byte("MP3DATA")} // would succeed
-	voices := &fakeVoices{available: true, outputs: phonemeResult("es", "'ola")}
-	s := service(rec, voices)
-	// when
-	result := s.Play(context.Background(), PlayRequest{
-		Text: "[ˈola]", Language: Spanish, AudioURL: "https://example.test/a.mp3",
-		SkipRecording: true, Headword: "hola",
-	})
-	// then
-	if result.Audio == "" || result.Source != PlayVoice {
-		t.Fatalf("got %+v", result)
-	}
-	if len(rec.urls) != 0 {
-		t.Fatalf("recording fetched despite SkipRecording: %v", rec.urls)
-	}
-	if len(voices.calls) != 1 || voices.calls[0] != (voiceCall{phonemes: true, voice: "es", text: "'ola"}) {
-		t.Fatalf("voice calls %+v", voices.calls)
-	}
-}
-
-func TestGivenNonHTTPSRecordingURLWhenPlayedThenTheURLIsTreatedAsAbsent(t *testing.T) {
-	// given (S10): the fake RecordingSource emulates the adapter edge and
-	// rejects anything that is not https with a host
-	rec := &fakeRecordings{err: errInvalidURL{}}
-	voices := &fakeVoices{available: true, outputs: phonemeResult("en-us", "w3:d")}
-	s := service(rec, voices)
-	// when
-	result := s.Play(context.Background(), PlayRequest{
-		Text: "/wɝːd/", Language: English, AudioURL: "http://example.test/a.mp3", Headword: "word",
-	})
-	// then
-	if result.Audio == "" || result.Source != PlayVoice {
-		t.Fatalf("got %+v", result)
-	}
-}
-
-type errInvalidURL struct{}
-
-func (errInvalidURL) Error() string { return "invalid audio URL" }
-
-func TestGivenOvercapRecordingWhenPlayedThenTheVoiceFallbackPlays(t *testing.T) {
-	// given (S11): the adapter aborts an oversized download, which the service
-	// observes as a failed fetch
-	rec := &fakeRecordings{err: errTooLarge{}}
-	voices := &fakeVoices{available: true, outputs: phonemeResult("en-us", "w3:d")}
-	s := service(rec, voices)
-	// when
-	result := s.Play(context.Background(), PlayRequest{
-		Text: "/wɝːd/", Language: English, AudioURL: "https://example.test/big.mp3", Headword: "word",
-	})
-	// then
-	if result.Audio == "" || result.Source != PlayVoice {
-		t.Fatalf("got %+v", result)
-	}
-}
-
-type errTooLarge struct{}
-
-func (errTooLarge) Error() string { return "audio over the size cap" }
-
 func TestGivenRecordingUnavailableWhenPlayedThenResultIsNeverAnError(t *testing.T) {
 	// The chain always terminates in audio or copy; Play returns no error by signature,
 	// so assert the result contract shape for the recorded path (C3).
-	rec := &fakeRecordings{data: []byte("MP3DATA")}
 	voices := &fakeVoices{available: true}
-	s := service(rec, voices)
+	s := service(voices)
 	result := s.Play(context.Background(), PlayRequest{
 		Text: "/wɝːd/", Language: English, AudioURL: "https://example.test/a.mp3", Headword: "word",
 	})
@@ -770,19 +669,15 @@ func (f *fakePiper) Speak(_ context.Context, language Language, ipa string) ([]b
 	return f.output, f.err
 }
 
-func piperService(rec *fakeRecordings, piper *fakePiper, voices *fakeVoices) *PronunciationAudioService {
-	s := &PronunciationAudioService{Voices: voices, Piper: piper}
-	if rec != nil {
-		s.Recordings = rec
-	}
-	return s
+func piperService(piper *fakePiper, voices *fakeVoices) *PronunciationAudioService {
+	return &PronunciationAudioService{Voices: voices, Piper: piper}
 }
 
 func TestGivenVoicePackInstalledWhenPlayedThenPiperGetsModelAlignedIPA(t *testing.T) {
 	// given (S1): runtime + language voice installed, no recording
 	piper := &fakePiper{output: []byte(wavBytes)}
 	voices := &fakeVoices{available: true, outputs: phonemeResult("en-us", "w3:d")}
-	s := piperService(nil, piper, voices)
+	s := piperService(piper, voices)
 	// when
 	result := s.Play(context.Background(), PlayRequest{
 		Text: "/ˈnɒl.ɪdʒ/", Language: English, Headword: "knowledge",
@@ -805,7 +700,7 @@ func TestGivenVoicePackInstalledWhenPlayedThenPiperGetsModelAlignedIPA(t *testin
 func TestGivenTableSyllabicLWhenPiperIsUnavailableThenEspeakReceivesSchwaL(t *testing.T) {
 	// given: the shown IPA has a syllabic final lateral and Piper is absent
 	voices := &fakeVoices{available: true, outputs: phonemeResult("en-us", "t'eIb@l")}
-	s := service(nil, voices)
+	s := service(voices)
 	// when
 	result := s.Play(context.Background(), PlayRequest{
 		Text: "/ˈteɪbl̩/", Language: English, Headword: "table",
@@ -823,7 +718,7 @@ func TestGivenPackMissingWhenPlayedThenTheEspeakPathRunsUnchanged(t *testing.T) 
 	// given (S2/F1): no pack for the language — Piper is never started
 	piper := &fakePiper{available: func(Language) bool { return false }, output: []byte(wavBytes)}
 	voices := &fakeVoices{available: true, outputs: phonemeResult("en-us", "w3:d")}
-	s := piperService(nil, piper, voices)
+	s := piperService(piper, voices)
 	// when
 	result := s.Play(context.Background(), PlayRequest{
 		Text: "/wɝːd/", Language: English, Headword: "word",
@@ -841,7 +736,7 @@ func TestGivenPiperFailsWhenPlayedThenTheEspeakPathProducesAudio(t *testing.T) {
 	// given (S4/F2): the subprocess fails; the chain falls back
 	piper := &fakePiper{err: errors.New("piper exited 1")}
 	voices := &fakeVoices{available: true, outputs: phonemeResult("en-us", "w3:d")}
-	s := piperService(nil, piper, voices)
+	s := piperService(piper, voices)
 	// when
 	result := s.Play(context.Background(), PlayRequest{
 		Text: "/wɝːd/", Language: English, Headword: "word",
@@ -855,47 +750,45 @@ func TestGivenPiperFailsWhenPlayedThenTheEspeakPathProducesAudio(t *testing.T) {
 	}
 }
 
-func TestGivenRecordingAvailableWhenPlayedThenPiperIsNotStarted(t *testing.T) {
-	// given (S3): a recording still wins over any installed voice
-	rec := &fakeRecordings{data: []byte("MP3DATA")}
+func TestGivenNoPiperFieldWhenPlayedThenBehaviourIsExactlyTodayS(t *testing.T) {
+	// (S2 regression guard): Piper nil = the feature is absent entirely.
+	voices := &fakeVoices{available: true, outputs: phonemeResult("en-us", "w3:d")}
+	s := service(voices)
+	result := s.Play(context.Background(), PlayRequest{Text: "/wɝːd/", Language: English, Headword: "word"})
+	if result.Source != PlayVoice || result.Audio == "" {
+		t.Fatalf("result %+v", result)
+	}
+}
+
+func TestGivenAudioURLOnRequestWhenPlayedThenNoRecordingIsUsedAndPiperSpeaks(t *testing.T) {
+	// given: a request still carrying a legacy recording URL and skip flag
 	piper := &fakePiper{output: []byte(wavBytes)}
-	voices := &fakeVoices{available: true}
-	s := piperService(rec, piper, voices)
+	voices := &fakeVoices{available: true, outputs: phonemeResult("en-us", "w3:d")}
+	s := piperService(piper, voices)
+	// when
+	result := s.Play(context.Background(), PlayRequest{
+		Text: "/wɝːd/", Language: English, AudioURL: "https://example.test/a.mp3",
+		SkipRecording: false, Headword: "word",
+	})
+	// then: the URL is ignored; the synthesised WAV comes back, never audio/mpeg
+	if result.Source != PlayPiper || !strings.HasPrefix(result.Audio, "data:audio/wav;base64,") {
+		t.Fatalf("result %+v", result)
+	}
+	if len(piper.calls) != 1 || len(voices.calls) != 0 {
+		t.Fatalf("piper=%+v voices=%+v", piper.calls, voices.calls)
+	}
+}
+
+func TestGivenAudioURLOnRequestWhenPiperIsAbsentThenEspeakSpeaksInsteadOfDownloading(t *testing.T) {
+	// given
+	voices := &fakeVoices{available: true, outputs: phonemeResult("en-us", "w3:d")}
+	s := service(voices)
 	// when
 	result := s.Play(context.Background(), PlayRequest{
 		Text: "/wɝːd/", Language: English, AudioURL: "https://example.test/a.mp3", Headword: "word",
 	})
 	// then
-	if result.Source != PlayRecording || result.Audio == "" {
-		t.Fatalf("result %+v", result)
-	}
-	if len(piper.calls) != 0 || len(voices.calls) != 0 {
-		t.Fatalf("piper=%+v voices=%+v", piper.calls, voices.calls)
-	}
-}
-
-func TestGivenSkipRecordingWhenPlayedThenPiperIsStillTriedBeforeEspeak(t *testing.T) {
-	// given (S11): recordings are skipped, Piper (installed) is not
-	piper := &fakePiper{output: []byte(wavBytes)}
-	voices := &fakeVoices{available: true, outputs: phonemeResult("en-us", "w3:d")}
-	s := piperService(&fakeRecordings{data: []byte("MP3DATA")}, piper, voices)
-	// when
-	result := s.Play(context.Background(), PlayRequest{
-		Text: "/wɝːd/", Language: English, AudioURL: "https://example.test/a.mp3",
-		SkipRecording: true, Headword: "word",
-	})
-	// then
-	if len(piper.calls) != 1 || result.Source != "piper" {
-		t.Fatalf("calls %+v result %+v", piper.calls, result)
-	}
-}
-
-func TestGivenNoPiperFieldWhenPlayedThenBehaviourIsExactlyTodayS(t *testing.T) {
-	// (S2 regression guard): Piper nil = the feature is absent entirely.
-	voices := &fakeVoices{available: true, outputs: phonemeResult("en-us", "w3:d")}
-	s := service(nil, voices)
-	result := s.Play(context.Background(), PlayRequest{Text: "/wɝːd/", Language: English, Headword: "word"})
-	if result.Source != PlayVoice || result.Audio == "" {
+	if result.Source != PlayVoice || !strings.HasPrefix(result.Audio, "data:audio/wav;base64,") {
 		t.Fatalf("result %+v", result)
 	}
 }

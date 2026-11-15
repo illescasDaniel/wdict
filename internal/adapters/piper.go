@@ -23,7 +23,7 @@ import (
 // unknown base phones, and writes a WAV that is audibility-guarded and cached.
 type PiperVoices struct {
 	Dir      string        // <data>/wdict/piper root: the venv and the voices tree
-	CacheDir string        // shared audio cache directory (same as AudioFetch); empty = no cache
+	CacheDir string        // audio cache directory; empty = no cache
 	Timeout  time.Duration // default 10s; the subprocess is killed at the deadline
 
 	runner        func(ctx context.Context, name string, args []string, stdin string) error // default runPiperDefault; replaceable in tests
@@ -245,6 +245,7 @@ func (p *PiperVoices) runDefault(ctx context.Context, name string, args []string
 	defer cancel()
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.WaitDelay = p.timeout()
+	cmd.Env = piperEnv(os.Environ())
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	if stdin != "" {
@@ -270,4 +271,43 @@ func wavPeak(data []byte) int {
 		}
 	}
 	return peak
+}
+
+// piperEnv returns the environment for the Piper Python subprocess. Inside an
+// AppImage the launcher points LD_LIBRARY_PATH (and may set PYTHONHOME,
+// PYTHONPATH and LD_PRELOAD) at the bundled GTK/WebKit libraries; the venv's
+// interpreter is the host's python3 and must resolve its own libraries, so
+// those AppDir-relative settings are dropped for it. Outside an AppImage
+// (APPDIR unset) the environment is returned unchanged.
+func piperEnv(environ []string) []string {
+	appDir := ""
+	for _, kv := range environ {
+		if value, ok := strings.CutPrefix(kv, "APPDIR="); ok {
+			appDir = strings.TrimRight(value, "/")
+		}
+	}
+	if appDir == "" {
+		return environ
+	}
+	out := make([]string, 0, len(environ))
+	for _, kv := range environ {
+		name, value, _ := strings.Cut(kv, "=")
+		switch name {
+		case "PYTHONHOME", "PYTHONPATH", "LD_PRELOAD":
+			continue
+		case "LD_LIBRARY_PATH":
+			var keep []string
+			for _, dir := range strings.Split(value, ":") {
+				if dir != "" && dir != appDir && !strings.HasPrefix(dir, appDir+"/") {
+					keep = append(keep, dir)
+				}
+			}
+			if len(keep) == 0 {
+				continue
+			}
+			kv = "LD_LIBRARY_PATH=" + strings.Join(keep, ":")
+		}
+		out = append(out, kv)
+	}
+	return out
 }

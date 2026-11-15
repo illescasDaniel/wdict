@@ -12,8 +12,8 @@ import (
 
 // audioDiskCache is the shared audio cache (Q4 of the piper-voices page: one
 // cache, one policy): bytes stored on disk keyed by an opaque hash key,
-// capped by a total-size budget with oldest-last-used eviction. AudioFetch
-// (recordings) and PiperVoices (natural-voice WAVs) share it.
+// capped by a total-size budget with oldest-last-used eviction. PiperVoices
+// stores the natural-voice WAVs in it.
 type audioDiskCache struct {
 	Dir        string
 	CacheBytes int64 // total cache size cap; default 50 MiB

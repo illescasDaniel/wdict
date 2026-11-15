@@ -87,12 +87,23 @@ type lookupEvent struct {
 // Version returns the application version.
 func (a *App) Version() string { return currentVersion() }
 
+// playbackDeadline bounds the synthesis of one PlayPronunciation call (Piper 10 s, eSpeak 5 s per attempt); native playback is not bound by it.
+const playbackDeadline = 15 * time.Second
+
 // PlayPronunciation resolves one transcription item into audio bytes or the
 // verbatim failure copy to show next to it (C3). Expected failures are
 // results, never errors.
 func (a *App) PlayPronunciation(request core.PlayRequest) core.PlayResult {
-	return a.playback.Play(context.Background(), request)
+	// Wails runs each bound call on its own goroutine, so this never blocks
+	// the GTK thread; the deadline only bounds the whole fallback chain so a
+	// stuck subprocess can never leave the play button pending indefinitely.
+	ctx, cancel := context.WithTimeout(context.Background(), playbackDeadline)
+	defer cancel()
+	return a.playback.Play(ctx, request)
 }
+
+// StopPronunciation stops the native pronunciation playback in progress.
+func (a *App) StopPronunciation() { a.playback.Stop() }
 
 func (a *App) Lookup(query string) (string, error) {
 	a.mu.Lock()
@@ -266,16 +277,6 @@ func audioCacheDir(dir func() (string, error)) string {
 	return filepath.Join(root, "wdict", "audio")
 }
 
-// audioRecordings builds the recording source for the audio cache directory;
-// a missing user cache directory disables recordings, not playback.
-func audioRecordings(dir func() (string, error)) core.RecordingSource {
-	cache := audioCacheDir(dir)
-	if cache == "" {
-		return nil
-	}
-	return &adapters.AudioFetch{Dir: cache}
-}
-
 // ListVoices lists the natural-voices packs with their installed and blocked
 // states (C6).
 func (a *App) ListVoices() ([]core.VoicePack, error) {
@@ -385,7 +386,7 @@ func main() {
 			os.Setenv("ESPEAK_DATA_PATH", dataDir)
 		}
 	}
-	playback := &core.PronunciationAudioService{Recordings: audioRecordings(os.UserCacheDir), Piper: piper, Voices: espeak}
+	playback := &core.PronunciationAudioService{Piper: piper, Voices: espeak, Player: &adapters.NativeAudioPlayer{}}
 	bilingual := &core.BilingualService{Sources: sourceResolver{english: core.LanguageSources{Offline: &adapters.OfflineDictionary{IFO: installer.CurrentIFO(), Source: adapters.DictionarySourceInfo}, Online: adapters.OnlineDictionary{}, Provider: "free-dictionary-api"}, spanish: core.LanguageSources{Offline: &adapters.OfflineDictionary{IFO: spanish.CurrentIFO(), Source: adapters.SpanishDictionarySourceInfo, Language: core.Spanish}, Online: adapters.SpanishOnlineDictionary{}, Provider: "spanish-wiktionary"}}, Memory: memory, Disk: disk, Clock: clock{}}
 	appService := &App{
 		dictionaries:  &core.DictionaryService{Catalog: catalog, Installer: catalog},

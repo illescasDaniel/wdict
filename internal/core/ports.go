@@ -75,13 +75,6 @@ type Clock interface {
 	Now() time.Time
 }
 
-// RecordingSource fetches a recording: cache first, then a bounded download.
-// Implementations validate the URL at the edge and own the cache; a miss or a
-// failed fetch returns an error and the caller falls back to the voice path.
-type RecordingSource interface {
-	Fetch(ctx context.Context, audioURL string) (data []byte, err error)
-}
-
 // VoiceSynthesiser speaks an eSpeak voice, either mnemonic phonemes or plain
 // text (C5, revision 3: core converts the shown IPA to mnemonics and falls
 // back to the headword). Available reports whether the eSpeak binary exists;
@@ -91,4 +84,14 @@ type VoiceSynthesiser interface {
 	Available() bool
 	SpeakPhonemes(ctx context.Context, voice, mnemonics string) (data []byte, err error)
 	SpeakText(ctx context.Context, voice, text string) (data []byte, err error)
+}
+
+// AudioPlayer plays a synthesised WAV natively, outside the webview. Play
+// blocks until the audio ends or ctx is cancelled (cancellation stops the
+// sound and is reported as an error). Available reports whether a host player
+// exists; when false, Play is never called and the caller hands the audio to
+// the webview instead.
+type AudioPlayer interface {
+	Available() bool
+	Play(ctx context.Context, wav []byte) error
 }

@@ -177,3 +177,5 @@
 - [ ] Piper voices open items: G4 (English-only F4 copy — recommended accept v1), real-window check, es voice download (76 MB, unexercised).
 - [ ] Reported: "sometimes the voice says 'a <word>'" — unreproduced in piper phoneme-path duration tests (knowledge/apple/book durations match text mode, no dropped phonemes); needs an example word + which voice (hover text names the source: Recording/Piper/eSpeak) to chase.
 - [ ] Next feature: AI voice for pronunciation (started: audio-pronunciation SDD build done).
+
+- [x] v0.8.3 (2026-11-15): pronunciation playback moved from webview `<audio>` to native host players (`pw-play`/`paplay`/`aplay`/`ffplay`, webview data-URI fallback) because the AppImage lacks GStreamer `appsink`/`autoaudiosink` and WebKit froze (user-verified AppImage works). Wiktionary MP3 download removed. Also: compact unavailable-pronunciation line, pronunciation clustering, single scrollbar (`.scroll` needs `position:relative` for `.sr-only`), `<style>` text no longer leaks into Spanish definitions.

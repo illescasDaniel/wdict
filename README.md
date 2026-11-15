@@ -1,6 +1,6 @@
 # wdict
 
-A Linux-first desktop dictionary built with Go, Wails v3 and SvelteKit. Current version: **0.8.0**. Search English and Spanish words and phrases online, reuse saved results, or download Wiktionary dictionaries in the app for offline use. Queries are sent to the online provider only after an offline and cache miss or an expired cache entry. Online results stay fresh for 365 days; when refresh fails, a stale saved result can still be shown.
+A Linux-first desktop dictionary built with Go, Wails v3 and SvelteKit. Current version: **0.8.3**. Search English and Spanish words and phrases online, reuse saved results, or download Wiktionary dictionaries in the app for offline use. Queries are sent to the online provider only after an offline and cache miss or an expired cache entry. Online results stay fresh for 365 days; when refresh fails, a stale saved result can still be shown.
 
 ## Status
 
@@ -10,7 +10,7 @@ Routine CI checks the Linux build and tests without packaging an AppImage. A man
 
 Choose either the ready-to-run AppImage or install from source with Go:
 
-- **AppImage:** Download `wdict-x86_64.AppImage` from the [v0.8.0 release](https://github.com/illescasDaniel/wdict/releases/tag/v0.8.0), then make it executable and run it:
+- **AppImage:** Download `wdict-x86_64.AppImage` from the [v0.8.3 release](https://github.com/illescasDaniel/wdict/releases/tag/v0.8.3), then make it executable and run it:
 
   ```sh
   chmod +x wdict-x86_64.AppImage
@@ -69,7 +69,7 @@ The package test verifies the pinned checksum during installation. These integra
 Install Go 1.26.4 or newer, a C compiler, `pkg-config`, and the GTK 3 and WebKit2GTK 4.1 development packages. Then run:
 
 ```sh
-go install -tags gtk3 github.com/illescasDaniel/wdict@v0.8.0
+go install -tags gtk3 github.com/illescasDaniel/wdict@v0.8.3
 wdict
 ```
 
@@ -94,6 +94,8 @@ The AppImage also bundles the unmodified [eSpeak-NG](https://github.com/espeak-n
 ## Natural voices
 
 Pronunciation playback can optionally use natural neural voices ([Piper](https://github.com/OHF-Voice/piper1-gpl)): when a voice pack is installed, play buttons read the shown IPA transcription with a natural voice instead of eSpeak-NG; without one, playback is unchanged and eSpeak-NG remains the automatic fallback.
+
+Synthesised audio is played natively, outside the webview (the AppImage ships no GStreamer plugins, which freezes WebKit's `<audio>`): the app runs the first host player found on `PATH` among `pw-play`, `paplay`, `aplay` and `ffplay`. These are host binaries and are not bundled; install one of them (PipeWire or PulseAudio normally provide `pw-play`/`paplay`). Without any, playback falls back to the webview's audio element.
 
 In the app's download screen, first install the **Piper runtime** once (≈ 210 MB installed; it runs in its own Python environment inside the app data directory and is verified against a pinned SHA-256 checksum), then one voice per language (≈ 63–77 MB each, checksummed at the pinned Hugging Face revision). This requires `python3` (≥ 3.9) on the PATH; on Debian/Ubuntu also install `python3-venv`, or the runtime install cannot complete. Piper is third-party GPLv3 code ([COPYING](https://github.com/OHF-Voice/piper1-gpl/blob/main/COPYING)), attributed to **rhasspy / OHF-Voice piper voices**; each voice's dataset and licence are linked from its model card in the app ([en_GB-alba-medium](https://huggingface.co/rhasspy/piper-voices/blob/6b9cfaacb4fb2e02a9621227e3c1a48bec9710c3/en/en_GB/alba/medium/MODEL_CARD), [en_US-amy-medium](https://huggingface.co/rhasspy/piper-voices/blob/6b9cfaacb4fb2e02a9621227e3c1a48bec9710c3/en/en_US/amy/medium/MODEL_CARD), [es_ES-sharvard-medium](https://huggingface.co/rhasspy/piper-voices/blob/6b9cfaacb4fb2e02a9621227e3c1a48bec9710c3/es/es_ES/sharvard/medium/MODEL_CARD)).
 

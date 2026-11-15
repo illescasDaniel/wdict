@@ -1,3 +1,7 @@
+## Release v0.8.3 (2026-11-15)
+
+User confirmed AppImage playback works after native-player change. Committed and released as v0.8.3. Unverified by agents: audible playback was user-tested only. Next: await user direction.
+
 # Active context
 
 ## Result ranking and entry cards (2026-11-15)

@@ -19,8 +19,8 @@ type PlayRequest struct {
 	Label         string // flags or source label as shown
 	LabelTitle    string // original accent label, e.g. "General American"
 	Language      Language
-	AudioURL      string
-	SkipRecording bool   // set by the frontend's audio-error fallback (F5)
+	AudioURL      string // legacy: still sent by the frontend, ignored (recordings are never downloaded)
+	SkipRecording bool   // legacy: ignored, see AudioURL
 	Headword      string // plain headword spoken by the voice path (C5)
 }
 
@@ -28,15 +28,15 @@ type PlayRequest struct {
 type PlaySource string
 
 const (
-	PlayRecording PlaySource = "recording"
-	PlayVoice     PlaySource = "espeak"
-	PlayPiper     PlaySource = "piper"
+	PlayVoice PlaySource = "espeak"
+	PlayPiper PlaySource = "piper"
 )
 
 // PlayResult is audio to play or the verbatim failure copy to show. Expected
 // failures are results, never errors.
 type PlayResult struct {
-	Audio   string // data:audio/wav or data:audio/mpeg URI; empty on failure
+	Played  bool   // the audio already played (or was stopped) natively; Audio is empty
+	Audio   string // data:audio/wav URI for the webview fallback; empty on failure or when Played
 	Source  PlaySource
 	Voice   string // eSpeak voice id used, for voice results
 	Message string // verbatim failure copy when Audio is empty

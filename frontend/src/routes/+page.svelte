@@ -390,7 +390,7 @@
     }
   }
   // Pronunciation playback (C7): one always-shown button per transcription
-  // item; the controller owns the newest-wins play state and the F5 fallback.
+  // item; the controller owns the newest-wins play state.
   const playback = createPlaybackController({ call });
   function playbackKey(entry, entryIndex, position) {
     return `${entryIndex}:${position}:${entry.Headword}:${entry.Language ?? ""}`;
@@ -400,15 +400,11 @@
       ? `${t("playPronunciation")} — ${item.LabelTitle}`
       : t("playPronunciation");
   }
-  function playTitle(t, entry, item, voice) {
-    if (!item.AudioURL) {
-      // C5 of the piper-voices page: a Piper result names the natural voice.
-      if (voice?.Source === "piper") return `Piper · ${voice.Voice}`;
-      return voice?.Voice ? `eSpeak-NG · ${voice.Voice}` : "eSpeak-NG";
-    }
-    return `${t("recordingSource")} · ${entry.Source.Name}${
-      entry.Source.Attribution ? ` · ${entry.Source.Attribution}` : ""
-    }`;
+  function playTitle(voice) {
+    // Recordings are never downloaded: every result is synthesised, so the
+    // hover names the engine (C5 of the piper-voices page for Piper).
+    if (voice?.Source === "piper") return `Piper · ${voice.Voice}`;
+    return voice?.Voice ? `eSpeak-NG · ${voice.Voice}` : "eSpeak-NG";
   }
   function playSpelling(entry, index, language) {
     playback.play(playbackKey(entry, index, "spelling"), {
@@ -454,12 +450,7 @@
             playbackKey(entry, index, position)}
           type="button"
           aria-label={playName(t, item)}
-          title={playTitle(
-            t,
-            entry,
-            item,
-            $playback.voices[playbackKey(entry, index, position)],
-          )}
+          title={playTitle($playback.voices[playbackKey(entry, index, position)])}
           onclick={() => playItem(entry, index, position, language, item)}
           ><svg viewBox="0 0 24 24" aria-hidden="true"
             ><path d="M8 5v14l11-7z" /></svg

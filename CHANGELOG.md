@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.8.3] - 2026-11-15
+
+- Fix the UI freezing (and no sound in the AppImage) when playing a pronunciation: sound now plays through the system audio player (`pw-play`, `paplay`, `aplay` or `ffplay`) instead of the web view, and the original MP3 recordings are no longer downloaded.
+- Move the scrollbar to the window edge and remove the duplicate scrollbar.
+- Show the unavailable-pronunciation control as one compact line, and show records with identical pronunciation together.
+- Stop stylesheet text from appearing in Spanish definitions.
+
+## [0.8.2] - 2026-11-15
+
+- Show the source attribution once per card, shortened.
+
 ## [0.8.1] - 2026-11-15
 
 - Fix pronunciation voices dropping the start of words like `appearance` or `eight` and speaking noise for unsupported sounds (for example the Indian-English `ʈ`): transcriptions without stress marks now keep their vowel, and unsupported phones speak the headword instead.

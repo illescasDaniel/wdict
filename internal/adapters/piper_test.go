@@ -291,3 +291,26 @@ func TestGivenRealRunnerWhenTheProcessFailsThenStderrReachesTheError(t *testing.
 		t.Fatalf("err=%v", err)
 	}
 }
+
+func TestGivenAppImageEnvironmentWhenPiperEnvIsBuiltThenAppDirLibrariesAreDropped(t *testing.T) {
+	// given
+	environ := []string{"HOME=/home/u", "APPDIR=/tmp/.mount_x", "LD_LIBRARY_PATH=/tmp/.mount_x/usr/lib:/usr/local/lib:/tmp/.mount_x/lib64", "PYTHONHOME=/tmp/.mount_x/usr", "LD_PRELOAD=/tmp/.mount_x/x.so"}
+	// when
+	got := strings.Join(piperEnv(environ), "\n")
+	// then
+	want := "HOME=/home/u\nAPPDIR=/tmp/.mount_x\nLD_LIBRARY_PATH=/usr/local/lib"
+	if got != want {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+}
+
+func TestGivenNoAppImageWhenPiperEnvIsBuiltThenEnvironmentIsUnchanged(t *testing.T) {
+	// given
+	environ := []string{"LD_LIBRARY_PATH=/opt/lib", "PYTHONHOME=/opt/py"}
+	// when
+	got := piperEnv(environ)
+	// then
+	if strings.Join(got, ",") != strings.Join(environ, ",") {
+		t.Fatalf("got %v", got)
+	}
+}

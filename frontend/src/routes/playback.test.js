@@ -96,11 +96,10 @@ describe("playback controller", () => {
   it("given_two_pending_plays_when_newest_resolves_then_newest_wins_with_no_queue_or_double_audio", async () => {
     // given
     const pending = [];
-    call.mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          pending.push(resolve);
-        }),
+    call.mockImplementation((method) =>
+      method === "PlayPronunciation"
+        ? new Promise((resolve) => pending.push(resolve))
+        : Promise.resolve(),
     );
     controller.play("item-a", baseRequest);
     controller.play("item-b", baseRequest);
@@ -138,62 +137,95 @@ describe("playback controller", () => {
     expect(tracked.current().playing).toBeNull();
   });
 
-  it("given_recording_not_decodable_when_error_event_fires_then_voice_fallback_is_requested_immediately", async () => {
+  it("given_audio_not_decodable_when_error_event_fires_then_playing_clears_without_retry", async () => {
     // given
-    const requests = [];
-    call.mockImplementation(async (method, request) => {
-      requests.push(request);
-      return requests.length === 1
-        ? { Audio: "data:audio/mpeg;base64,AAAA", Message: "" }
-        : { Audio: "data:audio/wav;base64,BBBB", Message: "" };
-    });
     await controller.play("item-1", baseRequest);
     // when
     audioFactory.created[0].emit("error");
-    await vi.waitFor(() => expect(call).toHaveBeenCalledTimes(2));
     // then
-    expect(requests[1]).toEqual({ ...baseRequest, SkipRecording: true });
-    expect(tracked.current().message).toBeNull();
-    expect(tracked.current().playing).toBe("item-1");
-    expect(audioFactory.created[1].src).toBe("data:audio/wav;base64,BBBB");
-  });
-
-  it("given_fallback_also_fails_when_voice_path_returns_copy_then_verbatim_copy_is_shown", async () => {
-    // given
-    const requests = [];
-    call.mockImplementation(async (method, request) => {
-      requests.push(request);
-      return requests.length === 1
-        ? { Audio: "data:audio/mpeg;base64,AAAA", Message: "" }
-        : { Audio: "", Message: CopyNoSynthesis };
-    });
-    await controller.play("item-1", baseRequest);
-    // when
-    audioFactory.created[0].emit("error");
-    await vi.waitFor(() =>
-      expect(tracked.current().message?.text).toBe(CopyNoSynthesis),
-    );
-    // then
-    expect(requests[1].SkipRecording).toBe(true);
+    expect(call).toHaveBeenCalledTimes(1);
     expect(tracked.current().playing).toBeNull();
-    expect(tracked.current().message.key).toBe("item-1");
+    expect(tracked.current().message).toEqual({ key: "item-1", text: "" });
   });
 
-  it("given_voice_audio_also_not_decodable_when_error_fires_again_then_no_endless_fallback", async () => {
-    // given: both attempts return audio the webview rejects
-    call.mockImplementation(async () => ({
-      Audio: "data:audio/mpeg;base64,AAAA",
-      Message: "",
-    }));
-    await controller.play("item-1", baseRequest);
-    audioFactory.created[0].emit("error");
-    await vi.waitFor(() => expect(audioFactory.created).toHaveLength(2));
+  it("given_native_playback_pending_when_click_then_playing_holds_until_resolved_then_clears_without_audio_element", async () => {
+    // given
+    let resolve;
+    call.mockImplementation(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
+    const done = controller.play("item-1", baseRequest);
+    // then: playing from click
+    expect(tracked.current().playing).toBe("item-1");
     // when
-    audioFactory.created[1].emit("error");
-    await vi.waitFor(() => expect(tracked.current().playing).toBeNull());
+    resolve({ Played: true, Audio: "", Source: "piper", Voice: "alba" });
+    await done;
     // then
-    expect(call).toHaveBeenCalledTimes(2);
-    expect(tracked.current().message?.key).toBe("item-1");
+    expect(audioFactory.created).toHaveLength(0);
+    expect(tracked.current().playing).toBeNull();
+    expect(tracked.current().message).toBeNull();
+    expect(tracked.current().voices["item-1"]).toEqual({
+      Source: "piper",
+      Voice: "alba",
+    });
+  });
+
+  it("given_native_playing_when_same_item_clicked_then_stop_is_called_and_playing_clears", async () => {
+    // given
+    call.mockImplementation(() => new Promise(() => {}));
+    controller.play("item-1", baseRequest);
+    // when
+    controller.play("item-1", baseRequest);
+    // then
+    expect(call.mock.calls.map(([m]) => m)).toEqual([
+      "PlayPronunciation",
+      "StopPronunciation",
+    ]);
+    expect(tracked.current().playing).toBeNull();
+  });
+
+  it("given_stopped_native_playback_when_late_result_arrives_then_it_is_ignored", async () => {
+    // given
+    const pending = [];
+    call.mockImplementation((method) =>
+      method === "PlayPronunciation"
+        ? new Promise((resolve) => pending.push(resolve))
+        : Promise.resolve(),
+    );
+    controller.play("item-1", baseRequest);
+    controller.play("item-1", baseRequest);
+    controller.play("item-2", baseRequest);
+    // when: the first request finishes late
+    pending[0]({ Played: true, Audio: "", Source: "piper", Voice: "alba" });
+    await flush();
+    // then
+    expect(tracked.current().playing).toBe("item-2");
+    expect(tracked.current().voices).toEqual({});
+  });
+
+  it("given_native_playing_when_another_item_starts_then_stop_precedes_the_new_play", async () => {
+    // given
+    call.mockImplementation(() => new Promise(() => {}));
+    controller.play("item-a", baseRequest);
+    // when
+    controller.play("item-b", baseRequest);
+    // then
+    expect(call.mock.calls.map(([m]) => m)).toEqual([
+      "PlayPronunciation",
+      "StopPronunciation",
+      "PlayPronunciation",
+    ]);
+    expect(tracked.current().playing).toBe("item-b");
+  });
+
+  it("given_idle_when_first_item_starts_then_stop_is_not_called", async () => {
+    // when
+    await controller.play("item-1", baseRequest);
+    // then
+    expect(call.mock.calls.map(([m]) => m)).toEqual(["PlayPronunciation"]);
   });
 
   it("given_backend_returns_no_audio_when_first_call_fails_then_copy_is_shown_without_retry", async () => {
@@ -235,8 +267,10 @@ describe("playback controller", () => {
   it("given_pending_spelling_when_ipa_starts_then_late_spelling_cannot_replace_ipa", async () => {
     // given
     const pending = [];
-    call.mockImplementation(
-      () => new Promise((resolve) => pending.push(resolve)),
+    call.mockImplementation((method) =>
+      method === "PlayPronunciation"
+        ? new Promise((resolve) => pending.push(resolve))
+        : Promise.resolve(),
     );
     const spelling = {
       Mode: "spelling",
@@ -254,10 +288,11 @@ describe("playback controller", () => {
     // then
     expect(tracked.current().playing).toBe("ipa");
     expect(audioFactory.created).toHaveLength(1);
-    expect(call.mock.calls.map(([, request]) => request)).toEqual([
-      spelling,
-      baseRequest,
-    ]);
+    expect(
+      call.mock.calls
+        .filter(([method]) => method === "PlayPronunciation")
+        .map(([, request]) => request),
+    ).toEqual([spelling, baseRequest]);
   });
 
   it("given_pending_spelling_when_reset_cancels_then_late_audio_is_discarded", async () => {
@@ -393,7 +428,7 @@ describe("play button on the pronunciation line", () => {
     vi.unstubAllGlobals();
   });
 
-  it("given_items_with_and_without_recording_when_rendered_then_hover_and_accessible_names_match_their_source", async () => {
+  it("given_items_with_and_without_audio_url_when_rendered_then_hover_names_the_synthesiser_never_a_recording", async () => {
     // given
     mockBackend(() => ({
       Status: "found",
@@ -415,9 +450,7 @@ describe("play button on the pronunciation line", () => {
     await lookUp();
     // then
     const recording = playButton("Play pronunciation — Received Pronunciation");
-    expect(recording.getAttribute("title")).toBe(
-      "Recording · Example · Example contributors",
-    );
+    expect(recording.getAttribute("title")).toBe("eSpeak-NG");
     const voice = playButton("Play pronunciation — General American");
     expect(voice.getAttribute("title")).toBe("eSpeak-NG");
     expect(recording.hasAttribute("disabled")).toBe(false);
@@ -428,7 +461,7 @@ describe("play button on the pronunciation line", () => {
     ).toBe("🇬🇧 /wɜːd/ · 🇺🇸 /wɝːd/");
   });
 
-  it("given_item_without_attribution_when_rendered_then_hover_names_source_only", async () => {
+  it("given_item_with_audio_url_and_no_attribution_when_rendered_then_hover_names_the_synthesiser", async () => {
     // given
     mockBackend(() => ({
       Status: "found",
@@ -450,7 +483,7 @@ describe("play button on the pronunciation line", () => {
     await lookUp();
     // then
     expect(playButton("Play pronunciation").getAttribute("title")).toBe(
-      "Recording · Example",
+      "eSpeak-NG",
     );
   });
   it("given_click_when_requesting_play_then_app_receives_the_full_contract", async () => {
@@ -585,55 +618,41 @@ describe("play button on the pronunciation line", () => {
     expect(document.body.textContent).not.toMatch(/plugin/i);
   });
 
-  it("given_recording_not_decodable_when_audio_errors_then_voice_fallback_is_requested_for_the_same_item", async () => {
+  it("given_native_played_result_when_click_then_no_audio_element_and_playing_holds_until_resolved", async () => {
     // given
-    playResult = () => ({ Audio: "data:audio/mpeg;base64,AAAA", Message: "" });
+    let resolve;
+    playResult = () =>
+      new Promise((done) => {
+        resolve = done;
+      });
     mockBackend(() => ({
       Status: "found",
       Origin: "online",
       Entries: [
         entryWith([
-          {
-            Text: "/wɜːd/",
-            Label: "🇬🇧",
-            LabelTitle: "Received Pronunciation",
-            AudioURL: "https://example.com/audio.mp3",
-          },
+          { Text: "/wɝːd/", Label: "🇺🇸", LabelTitle: "General American" },
         ]),
       ],
     }));
     render(Page);
     await lookUp();
-    await fireEvent.click(
-      playButton("Play pronunciation — Received Pronunciation"),
-    );
+    const button = playButton("Play pronunciation — General American");
     // when
-    FakeAudio.instances[0].emit("error");
+    await fireEvent.click(button);
     // then
-    await vi.waitFor(() => {
-      const plays = call.mock.calls.filter(([m]) => m === "PlayPronunciation");
-      expect(plays).toHaveLength(2);
-      expect(plays[1][1]).toEqual({
-        Text: "/wɜːd/",
-        Label: "🇬🇧",
-        LabelTitle: "Received Pronunciation",
-        Language: "en",
-        AudioURL: "https://example.com/audio.mp3",
-        SkipRecording: true,
-        Headword: "hello",
-      });
-    });
+    expect(button.className).toMatch(/playing/);
+    // when
+    resolve({ Played: true, Audio: "", Source: "piper", Voice: "alba" });
+    await flush();
+    // then
+    expect(FakeAudio.instances).toHaveLength(0);
+    expect(button.className).not.toMatch(/playing/);
+    expect(button.getAttribute("title")).toBe("Piper · alba");
   });
 
-  it("given_fallback_fails_too_when_voice_path_returns_copy_then_verbatim_copy_is_shown", async () => {
+  it("given_native_playing_when_same_button_clicked_then_stop_pronunciation_is_called", async () => {
     // given
-    let attempts = 0;
-    playResult = () => {
-      attempts += 1;
-      return attempts === 1
-        ? { Audio: "data:audio/mpeg;base64,AAAA", Message: "" }
-        : { Audio: "", Message: CopyNoSynthesis };
-    };
+    playResult = () => new Promise(() => {});
     mockBackend(() => ({
       Status: "found",
       Origin: "online",
@@ -641,12 +660,13 @@ describe("play button on the pronunciation line", () => {
     }));
     render(Page);
     await lookUp();
-    await fireEvent.click(playButton("Play pronunciation"));
+    const button = playButton("Play pronunciation");
+    await fireEvent.click(button);
     // when
-    FakeAudio.instances[0].emit("error");
+    await fireEvent.click(button);
     // then
-    await screen.findByText(CopyNoSynthesis);
-    expect(screen.queryByText(CopyNoSource)).toBeNull();
+    expect(call).toHaveBeenCalledWith("StopPronunciation");
+    expect(button.className).not.toMatch(/playing/);
   });
 
   it("given_rapid_clicks_on_two_items_when_both_land_then_newest_play_wins", async () => {

@@ -63,13 +63,12 @@ func TestGivenFourMatchTiersWhenRankedThenStrongestDirectMatchFirst(t *testing.T
 func TestGivenSpellingModeWhenPlayingThenOnlyTextVoiceIsUsed(t *testing.T) {
 	// given
 	voices := &fakeVoices{available: true, outputs: voiceResult("es", "Car")}
-	recordings := &fakeRecordings{data: []byte("recording")}
-	s := service(recordings, voices)
+	s := service(voices)
 	// when
 	got := s.Play(context.Background(), PlayRequest{Mode: PlaySpelling, Language: Spanish, Headword: "Car", AudioURL: "https://example.com/x", Text: "/kɑː/", Label: "UK"})
 	// then
-	if got.Source != PlayVoice || got.Voice != "es" || len(recordings.urls) != 0 || len(voices.calls) != 1 || voices.calls[0].phonemes || voices.calls[0].text != "Car" {
-		t.Fatalf("got %+v calls %+v recordings %+v", got, voices.calls, recordings.urls)
+	if got.Source != PlayVoice || got.Voice != "es" || len(voices.calls) != 1 || voices.calls[0].phonemes || voices.calls[0].text != "Car" {
+		t.Fatalf("got %+v calls %+v", got, voices.calls)
 	}
 }
 
@@ -117,24 +116,23 @@ func TestGivenSharedCachedCandidatesWhenSearchingEitherCaseThenEachQueryRanksInd
 	}
 }
 
-func TestGivenSpellingModeWhenPlayingEnglishThenDefaultVoiceBypassesRecordingAndPiper(t *testing.T) {
+func TestGivenSpellingModeWhenPlayingEnglishThenDefaultVoiceBypassesPiper(t *testing.T) {
 	// given
 	voices := &fakeVoices{available: true, outputs: voiceResult("en-us", "Car")}
-	rec := &fakeRecordings{data: []byte("rec")}
 	piper := &fakePiper{output: []byte("piper")}
-	s := piperService(rec, piper, voices)
+	s := piperService(piper, voices)
 	// when
 	got := s.Play(context.Background(), PlayRequest{Mode: PlaySpelling, Language: English, Headword: "Car", Label: "UK", Text: "/kɑː/", AudioURL: "https://example.com/audio"})
 	// then
-	if got.Source != PlayVoice || got.Voice != "en-us" || len(rec.urls) != 0 || len(piper.calls) != 0 || len(voices.calls) != 1 || voices.calls[0] != (voiceCall{voice: "en-us", text: "Car"}) {
-		t.Fatalf("result %+v, recording %+v piper %+v voice %+v", got, rec.urls, piper.calls, voices.calls)
+	if got.Source != PlayVoice || got.Voice != "en-us" || len(piper.calls) != 0 || len(voices.calls) != 1 || voices.calls[0] != (voiceCall{voice: "en-us", text: "Car"}) {
+		t.Fatalf("result %+v, piper %+v voice %+v", got, piper.calls, voices.calls)
 	}
 }
 
 func TestGivenUnavailableSpellingVoiceWhenPlayingThenFailureCanBeRetried(t *testing.T) {
 	// given
 	voices := &fakeVoices{available: false}
-	s := service(nil, voices)
+	s := service(voices)
 	request := PlayRequest{Mode: PlaySpelling, Language: English, Headword: "Car"}
 	// when
 	missing := s.Play(context.Background(), request)
