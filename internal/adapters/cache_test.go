@@ -3,10 +3,12 @@ package adapters
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -213,5 +215,30 @@ func TestGivenCorruptNewerRecordWhenEvictingThenValidRecordIsPreserved(t *testin
 	_, found, err := c.Get(ctx, old.Key)
 	if err != nil || !found {
 		t.Fatalf("valid record removed: found=%v err=%v", found, err)
+	}
+}
+
+func TestGivenProvenAndLegacyMeaningsWhenDiskCacheReopenedThenVersionAndArraysRemainCompatible(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	key := core.CacheKey{Provider: "spanish", Language: core.Spanish, NormalizedQuery: "word"}
+	record := core.CacheRecord{Key: key, FetchedAt: time.Now(), LastUsed: time.Now(), Entries: []core.Entry{{Headword: "word", Language: core.Spanish, Meanings: []core.Meaning{{PartOfSpeech: "noun", Definitions: []string{"one"}, SenseGroup: "p0:g1"}, {PartOfSpeech: "noun", Definitions: []string{"two"}, SenseGroup: "p0:g1"}, {Definitions: []string{"legacy"}}}}}}
+	if err := (&DiskCache{Dir: dir}).Put(ctx, record); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(filepath.Join(dir, cacheName(key)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var envelope diskRecord
+	if err := json.Unmarshal(raw, &envelope); err != nil || envelope.Version != 1 {
+		t.Fatalf("version=%d err=%v", envelope.Version, err)
+	}
+	if strings.Count(string(raw), `"SenseGroup"`) != 2 {
+		t.Fatalf("wire=%s", raw)
+	}
+	got, ok, err := (&DiskCache{Dir: dir}).Get(ctx, key)
+	if err != nil || !ok || !reflect.DeepEqual(got.Entries, record.Entries) {
+		t.Fatalf("got=%+v ok=%v err=%v", got, ok, err)
 	}
 }

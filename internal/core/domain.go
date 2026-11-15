@@ -19,6 +19,8 @@ type Source struct {
 type Meaning struct {
 	PartOfSpeech string
 	Definitions  []string
+	// SenseGroup is optional, opaque evidence of a shared source section.
+	SenseGroup string `json:",omitempty"`
 }
 
 type Pronunciation struct {

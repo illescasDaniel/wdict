@@ -95,6 +95,7 @@ func spanishMeanings(root *html.Node, offline bool) ([]core.Meaning, int) {
 	sections := 0
 	part := ""
 	var meanings []core.Meaning
+	evidence := spanishSenseEvidence(root, offline)
 	var visit func(*html.Node)
 	visit = func(n *html.Node) {
 		if n.Type == html.ElementNode {
@@ -132,7 +133,7 @@ func spanishMeanings(root *html.Node, offline bool) ([]core.Meaning, int) {
 				plain(n)
 				v := strings.TrimSpace(b.String())
 				if v != "" {
-					meanings = append(meanings, core.Meaning{PartOfSpeech: part, Definitions: []string{v}})
+					meanings = append(meanings, core.Meaning{PartOfSpeech: part, Definitions: []string{v}, SenseGroup: evidence[n]})
 				}
 				numbered = false
 				return
@@ -144,6 +145,139 @@ func spanishMeanings(root *html.Node, offline bool) ([]core.Meaning, int) {
 	}
 	visit(root)
 	return meanings, sections
+}
+
+// spanishSenseEvidence supplies tokens only where the source structure proves adjacency.
+func spanishSenseEvidence(root *html.Node, offline bool) map[*html.Node]string {
+	result := make(map[*html.Node]string)
+	active := offline
+	heading := false
+	sectionDepth := 0
+	run, next := "", 0
+	pending := false
+	reset := func() { run = ""; pending = false }
+	var visit func(*html.Node)
+	visit = func(n *html.Node) {
+		if n.Type == html.TextNode {
+			if strings.TrimSpace(n.Data) != "" {
+				reset()
+			}
+			return
+		}
+		if n.Type != html.ElementNode {
+			for c := n.FirstChild; c != nil; c = c.NextSibling {
+				visit(c)
+			}
+			return
+		}
+		switch n.Data {
+		case "html", "head", "body":
+			for c := n.FirstChild; c != nil; c = c.NextSibling {
+				visit(c)
+			}
+			return
+		case "section":
+			reset()
+			heading = false
+			sectionDepth++
+			for c := n.FirstChild; c != nil; c = c.NextSibling {
+				visit(c)
+			}
+			sectionDepth--
+			reset()
+			heading = false
+			return
+		case "h1", "h2", "h3", "h4", "h5", "h6":
+			reset()
+			heading = false
+			if n.Data == "h2" {
+				active = false
+				for _, a := range n.Attr {
+					if a.Key == "id" && a.Val == "Español" {
+						active = true
+					}
+				}
+			}
+			if active && n.Data == "h4" {
+				heading = strings.TrimSpace(spanishNodeText(n)) != ""
+			}
+			return
+		case "dl":
+			if pending {
+				reset()
+			}
+			for c := n.FirstChild; c != nil; c = c.NextSibling {
+				if c.Type == html.TextNode && strings.TrimSpace(c.Data) == "" {
+					continue
+				}
+				if c.Type != html.ElementNode {
+					reset()
+					continue
+				}
+				switch c.Data {
+				case "dt":
+					if pending {
+						reset()
+					}
+					t := []rune(strings.TrimSpace(spanishNodeText(c)))
+					i := 0
+					for i < len(t) && unicode.IsDigit(t[i]) {
+						i++
+					}
+					pending = active && heading && (!offline || sectionDepth > 0) && i > 0 && (i == len(t) || unicode.IsSpace(t[i]))
+					if !pending {
+						reset()
+					}
+				case "dd":
+					if !pending {
+						reset()
+						continue
+					}
+					pending = false
+					var b strings.Builder
+					var plain func(*html.Node)
+					plain = func(x *html.Node) {
+						if x.Type == html.ElementNode && (x.Data == "ul" || x.Data == "ol" || x.Data == "sup") {
+							return
+						}
+						if x.Type == html.TextNode {
+							b.WriteString(x.Data)
+						}
+						for child := x.FirstChild; child != nil; child = child.NextSibling {
+							plain(child)
+						}
+					}
+					plain(c)
+					if strings.TrimSpace(b.String()) == "" {
+						reset()
+						continue
+					}
+					if run == "" {
+						next++
+						run = fmt.Sprintf("g%d", next)
+					}
+					result[c] = run
+				default:
+					reset()
+				}
+			}
+			if pending {
+				reset()
+			}
+			return
+		default:
+			reset()
+			// Unknown containers may contain extractable headings and definitions,
+			// but cannot prove adjacency across their boundary.
+			for c := n.FirstChild; c != nil; c = c.NextSibling {
+				visit(c)
+			}
+			reset()
+			return
+		}
+	}
+	visit(root)
+	return result
 }
 
 func spanishNodeText(n *html.Node) string {

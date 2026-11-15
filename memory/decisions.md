@@ -180,3 +180,19 @@ Found with a ~105-item survey of both installed offline dictionaries driven thro
 - Source counts (my own scan of the installed English dictionary 2026-11-11, not independently checked): about 4,500 UK+US labels, "dialectal" 252 uses, "obsolete" 346.
 - Real fixture: `internal/adapters/testdata/pronunciation/offline_en_vegetable.html`.
 - Open: the approved 5-run median performance report was not re-measured for R3/R4 (grader G8); the user has not yet accepted or asked for it.
+
+## 2026-11-15 — Compact dictionary senses Design
+
+User approved the Design in `sdd/compact-senses.html` with “design approved” (`src:505ccb49ec33ff663cbb`). Adjacent compatible senses share a heading and continuous numbering only within the same actual source section and entry/source/language/pronunciation/etymology context. Preserve content, order and uncertain boundaries; avoid repeated headings without conflating distinct sections. Spec and Architecture require their own approvals.
+
+## 2026-11-15 — Compact dictionary senses Spec
+
+User approved the Spec tab of `sdd/compact-senses.html` with “spec approved” (`src:36cc38c49ee06da33f94`). S1–S13 make grouping dependent on confirmed section/context, preserve available content and existing lookup behavior, and require safe text, a usable 320px light/dark layout, and no added I/O. Architecture requires separate approval.
+
+## 2026-11-15 — Spanish touch label evidence correction
+
+The earlier summary attributed missing regional/usage labels to the downloaded HTML. Later exact raw-entry inspection found Rugby in dt1 and nested Uso: coloquial in senses 2/3; `spanishMeanings` drops dt labels and nested ul/ol/sup (verified against current source). This corrects the broader earlier claim; which remaining live labels are absent from raw was not exhaustively verified. Approved Spec S7 preserves current presentation strings; raw-label recovery is separate scope. Evidence: `src:f2b4c2070d9b31be8ef8`.
+
+## 2026-11-15 — Compact senses Architecture
+
+User approved Architecture with “approved” (`src:0bca999a06584a994142`). Optional `Meaning.SenseGroup` records confirmed source-run provenance, isolated per offline payload; the frontend combines adjacent compatible senses without mutating stored arrays. Extraction-only coalescing was rejected because newly cached combined definitions would survive presentation rollback. Legacy caches remain separate without forced refresh. Automatic QA and independent grading remain enabled.

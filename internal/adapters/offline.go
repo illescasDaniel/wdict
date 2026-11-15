@@ -3,6 +3,7 @@ package adapters
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -84,7 +85,7 @@ func (d *OfflineDictionary) Find(ctx context.Context, query string, language cor
 		if err != nil {
 			return nil, false, err
 		}
-		for _, data := range word.Data {
+		for payload, data := range word.Data {
 			if data.Type == dict.HTMLType {
 				if language == core.Spanish {
 					document, parseErr := html.Parse(strings.NewReader(string(data.Data)))
@@ -92,6 +93,11 @@ func (d *OfflineDictionary) Find(ctx context.Context, query string, language cor
 						return nil, false, parseErr
 					}
 					extracted, _ := spanishMeanings(document, true)
+					for i := range extracted {
+						if extracted[i].SenseGroup != "" {
+							extracted[i].SenseGroup = fmt.Sprintf("p%d:%s", payload, extracted[i].SenseGroup)
+						}
+					}
 					meanings = append(meanings, extracted...)
 					rawPronunciations = append(rawPronunciations, spanishOfflinePronunciations(document)...)
 				} else if document, parseErr := html.Parse(strings.NewReader(string(data.Data))); parseErr == nil {
@@ -229,9 +235,9 @@ var scanIndex = scanDictionary
 // Match tiers of a scanned index word, in ranking order: lower tiers come
 // first, and within a tier the raw index order is preserved.
 const (
-	exactTier = iota + 1 // the raw word equals the raw query ignoring case, without diacritic or punctuation folding
-	foldedTier           // the word matches after StarDict folding (case, accents, punctuation)
-	aliasTier            // the word matched only through a .syn alias redirect
+	exactTier  = iota + 1 // the raw word equals the raw query ignoring case, without diacritic or punctuation folding
+	foldedTier            // the word matches after StarDict folding (case, accents, punctuation)
+	aliasTier             // the word matched only through a .syn alias redirect
 )
 
 // tieredWord keeps the match tier found during the single scan pass so the

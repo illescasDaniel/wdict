@@ -43,6 +43,7 @@
   }
   import { call, onLookupResult, onLookupAlternatives } from "../lib-api.js";
   import { createPlaybackController } from "./playback.js";
+  import { compactMeanings } from "./senses.js";
   import {
     readAppearance,
     saveAppearance,
@@ -506,8 +507,8 @@
                   )
                 : ""}
             </p>
-            {#each entry.Meanings as meaning}<section>
-                {#if meaning.PartOfSpeech}<h3>{meaning.PartOfSpeech}</h3>{/if}
+            {#each compactMeanings(entry.Meanings) as meaning}<section>
+                {#if meaning.PartOfSpeech?.trim()}<h3>{meaning.PartOfSpeech}</h3>{/if}
                 <ol>
                   {#each meaning.Definitions as definition}<li>
                       {definition}
@@ -639,11 +640,14 @@
                       t("playbackFailed")}</span
                   >{/if}{/each}
           </p>{/if}
-          {#each entry.Meanings as meaning}<ol>
-              {#each meaning.Definitions as definition}<li>
-                  {definition}
-                </li>{/each}
-            </ol>{/each}
+          {#each compactMeanings(entry.Meanings) as meaning}<section>
+              {#if meaning.PartOfSpeech?.trim()}<h3>{meaning.PartOfSpeech}</h3>{/if}
+              <ol>
+                {#each meaning.Definitions as definition}<li>
+                    {definition}
+                  </li>{/each}
+              </ol>
+            </section>{/each}
           <p class="hint">{t("previousResult", { query: previousQuery })}</p>
           <p class="source">
             {t("source")}: {entry.Source.Name}
@@ -1173,6 +1177,10 @@
     border-top: 1px solid var(--rule);
     padding-top: 12px;
     margin-bottom: 0;
+  }
+  section h3,
+  section li {
+    overflow-wrap: anywhere;
   }
   li {
     white-space: pre-wrap;

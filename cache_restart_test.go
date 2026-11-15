@@ -84,3 +84,40 @@ func testRestartPhase(t *testing.T, phase string) {
 		t.Fatalf("unknown test phase %q", phase)
 	}
 }
+
+func TestGivenProvenAndLegacyMeaningsWhenServiceRestartsThenCacheAvoidsAnotherFetch(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("XDG_CACHE_HOME isolation is Linux-specific")
+	}
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	now := time.Date(2026, 11, 15, 0, 0, 0, 0, time.UTC)
+	provider := &senseRestartProvider{}
+	lookup := func() *core.LookupService {
+		return &core.LookupService{Online: provider, Memory: &adapters.MemoryCache{}, Disk: diskCache(os.UserCacheDir), Clock: restartClock{now}, Provider: "spanish"}
+	}
+	request := core.LookupRequest{Query: "word", Language: core.Spanish}
+	service := lookup()
+	for _, expected := range []core.ResultOrigin{core.OriginOnline, core.OriginMemory, core.OriginDisk} {
+		if expected == core.OriginDisk {
+			service = lookup()
+		}
+		result, err := service.Lookup(context.Background(), request)
+		if err != nil || result.Status != core.Found || result.Origin != expected || len(result.Entries) != 1 {
+			t.Fatalf("origin %s result=%+v err=%v", expected, result, err)
+		}
+		meanings := result.Entries[0].Meanings
+		if len(meanings) != 3 || meanings[0].SenseGroup != "g1" || meanings[1].SenseGroup != "g1" || meanings[2].SenseGroup != "" || meanings[2].Definitions[0] != "legacy" {
+			t.Fatalf("meanings=%+v", meanings)
+		}
+	}
+	if provider.calls != 1 {
+		t.Fatalf("provider calls=%d", provider.calls)
+	}
+}
+
+type senseRestartProvider struct{ calls int }
+
+func (p *senseRestartProvider) Find(_ context.Context, query string, language core.Language) ([]core.Entry, bool, error) {
+	p.calls++
+	return []core.Entry{{Headword: query, Language: language, Meanings: []core.Meaning{{PartOfSpeech: "noun", Definitions: []string{"one"}, SenseGroup: "g1"}, {PartOfSpeech: "noun", Definitions: []string{"two"}, SenseGroup: "g1"}, {Definitions: []string{"legacy"}}}}}, true, nil
+}

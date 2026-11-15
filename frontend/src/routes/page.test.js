@@ -881,6 +881,102 @@ describe("lookup and offline dictionary UI", () => {
   });
 });
 
+describe("compact senses", () => {
+  const grouped = {
+    ...entry,
+    Meanings: Array.from({ length: 6 }, (_, i) => ({
+      PartOfSpeech: "noun",
+      SenseGroup: "section-1",
+      Definitions: [i === 5 ? "<b>duplicate</b>" : `sense ${i + 1}`],
+    })),
+  };
+  it("given_confirmed_senses_when_displayed_then_one_ordered_list_preserves_text_and_adds_no_calls", async () => {
+    // given
+    mockBackend(async (method) =>
+      method === "Lookup"
+        ? {
+            Status: "found",
+            Entries: [grouped, { ...grouped, Headword: "other" }],
+            Origin: "offline",
+          }
+        : method === "Dictionaries"
+          ? [dictionary]
+          : {},
+    );
+    // when
+    render(Page);
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await screen.findAllByText("<b>duplicate</b>");
+    // then
+    const articles = Array.from(document.querySelectorAll("article")).filter(
+      (article) => article.querySelector("section"),
+    );
+    expect(articles).toHaveLength(2);
+    for (const article of articles) {
+      expect(article.querySelectorAll("section")).toHaveLength(1);
+      expect(article.querySelectorAll("h3")).toHaveLength(1);
+      expect(
+        Array.from(article.querySelectorAll("li"), (li) =>
+          li.textContent.trim(),
+        ),
+      ).toEqual([
+        "sense 1",
+        "sense 2",
+        "sense 3",
+        "sense 4",
+        "sense 5",
+        "<b>duplicate</b>",
+      ]);
+      expect(article.querySelector("b")).toBeNull();
+    }
+    expect(call.mock.calls.filter(([name]) => name === "Lookup")).toHaveLength(
+      1,
+    );
+    expect(
+      call.mock.calls.filter(([name]) => /Play|Download|Retry/.test(name)),
+    ).toHaveLength(0);
+  });
+  it("given_grouped_and_legacy_senses_when_a_later_search_fails_then_previous_result_keeps_groups_and_attribution", async () => {
+    // given
+    let failed = false;
+    const mixed = {
+      ...grouped,
+      Meanings: [
+        ...grouped.Meanings,
+        { PartOfSpeech: "noun", Definitions: ["legacy"] },
+        { PartOfSpeech: " ", SenseGroup: "section-1", Definitions: ["blank"] },
+      ],
+    };
+    mockBackend(async (method) =>
+      method === "Lookup"
+        ? failed
+          ? { Status: "source_unavailable" }
+          : { Status: "found", Entries: [mixed], Origin: "disk_cache" }
+        : method === "Dictionaries"
+          ? [dictionary]
+          : {},
+    );
+    render(Page);
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await screen.findByText("legacy");
+    expect(document.querySelectorAll("article section")).toHaveLength(3);
+    expect(document.querySelectorAll("article h3")).toHaveLength(2);
+    // when
+    failed = true;
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    await screen.findByText(/Previous result for/);
+    // then
+    expect(document.querySelectorAll("article section")).toHaveLength(3);
+    expect(document.querySelectorAll("article h3")).toHaveLength(2);
+    expect(document.querySelector("article .source").textContent).toContain(
+      "Example contributors",
+    );
+    expect(call.mock.calls.filter(([name]) => name === "Lookup")).toHaveLength(
+      2,
+    );
+  });
+});
+
 describe("appearance", () => {
   let media, listener;
   beforeEach(() => {
@@ -974,9 +1070,7 @@ describe("appearance", () => {
     // when
     screen.getByRole("radio", { name: "System" }).focus();
     await user.keyboard("{ArrowLeft}");
-    await user.click(
-      screen.getByRole("button", { name: "Offline content" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Offline content" }));
     // then
     expect(
       screen.getByRole("radio", { name: "Dark" }).getAttribute("aria-checked"),
