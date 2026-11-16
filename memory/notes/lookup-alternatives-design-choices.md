@@ -16,6 +16,6 @@ a transposition counts as one edit) with deterministic tie-breaking rank the can
 installed index are returned. Nothing derived is persisted. `timed_out` and `unavailable` have distinct UI messages. Shipped
 in v0.6.0.
 
-**Rejected:** a persistent derived index; waiting for a morphology dataset.
+**Not done:** it was implemented with bounded rules, without a morphology dataset.
 **How to apply:** ranking ties are alphabetical because there is no word-frequency data (`dictionari` ranks `dictionaric`
 ahead of `dictionary`).

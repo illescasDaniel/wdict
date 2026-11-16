@@ -11,6 +11,7 @@ Updated: 2026-11-16. Related: [lookup-and-ranking](lookup-and-ranking.md), [rele
 - 2026-11-11 flags and first-card rule chosen ([ipa-flag-labels-first-card-only](../notes/ipa-flag-labels-first-card-only.md)).
 - 2026-11-13 audio added; SSML phoneme speech was silent, so it spoke the headword, then the shown IPA through a converter ([espeak-ssml-silent-plain-text-headword](../notes/espeak-ssml-silent-plain-text-headword.md), [ipa-to-espeak-mnemonic-converter](../notes/ipa-to-espeak-mnemonic-converter.md)).
 - 2026-11-14 repairs from user reports (vegetable/table, appearance, Sábado, eight): [piper-model-input-must-match-phonemizer](../notes/piper-model-input-must-match-phonemizer.md), [piper-schwa-upsilon-fold-to-ou](../notes/piper-schwa-upsilon-fold-to-ou.md) (later wrong, see [piper-gb-diphthong-kept-split](../notes/piper-gb-diphthong-kept-split.md)), [vits-synthesis-stochastic-cache-permanent](../notes/vits-synthesis-stochastic-cache-permanent.md).
+- 2026-11-15 playback moved to a host audio player because the AppImage froze with the webview audio element ([audio-native-host-player](../notes/audio-native-host-player.md)).
 
 ## Open
 Listening quality and native-window playback are user checks only ([verification-off-screen-and-silent](../notes/verification-off-screen-and-silent.md), [real-window-checks-left-open](../notes/real-window-checks-left-open.md)).

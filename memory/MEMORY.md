@@ -2,10 +2,10 @@
 
 Code at HEAD wins for current behaviour; notes win for why and history; newest current note wins; open `source` sessions for detail.
 
-Converted 2026-11-16 from the agemem project memory (old files and `.agemem/` still in the repo until the owner confirms they can go).
+Converted 2026-11-16 from the agemem project memory (the old files and `.agemem/` were deleted the same day; git history keeps them).
 
 ## Topics
-- [Pronunciation](topics/pronunciation.md) 20 notes: IPA display, audio playback, eSpeak and Piper voices
+- [Pronunciation](topics/pronunciation.md) 21 notes: IPA display, audio playback, eSpeak and Piper voices
 - [Lookup and ranking](topics/lookup-and-ranking.md) 16 notes on offline dictionaries, alternatives, ranking and cache
 - [Releases and packaging](topics/releases-and-packaging.md) 10 notes: release workflow, AppImage, versions, CI
 
@@ -29,6 +29,7 @@ Converted 2026-11-16 from the agemem project memory (old files and `.agemem/` st
 - [Offline English IPA comes only from <li> items whose own text starts with 'IPA:', skipping](notes/ipa-extraction-ipa-list-items-only.md) 2026-11-11
 - [Pronunciation line shows flag emoji for accents, only on the first card of a word, label l](notes/ipa-flag-labels-first-card-only.md) 2026-11-11
 - [Features go through the sdd-html-feature skill (one page sdd/<feature>.html); the loadout](notes/sdd-html-feature-workflow.md) 2026-11-11
+- [Pronunciations play through a host audio player, not the webview audio element](notes/audio-native-host-player.md) 2026-11-15
 - [Audio pronunciation: per-item play buttons; en-us/es default voices; codec failure falls b](notes/audio-pronunciation-feature.md) 2026-11-13
 - [eSpeak-NG may be bundled because it runs as an unmodified separate CLI process; never link](notes/espeak-gpl-separate-process.md) 2026-11-13
 - [The voice path speaks the shown IPA through a pure IPAToMnemonics converter, oracle-checke](notes/ipa-to-espeak-mnemonic-converter.md) 2026-11-13
