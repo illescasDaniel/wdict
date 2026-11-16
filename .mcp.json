@@ -1,14 +1,5 @@
 {
   "mcpServers": {
-    "agemem": {
-      "command": "uvx",
-      "args": [
-        "--python",
-        "3.12",
-        "agemem@0.3.0",
-        "mcp"
-      ]
-    },
     "webnav": {
       "type": "stdio",
       "command": "npx",

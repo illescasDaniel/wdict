@@ -1,13 +1,6 @@
 {
   "version": 1,
   "skills": {
-    "memory-wrapup": {
-      "source": "illescasDaniel/agemem",
-      "ref": "84f8f76959d64367ab52c334f671766a81dcb347",
-      "sourceType": "github",
-      "skillPath": "skills/memory-wrapup/SKILL.md",
-      "computedHash": "b334609f2fa2928c8105fbaf81f70531b87ddc3c131666a300dde7638457944e"
-    },
     "worktree": {
       "source": "illescasDaniel/worktree-skill",
       "ref": "37674c26b84eca9df37d8dafccc367da7455d079",
