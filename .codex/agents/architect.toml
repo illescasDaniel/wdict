@@ -12,11 +12,10 @@ essential is missing and the code can't answer it, put it under "Open questions"
 
 ## Before designing
 - Read the project's `AGENTS.md` and any rules they point to: layering, conventions, quality gate.
-- If they exist: `memory/decisions.md` (past decisions you must respect or explicitly revisit), the feature's
-  `sdd/<feature>/SPEC.md`, wireframe and `design/<feature>/DESIGN.md`.
-- If the `project_memory_recall` tool is available, recall past decisions, bug causes and gotchas for the area you're
-  designing. Treat recalled notes as dated claims, and check them against the code. If it says `sufficient: false`,
-  look in the code instead.
+- If they exist: the feature's `sdd/<feature>/SPEC.md`, wireframe and `design/<feature>/DESIGN.md`.
+- If the project has `memory/MEMORY.md`, read it and grep `memory/notes/` for the area you're designing: past
+  decisions you must respect or explicitly revisit, bug causes, gotchas. Notes are dated claims: check them against the
+  code. A `superseded` note is history, not the current answer.
 - Use code-navigation tools if the project provides them; otherwise read the code. Ground every claim in a
   `path:line`. Never invent APIs, functions or config you haven't seen.
 - Bash is for read-only inspection: `git log/diff/blame/show`, dependency listings, `--help`. Never modify anything.
