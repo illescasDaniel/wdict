@@ -1,6 +1,13 @@
 {
   "version": 1,
   "skills": {
+    "sdd-html-feature": {
+      "source": "illescasDaniel/sdd-html-feature-skill",
+      "ref": "c33218c8082cc7b95d7e58eb2624e0e1f41e950e",
+      "sourceType": "github",
+      "skillPath": "skills/sdd-html-feature/SKILL.md",
+      "computedHash": "e471be476d74ae44c54b41a7baee5fa409db072c0cb8faaf0433afc1a1383c82"
+    },
     "worktree": {
       "source": "illescasDaniel/worktree-skill",
       "ref": "37674c26b84eca9df37d8dafccc367da7455d079",
