@@ -1,3 +1,17 @@
+---
+id: DOC-002
+title: Word lookup technology options
+summary: GUI and stack options compared at the start (PySide6, pywebview, Wails, Tauri) and the proposed spec decisions before Wails was chosen
+type: decision
+status: current
+updated: 2026-10-27
+verified:
+covers: []
+related: []
+supersedes:
+superseded_by:
+---
+
 # Technology options and proposed spec decisions
 
 The initial design was approved in chat on 2026-10-26 with these changes: prioritize Linux, aim for macOS and Windows, focus on English and Spanish with definitions in the same language as the searched word, obtain dictionaries by download where feasible, consider online lookup with persistent cache, and aim for inflected forms and spelling suggestions. Tkinter is ruled out due to high-DPI concerns. The original diagrams and wireframe represent the earlier local-only proposal and need revision once the remaining decisions are agreed.

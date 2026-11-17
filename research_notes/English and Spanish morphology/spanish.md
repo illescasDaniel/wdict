@@ -1,3 +1,17 @@
+---
+id: DOC-015
+title: Spanish offline morphology
+summary: Research notes on UniMorph Spanish (CC BY-SA 3.0) as a lemma mapping candidate
+type: explanation
+status: current
+updated: 2026-11-06
+verified:
+covers: []
+related: []
+supersedes:
+superseded_by:
+---
+
 # Spanish offline morphology
 
 ## Which dataset can map forms to lemmas?

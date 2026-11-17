@@ -1,3 +1,17 @@
+---
+id: DOC-011
+title: Bilingual spelling ranking probe 2026-11-06
+summary: Exploratory ranking probe: NFD folding, optimal-string-alignment distance 2, transposition and lowercase preference on a hand-built sample
+type: explanation
+status: current
+updated: 2026-11-06
+verified:
+covers: []
+related: []
+supersedes:
+superseded_by:
+---
+
 # Bilingual spelling ranking probe — 2026-11-06
 
 This is an exploratory, manually constructed sample, not a representative distribution of actual user searches. The fixture choices and intended answers were authored before running the existing prototype; no weights or scoring were tuned on these cases. The table reports one sequential warm-cache run on the Intel i9-13900HX reference machine. Each intended answer was checked as an exact `.idx` or `.syn` record. The query's approximate folded membership is also checked; these cases would generally not trigger the approved miss-only path, though a headword need not yield a usable definition. Search language, dictionary version, current app folding, and offline availability all matter. See [measurement.md](measurement.md) for dictionary hashes and prototype limitations.

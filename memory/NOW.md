@@ -1,15 +1,15 @@
 # Now
-Updated: 2026-11-16 (session 2026-11-16: agentic-loadout 0.7.0 upgrade and memory conversion)
+Updated: 2026-11-17 (legacy memory audit and docs-1 setup)
 
 ## Doing
 - Upgraded the agent setup to agentic-loadout 0.7.0 (memory-1 and docs-1 skills, agemem removed) and converted the project memory to `memory/` notes. Reviewed and merged to `main` on 2026-11-16.
 
 ## Done recently
+- 2026-11-17: legacy memory audited (nothing left to convert); docs-1 set up in place for `design/`, `reports/`, `research_notes/` and `sdd/*/SPEC.md` (21 docs, none verified against code); uncommitted.
 - 2026-11-16: agentic-loadout 0.7.0 installed with `--without sdd`; old agemem files and `.agemem/` deleted after the user confirmed.
 - 2026-11-15: v0.8.3 committed (`234a43a`): pronunciations play through the host audio player (`pw-play`, `paplay`, `aplay`); released as tag `v0.8.3` with a GitHub release ([note](notes/audio-native-host-player.md)).
 - 2026-11-15: result ranking and card grouping committed (`a2cbfcc`) with the compact-senses grouping (`9dc7751`).
 - 2026-11-15: British "though" fixed (`0c8cbfe`); AppImage now bundles eSpeak-NG (`46112b9`).
-- 2026-11-14/15: Piper pronunciation repairs (appearance, Sábado, eight, vegetable) shipped in v0.8.0 and v0.8.1.
 
 ## Next
 - Owner listens to pronunciation in the native window and the AppImage; agents only verified off screen and silent.
@@ -19,5 +19,4 @@ Updated: 2026-11-16 (session 2026-11-16: agentic-loadout 0.7.0 upgrade and memor
 - macOS and Windows binaries are untested.
 
 ## Open questions / blocked
-- Should docs-1 be set up for the existing docs (`design/`, `reports/`, `sdd/`)? It is only installed.
 - Does the low npm advisory GHSA-gcqx-w48m-w2h4 (deepmerge) still have no fix?

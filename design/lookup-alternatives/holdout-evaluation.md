@@ -1,3 +1,17 @@
+---
+id: DOC-012
+title: Independent bilingual typo holdout 2026-11-06
+summary: 29 frozen hand-written fixtures (SHA-256 recorded) scored against the ranking implementation, with top five and timings
+type: explanation
+status: current
+updated: 2026-11-06
+verified:
+covers: []
+related: []
+supersedes:
+superseded_by:
+---
+
 # Independent bilingual typo holdout — 2026-11-06
 
 I froze 29 hand-created fixtures before inspecting the ranking implementation or prior fixtures (SHA-256 `c299f96ffc3b2ccef21fb07c3c4ec0c37bb0b157af8a0096938b10a3f5a7d073`). They contain English and Spanish ordinary words, adjacent transpositions, repeated letters, accents, phrases, two nonsense queries and ambiguous/valid-form cases. These are not sampled from user searches and no statistical population estimate is justified. All 27 expected headwords were confirmed present as exact index or synonym names, not necessarily as entries with usable definitions. One run used the existing post-hoc tuned Go prototype on the installed 20261018 dictionaries, likely warm caches on the reference machine. A parallel membership scan overlapped early execution; timings are exploratory and include contention. Candidate ordering and normalization are those of the prototype, not production implementation.

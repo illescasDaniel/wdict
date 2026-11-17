@@ -1,3 +1,17 @@
+---
+id: DOC-016
+title: Multilingual morphology datasets
+summary: Research notes comparing UniMorph and Wiktextract across English and Spanish for offline lemma lookup
+type: explanation
+status: current
+updated: 2026-11-06
+verified:
+covers: []
+related: []
+supersedes:
+superseded_by:
+---
+
 # Multilingual morphology datasets
 
 ## Which data can map forms to lemmas offline?

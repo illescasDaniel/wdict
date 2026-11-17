@@ -1,3 +1,17 @@
+---
+id: DOC-020
+title: Fixed footer and interface language specification
+summary: Spec for the always-visible footer and choosing English or Spanish for the interface
+type: reference
+status: current
+updated: 2026-11-13
+verified:
+covers: [frontend/src/**]
+related: []
+supersedes:
+superseded_by:
+---
+
 # Fixed footer and interface language
 
 ## Metadata

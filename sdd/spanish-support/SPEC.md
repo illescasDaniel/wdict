@@ -1,3 +1,17 @@
+---
+id: DOC-018
+title: Automatic English and Spanish lookup specification
+summary: Spec for searching both languages per query with online or optional offline dictionaries
+type: reference
+status: current
+updated: 2026-11-13
+verified:
+covers: [internal/core/bilingual*.go, internal/adapters/spanish.go]
+related: [DOC-006]
+supersedes:
+superseded_by:
+---
+
 # Automatic English and Spanish lookup
 
 ## Metadata

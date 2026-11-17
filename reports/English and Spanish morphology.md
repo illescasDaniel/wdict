@@ -1,3 +1,17 @@
+---
+id: DOC-013
+title: English and Spanish morphology candidates report
+summary: Research report recommending UniMorph as the first morphology dataset to evaluate for English and Spanish
+type: explanation
+status: current
+updated: 2026-11-06
+verified:
+covers: []
+related: [DOC-016]
+supersedes:
+superseded_by:
+---
+
 # UniMorph offers a practical morphology candidate
 
 **UniMorph is the strongest first candidate to evaluate for both English and Spanish**, because it publishes explicit lemma–inflected-form pairs in comparatively manageable data files. Its datasets declare CC BY-SA 3.0, so a separate, attributed data package is plausible alongside wdict's MIT-licensed code, subject to a review of the exact distribution and derivative-data obligations. This is a feasibility recommendation, not a finding that the data is accurate, complete, or legally cleared for a specific release. Neither candidate has been tested against wdict's installed dictionaries or on the target machine. ([UniMorph English](https://github.com/unimorph/eng), [UniMorph Spanish](https://github.com/unimorph/spa), [Creative Commons license](https://creativecommons.org/licenses/by-sa/3.0/))

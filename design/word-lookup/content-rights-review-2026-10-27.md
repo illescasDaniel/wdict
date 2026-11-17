@@ -1,3 +1,17 @@
+---
+id: DOC-004
+title: Content rights review 2026-10-27
+summary: Technical source-and-notice review of English sources (offline Wiktionary package, online provider); not a legal opinion
+type: explanation
+status: current
+updated: 2026-10-27
+verified:
+covers: []
+related: []
+supersedes:
+superseded_by:
+---
+
 # Content rights review — 2026-10-27
 
 This is a technical source-and-notice review, not a legal opinion or a guarantee of rights in every dictionary entry. It covers the current English sources only.

@@ -1,3 +1,17 @@
+---
+id: DOC-014
+title: English offline morphology datasets
+summary: Research notes on English form-to-lemma data: UniMorph English and Wiktextract, neither yet evaluated
+type: explanation
+status: current
+updated: 2026-11-06
+verified:
+covers: []
+related: []
+supersedes:
+superseded_by:
+---
+
 # English offline morphology datasets
 
 ## Which data can map English forms to lemmas?

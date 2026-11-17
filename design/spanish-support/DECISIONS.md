@@ -1,3 +1,17 @@
+---
+id: DOC-007
+title: Spanish support specification decisions
+summary: Numbered decisions approved 2026-10-29: both languages per search, independent failure handling, no language selector
+type: decision
+status: current
+updated: 2026-10-29
+verified:
+covers: []
+related: [DOC-006]
+supersedes:
+superseded_by:
+---
+
 # Spanish support — proposed specification decisions
 
 These decisions were approved in chat on 2026-10-29 (`src:e86c89718081e601095e`). The [design](DESIGN.md) was approved on 2026-10-29.

@@ -1,3 +1,17 @@
+---
+id: DOC-017
+title: Word lookup specification
+summary: Spec for the desktop lookup window: success criteria, online provider, two-level cache, in-app dictionary download required in v1
+type: reference
+status: current
+updated: 2026-11-15
+verified:
+covers: [internal/core/**, internal/adapters/**, frontend/src/**]
+related: [DOC-001]
+supersedes:
+superseded_by:
+---
+
 # Word lookup
 
 ## Metadata

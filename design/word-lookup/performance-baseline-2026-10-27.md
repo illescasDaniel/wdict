@@ -1,3 +1,17 @@
+---
+id: DOC-005
+title: Linux performance baseline 2026-10-27
+summary: Startup and lookup timings and memory on the reference machine (i9-13900HX, Wails 3.0.0, WebKitGTK 2.54.1) as of 2026-10-27
+type: reference
+status: current
+updated: 2026-10-27
+verified:
+covers: []
+related: []
+supersedes:
+superseded_by:
+---
+
 # Linux performance baseline — 2026-10-27
 
 ## Environment and method

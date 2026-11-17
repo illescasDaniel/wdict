@@ -1,3 +1,17 @@
+---
+id: DOC-001
+title: Word lookup system design
+summary: Wdict core design: online and offline lookup, two-level cache, bilingual flow, Wails/Go/SvelteKit layout, with approval dates
+type: explanation
+status: current
+updated: 2026-11-13
+verified:
+covers: [internal/core/**, internal/adapters/provider.go, internal/adapters/cache.go, main.go]
+related: []
+supersedes:
+superseded_by:
+---
+
 # Word lookup — system design
 
 - **Wireframe:** [word-lookup.html](../../wireframes/word-lookup.html)

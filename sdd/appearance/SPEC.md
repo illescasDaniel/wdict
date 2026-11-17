@@ -1,3 +1,17 @@
+---
+id: DOC-021
+title: Appearance specification
+summary: Spec for System, Light and Dark appearance selection with footer icons
+type: reference
+status: current
+updated: 2026-11-13
+verified:
+covers: [frontend/src/**]
+related: []
+supersedes:
+superseded_by:
+---
+
 # Appearance
 
 ## Metadata

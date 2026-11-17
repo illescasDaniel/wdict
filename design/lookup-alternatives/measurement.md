@@ -1,3 +1,17 @@
+---
+id: DOC-009
+title: Lookup alternatives feasibility probe 2026-11-06
+summary: Feasibility probe: pinned UniMorph files, installed dictionary hashes, machine specs and four real lookup examples
+type: explanation
+status: current
+updated: 2026-11-06
+verified:
+covers: []
+related: []
+supersedes:
+superseded_by:
+---
+
 # Lookup alternatives feasibility probe — 2026-11-06
 
 This is a small feasibility probe, not a benchmark of a production suggestion implementation or a comprehensive linguistic evaluation. Tests ran on Linux 7.3.1-1-cachyos, Intel i9-13900HX, with existing 20261018 offline dictionaries and likely warm OS page cache. No system cache was cleared. Results vary by hardware and load.
@@ -66,7 +80,7 @@ Full-file offline overlap was approximated by taking unique form–lemma pairs, 
 
 All six Spanish examples in the previous table were present in both UniMorph and the dictionary. In English, `walking` maps to `walk`, `went` to `go`, but `children` had no UniMorph row in this file and `ran` returned `ran` and `rin`, not `run`. UniMorph `better` included `better`, `good`, `well`, `known` and `matching`, illustrating that blindly presenting all mappings can produce dubious suggestions. English sample possible incremental pairs include `abernathyites` → `abernathyite`; Spanish examples include `abacoradas` → `abacorar` and `abajadla` → `abajar`. These have not been checked for linguistic accuracy, actual app misses or useful definitions. At least one Spanish raw record had an empty form; input validation is required.
 
-Reproduce overlap with `python3 /tmp/wdict-unimorph-filtered-eval.py` while the temporary files remain. The script uses the full downloaded data and installed dictionary indexes. Recreate downloads from `https://raw.githubusercontent.com/unimorph/eng/66e0e9e8e2dcd196da081a25a48e5c1fe3d8b49b/eng` and `https://raw.githubusercontent.com/unimorph/spa/b9655efb0e5ce0f99809badaa7f4e93017ab8430/spa`, verify the SHA-256 values above, then run the probe. Dataset license and redistribution terms still need review for the exact intended package; see the [research report](../../reports/English%20and%20Spanish%20morphology.md).
+Reproduce overlap with `python3 /tmp/wdict-unimorph-filtered-eval.py` while the temporary files remain. The script uses the full downloaded data and installed dictionary indexes. Recreate downloads from `https://raw.githubusercontent.com/unimorph/eng/66e0e9e8e2dcd196da081a25a48e5c1fe3d8b49b/eng` and `https://raw.githubusercontent.com/unimorph/spa/b9655efb0e5ce0f99809badaa7f4e93017ab8430/spa`, verify the SHA-256 values above, then run the probe. Dataset license and redistribution terms still need review for the exact intended package; see the [research report](<../../reports/English and Spanish morphology.md>) (DOC-013).
 
 ## Unresolved budgets
 

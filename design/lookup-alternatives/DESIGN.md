@@ -1,3 +1,17 @@
+---
+id: DOC-008
+title: Inflected forms and spelling suggestions design
+summary: Design of offline lemma candidates and typo corrections after a miss; UniMorph data, edit distance, phrases; approved 2026-11-06
+type: explanation
+status: current
+updated: 2026-11-06
+verified:
+covers: [internal/core/alternatives*.go, internal/adapters/offline_alternatives.go]
+related: []
+supersedes:
+superseded_by:
+---
+
 # Inflected forms and spelling suggestions — design
 
 - **Wireframe:** [lookup alternatives](../../wireframes/lookup-alternatives.html)
@@ -99,7 +113,7 @@ Existing `Lookup(query)` and per-language outcomes remain intact. A proposed sep
 - Investigate a compatible English and/or Spanish morphology dataset first. If none proves reliable and suitable, use partial regular-form coverage. The dataset, distribution method, licensing obligations, performance and fallback remain open for review.
 - How much additional download or disk usage is acceptable for a morphology index? A measured proposal will be needed before the spec.
 
-Research: [English and Spanish morphology](../../reports/English%20and%20Spanish%20morphology.md). UniMorph is the recommended first candidate to evaluate, not an approved dataset.
+Research: [English and Spanish morphology](<../../reports/English and Spanish morphology.md>) (DOC-013). UniMorph is the recommended first candidate to evaluate, not an approved dataset.
 
 ## References and verification
 

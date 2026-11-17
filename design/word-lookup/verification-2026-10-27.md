@@ -1,3 +1,17 @@
+---
+id: DOC-003
+title: Provider and packaging verification 2026-10-27
+summary: Dated evidence on online provider terms and attribution, Linux build and smoke launch; development evidence, not release certification
+type: explanation
+status: current
+updated: 2026-10-27
+verified:
+covers: []
+related: []
+supersedes:
+superseded_by:
+---
+
 # Provider and packaging verification — 2026-10-27
 
 These checks are evidence for development, not release certification. The app now builds and smoke-launches on Linux. The observed live results can change.

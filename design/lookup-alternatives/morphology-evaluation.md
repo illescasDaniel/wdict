@@ -1,3 +1,17 @@
+---
+id: DOC-010
+title: Morphology data and storage evaluation 2026-11-06
+summary: Incremental candidate sources and storage options for morphology data, complementing the feasibility probe
+type: explanation
+status: current
+updated: 2026-11-06
+verified:
+covers: []
+related: [DOC-009]
+supersedes:
+superseded_by:
+---
+
 # Morphology data and storage evaluation — 2026-11-06
 
 This feasibility experiment complements [measurement.md](measurement.md), which identifies the pinned UniMorph files, installed dictionary hashes, machine and four actual-lookup examples. It is not a linguistic quality evaluation or a production storage implementation. The English and Spanish files are respectively UniMorph commits `66e0e9e8e2dcd196da081a25a48e5c1fe3d8b49b` and `b9655efb0e5ce0f99809badaa7f4e93017ab8430` with the SHA-256 hashes in that report.
@@ -54,7 +68,7 @@ In a separate read-only SQLite/Python process, first lookups for five sample for
 
 ## Rights and reproducibility
 
-The [English](https://github.com/unimorph/eng) and [Spanish](https://github.com/unimorph/spa) data repositories declare CC BY-SA 3.0; their upstream descriptions and [license text](https://creativecommons.org/licenses/by-sa/3.0/) should be reviewed for the actual derived artifact and distribution method. Record source revision, license, attribution and transformation; do not infer that a data grant changes wdict's MIT code license. This is not a legal clearance and does not resolve contributor-specific provenance questions. The prior [research report](../../reports/English%20and%20Spanish%20morphology.md) describes its source limitations.
+The [English](https://github.com/unimorph/eng) and [Spanish](https://github.com/unimorph/spa) data repositories declare CC BY-SA 3.0; their upstream descriptions and [license text](https://creativecommons.org/licenses/by-sa/3.0/) should be reviewed for the actual derived artifact and distribution method. Record source revision, license, attribution and transformation; do not infer that a data grant changes wdict's MIT code license. This is not a legal clearance and does not resolve contributor-specific provenance questions. The prior [research report](<../../reports/English and Spanish morphology.md>) (DOC-013) describes its source limitations.
 
 Reproduce the local probes while pinned data and the installed dictionaries are available:
 

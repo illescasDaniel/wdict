@@ -1,3 +1,17 @@
+---
+id: DOC-019
+title: Inflected forms and spelling suggestions specification
+summary: Spec for offline base-form and spelling alternatives on a miss, including phrases
+type: reference
+status: current
+updated: 2026-11-13
+verified:
+covers: [internal/core/alternatives*.go, internal/adapters/offline_alternatives.go]
+related: [DOC-008]
+supersedes:
+superseded_by:
+---
+
 # Inflected forms and spelling suggestions
 
 ## Metadata

@@ -1,3 +1,17 @@
+---
+id: DOC-006
+title: Spanish lookup system design
+summary: How every search checks English and Spanish with per-language offline, cache and online paths; approved 2026-10-29
+type: explanation
+status: current
+updated: 2026-10-29
+verified:
+covers: [internal/core/bilingual*.go, internal/adapters/spanish.go]
+related: []
+supersedes:
+superseded_by:
+---
+
 # Spanish lookup — system design
 
 - **Wireframe:** [Spanish lookup and dictionaries](../../wireframes/spanish-support.html)
