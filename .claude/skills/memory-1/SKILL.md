@@ -1,9 +1,16 @@
 ---
 name: memory-1
-description: Keep a portable, git-tracked memory of what the code cannot tell a future session (what we are doing and what is next, decisions and why, reversals, user preferences, incidents) as a short status file plus one-fact Markdown notes with dates and supersession, and an optional archive of condensed session transcripts. Use at session start, when the user asks why something is the way it is or what was decided before, after a decision or reversal, when the user states a preference or corrects you, after an incident is resolved, before ending a session, and when asked to set up memory or export past sessions.
+description: Keep a portable, git-tracked memory of what the code cannot tell a future session (what we are doing and what is next, decisions and why, reversals, user preferences, incidents) as a short status file plus one-fact Markdown notes with dates and supersession, and an optional archive of condensed session transcripts. Use at session start, when the user asks why the code is the way it is or what was decided before, after a decision or reversal, when the user states a preference or corrects you, after an incident is resolved, before ending a session, and when asked to set up memory or export past sessions. Not for project documentation, rules the agent must always follow (AGENTS.md or CLAUDE.md), or secrets.
+license: MIT
+metadata:
+  author: Daniel Illescas Romero <illescas.daniel@protonmail.com>
+  version: "1.2.0"
+  tags: [memory, notes, decisions, sessions]
 ---
 
 # memory-1
+
+## Purpose
 
 Project memory lives in `memory/` as plain Markdown, so any agent that can read files can use it (Claude Code, Codex,
 Cursor, others). No service and no database: `grep` is the search engine.
@@ -37,6 +44,10 @@ memory/
    work listed as next may already be done. If `memory/` is missing and the user wants memory, set it up from
    `templates/` next to this file (NOW.md, MEMORY.md, and, only if transcripts will be archived, sessions/INDEX.md and
    `templates/.gitignore` as `memory/.gitignore`; if that file exists already, append its `/sessions` line instead).
+   While setting up, look for an existing project memory: a `memory/` folder in another layout, `memory-bank/`,
+   `.agemem/`, notes or status files, memory sections in `AGENTS.md` or `CLAUDE.md`. If you find one, tell the user what
+   it is and propose a migration: current status to `NOW.md`, open items to `LATER.md`, each durable fact or decision to
+   a note with its original date, then the index. Keep the old files until the user confirms they can be removed.
 2. When the user says "continue" or "where were we", answer from `NOW.md` (checked against git), then the notes.
 3. Open individual notes only when the task touches them. For history questions, read the topic page if there is
    one, then search `memory/notes/` and `memory/sessions/` with grep before answering. Topic pages summarise: take
@@ -265,7 +276,45 @@ Without a shell, count instead: `NOW.md` at most 50 lines, `LATER.md` at most 40
 
 ## Alongside other memory
 
-- If memory-bank is installed, its `activeContext.md` and `progress.md` play the role of `NOW.md`: use them instead
-  and skip `NOW.md`. Do not copy decision notes into them.
 - Rules the agent must always follow belong in `AGENTS.md` or `CLAUDE.md`. Point `AGENTS.md` at `memory/MEMORY.md`
   so agents that do not load skills still find the memory.
+
+## Scripts
+
+Run them with `python3 <skill dir>/scripts/<name>`.
+
+| Script | Purpose | Main arguments |
+| --- | --- | --- |
+| `memory_check.py` | Check the memory folder: size limits, index coverage, supersession links; prints `FIX` lines | `--memory DIR` (default `memory`) |
+| `export_sessions.py` | Export condensed, redacted transcripts of this project's past sessions | `--project DIR`, `--out DIR`, `--since YYYY-MM-DD`, `--max-chars N`, `--claude-dir DIR` (repeatable), `--dry-run` |
+
+## Examples
+
+- "Set up memory": create `memory/` from `templates/`, migrate any existing project memory, and fill `NOW.md`.
+- "We chose SQLite over Postgres because we run one node": grep the notes, then write a dated `decision` note and its
+  index line; if it reverses an earlier note, supersede that note.
+- "Why are retries capped at 3?": search `MEMORY.md` and `memory/notes/`, answer from the note, and cite it.
+
+## Requirements
+
+- Python 3.9 or newer, standard library only. Without a shell, do the checks by hand (limits are under End of session).
+- `git` is optional: without it, `NOW.md` cannot be checked against `git log` and worktrees are not detected.
+
+## Limitations
+
+- Transcript export is opt-in: run it only when the user wants an archive.
+- It reads the local transcript stores of Claude Code, Codex and opencode, read-only, and keeps only sessions whose
+  working directory is inside this project or one of its git worktrees. Other projects' sessions are not written.
+- The output stays on this machine, in the git-ignored `memory/sessions/`.
+- Redaction is pattern-based and can miss things: skim an export before sharing anything from it.
+- If a source is missing, or opencode's database is locked or unreadable, the script skips it with a note on stderr.
+  Re-run it later.
+
+## Troubleshooting
+
+| Error | Cause | Fix |
+| --- | --- | --- |
+| `FIX` lines from `memory_check.py` | A file passed its size limit, a note is missing from the index, or a supersession link is broken | Do what each line says, then re-run the check |
+| `no Claude Code, Codex or opencode sessions found` | No transcripts for this folder, or they live elsewhere | Run from the project root; pass `--claude-dir DIR` for a non-default Claude Code folder |
+| `opencode: cannot open its database` | opencode is writing to it, or it is unreadable | Close opencode or wait, then re-run; the other sources are still exported |
+| `could not link ...` | The filesystem does not allow symlinks (common on Windows) | Nothing to fix: sessions are in the main checkout's `memory/sessions/` |
