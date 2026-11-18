@@ -5,7 +5,7 @@ summary: Spec for System, Light and Dark appearance selection with footer icons
 type: reference
 status: current
 updated: 2026-11-18
-verified: 2026-11-18 e55404d
+verified: 2026-11-18 d4efef4
 covers: [frontend/src/**, frontend/build/**]
 related: []
 supersedes:

@@ -5,7 +5,7 @@ summary: How every search checks English and Spanish with per-language offline, 
 type: explanation
 status: current
 updated: 2026-10-29
-verified: 2026-11-18 e55404d
+verified: 2026-11-18 d4efef4
 covers: [internal/core/bilingual*.go, internal/core/lookup.go, internal/core/domain.go, internal/adapters/spanish.go, internal/adapters/install.go, internal/adapters/catalog.go, internal/adapters/cache.go, internal/adapters/offline.go, main.go, frontend/src/language.js]
 related: [DOC-018]
 supersedes:

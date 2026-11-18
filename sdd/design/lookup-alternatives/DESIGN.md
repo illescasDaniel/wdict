@@ -5,7 +5,7 @@ summary: Design of offline lemma candidates and typo corrections after a miss; U
 type: explanation
 status: current
 updated: 2026-11-06
-verified: 2026-11-18 e55404d
+verified: 2026-11-18 d4efef4
 covers: [internal/core/alternatives*.go, internal/core/lookup.go, internal/adapters/offline_alternatives.go, main.go, frontend/src/routes/+page.svelte, frontend/src/lib-api.js, frontend/src/language.js]
 related: [DOC-019]
 supersedes:

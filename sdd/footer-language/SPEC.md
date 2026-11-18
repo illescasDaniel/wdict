@@ -5,7 +5,7 @@ summary: Spec for the always-visible footer and choosing English or Spanish for 
 type: reference
 status: current
 updated: 2026-11-18
-verified: 2026-11-18 e55404d
+verified: 2026-11-18 d4efef4
 covers: [frontend/src/**, frontend/build/**]
 related: []
 supersedes:
