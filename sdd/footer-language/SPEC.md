@@ -4,9 +4,9 @@ title: Fixed footer and interface language specification
 summary: Spec for the always-visible footer and choosing English or Spanish for the interface
 type: reference
 status: current
-updated: 2026-11-13
-verified:
-covers: [frontend/src/**]
+updated: 2026-11-18
+verified: 2026-11-18 e55404d
+covers: [frontend/src/**, frontend/build/**]
 related: []
 supersedes:
 superseded_by:

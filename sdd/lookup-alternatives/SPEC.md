@@ -4,9 +4,9 @@ title: Inflected forms and spelling suggestions specification
 summary: Spec for offline base-form and spelling alternatives on a miss, including phrases
 type: reference
 status: current
-updated: 2026-11-13
-verified:
-covers: [internal/core/alternatives*.go, internal/adapters/offline_alternatives.go]
+updated: 2026-11-18
+verified: 2026-11-18 e55404d
+covers: [internal/core/alternatives*.go, internal/core/lookup.go, internal/adapters/offline_alternatives.go, main.go, frontend/src/routes/+page.svelte, frontend/src/lib-api.js, frontend/src/language.js]
 related: [DOC-008]
 supersedes:
 superseded_by:
@@ -18,7 +18,7 @@ superseded_by:
 
 - **Feature:** Offer offline possible base forms and spelling corrections, including phrases, when an English or Spanish lookup misses.
 - **Wireframe:** [lookup alternatives](../../wireframes/lookup-alternatives.html), approved 2026-11-06 (chat).
-- **System design:** [DESIGN.md](../../design/lookup-alternatives/DESIGN.md), approved 2026-11-06 (`src:c34610a226566b0738a4`).
+- **System design:** [DESIGN.md](../design/lookup-alternatives/DESIGN.md), approved 2026-11-06 (`src:c34610a226566b0738a4`).
 - **Design decisions confirmed:** 2026-11-06 (`src:de40e77c3089de7f6007`).
 - **Spec approved:** 2026-11-06 (`src:665fce98e49af19f680d`).
 - **Related:** [word lookup spec](../word-lookup/SPEC.md), [Spanish support spec](../spanish-support/SPEC.md).
@@ -42,7 +42,7 @@ The user approved this amendment after measurement exposed conflicting failure b
 
 ## Final amendment — approved 2026-11-06 (`src:6dce82b0c9d386831cec`)
 
-This approved amendment completes the remaining choices for the initial release, superseding the original ranking, dataset and resource placeholders where they conflict. Evidence: [morphology evaluation](../../design/lookup-alternatives/morphology-evaluation.md), [ranking development](../../design/lookup-alternatives/ranking-evaluation.md), [independent holdout](../../design/lookup-alternatives/holdout-evaluation.md). The samples are small and do not establish general accuracy or cold-machine performance.
+This approved amendment completes the remaining choices for the initial release, superseding the original ranking, dataset and resource placeholders where they conflict. Evidence: [morphology evaluation](../design/lookup-alternatives/morphology-evaluation.md), [ranking development](../design/lookup-alternatives/ranking-evaluation.md), [independent holdout](../design/lookup-alternatives/holdout-evaluation.md). The samples are small and do not establish general accuracy or cold-machine performance.
 
 - **Morphology:** ship no UniMorph data initially. Existing dictionary synonyms already cover many forms; additional data has not been established as sufficiently reliable and redistributable. On a confirmed miss, generate nonrecursive candidate bases. English: remove `s`, `es`, `ed`, or `ing` if a nonempty stem remains; for `ed` and `ing`, also try stem plus `e`. Spanish: remove `s` or `es` if a nonempty stem remains. Deduplicate and return only bases that verify against installed headwords; label each possible. These are deliberately incomplete and can yield unrelated words. No separate morphology download or persistent index is needed. Further datasets remain a future amendment.
 - **Spelling and phrases:** normalize for comparison using Unicode case folding and canonical decomposition, removing combining marks and punctuation, while preserving display forms. Compare single-word queries to single-word index entries and phrases to phrase entries using Unicode optimal-string-alignment distance at most two. Sort by distance, then prefer exact single adjacent transposition, then exact insertion/deletion of one repeated letter, then matching initial folded rune, then lowercase display forms, then deterministic lexical order. Remove exact duplicate display strings and show at most five. Synonym headwords are eligible; verification still applies. This ranking is an initial baseline, not a guarantee that the intended word is offered. The independent hand-made holdout produced the intended candidate in the top five on 20 approximately missing inputs; this is not a population accuracy estimate.
@@ -104,7 +104,7 @@ The existing lookup starts independently for English and Spanish. Only a `not_fo
 
 ## Interfaces & contracts
 
-`Lookup(query)` and existing language outcomes remain compatible. A separate `lookup-alternatives` event contains `SearchID`, `Query`, `Language`, `Status` (`ready`, `unavailable`, `timed_out`), `BaseForms` and `Spelling`. A retry generation or equivalent identity prevents a prior attempt for the same search ID and language from replacing a newer attempt. `ready` with empty arrays means no candidates, not a statement that the query is invalid. `unavailable` and `timed_out` contain no partial ranking. The consumer ignores events for stale search IDs or attempts. Selecting a suggestion uses the existing lookup contract, not a new external endpoint.
+`Lookup(query)` and existing language outcomes remain compatible. A separate `lookup-alternatives` event contains `SearchID`, `Attempt`, `Query`, `Language`, `Status` (`ready`, `unavailable`, `timed_out`), `BaseForms` and `Spelling`. A retry generation or equivalent identity prevents a prior attempt for the same search ID and language from replacing a newer attempt. `ready` with empty arrays means no candidates, not a statement that the query is invalid. `unavailable` and `timed_out` contain no partial ranking. The consumer ignores events for stale search IDs or attempts. Selecting a suggestion uses the existing lookup contract, not a new external endpoint.
 
 The same installed index and query yield deterministic ordering. The original proposal ranked spelling candidates using bounded Unicode edit distance followed by deterministic tie-breaks; the approved final amendment above defines the ranking based on measured examples. Preserve display spelling and accents. The approved final and memory-limit amendments define normalization and numerical bounds.
 

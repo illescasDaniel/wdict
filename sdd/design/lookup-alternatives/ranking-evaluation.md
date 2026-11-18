@@ -1,13 +1,13 @@
 ---
 id: DOC-011
 title: Bilingual spelling ranking probe 2026-11-06
-summary: Exploratory ranking probe: NFD folding, optimal-string-alignment distance 2, transposition and lowercase preference on a hand-built sample
+summary: Historical probe, superseded by DOC-019 and the shipped code: exploratory ranking probe: NFD folding, optimal-string-alignment distance 2, transposition and lowercase preference on a hand-built sample
 type: explanation
 status: current
 updated: 2026-11-06
-verified:
+verified: 2026-11-18 e55404d
 covers: []
-related: []
+related: [DOC-008, DOC-019]
 supersedes:
 superseded_by:
 ---

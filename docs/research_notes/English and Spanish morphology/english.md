@@ -1,13 +1,13 @@
 ---
 id: DOC-014
 title: English offline morphology datasets
-summary: Research notes on English form-to-lemma data: UniMorph English and Wiktextract, neither yet evaluated
+summary: Historical research, see DOC-010 for what was evaluated: research notes on English form-to-lemma data: UniMorph English and Wiktextract, neither yet evaluated
 type: explanation
 status: current
 updated: 2026-11-06
-verified:
+verified: 2026-11-18 e55404d
 covers: []
-related: []
+related: [DOC-013, DOC-010]
 supersedes:
 superseded_by:
 ---

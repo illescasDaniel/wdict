@@ -4,9 +4,9 @@ title: Automatic English and Spanish lookup specification
 summary: Spec for searching both languages per query with online or optional offline dictionaries
 type: reference
 status: current
-updated: 2026-11-13
-verified:
-covers: [internal/core/bilingual*.go, internal/adapters/spanish.go]
+updated: 2026-11-18
+verified: 2026-11-18 e55404d
+covers: [internal/core/bilingual*.go, internal/core/lookup.go, internal/adapters/spanish.go, internal/adapters/install.go, internal/adapters/catalog.go, internal/adapters/cache.go, internal/adapters/provider.go, internal/adapters/offline.go, main.go, frontend/src/routes/+page.svelte, frontend/src/language.js]
 related: [DOC-006]
 supersedes:
 superseded_by:
@@ -18,8 +18,8 @@ superseded_by:
 
 - **Feature:** Search English and Spanish for every query, online or using optional downloadable offline dictionaries.
 - **Wireframe:** [Spanish support](../../wireframes/spanish-support.html), approved 2026-10-29 in chat.
-- **System design:** [Spanish support](../../design/spanish-support/DESIGN.md), approved 2026-10-29 in chat (`src:58170218c984fa66a08b`).
-- **Design decisions:** [proposals](../../design/spanish-support/DECISIONS.md), approved 2026-10-29 in chat (`src:e86c89718081e601095e`).
+- **System design:** [Spanish support](../design/spanish-support/DESIGN.md), approved 2026-10-29 in chat (`src:58170218c984fa66a08b`).
+- **Design decisions:** [proposals](../design/spanish-support/DECISIONS.md), approved 2026-10-29 in chat (`src:e86c89718081e601095e`).
 - **Spec approved:** 2026-10-29 in chat (`src:6e99afe45172b4ac8823`).
 - **Legacy cached attribution amendment approved:** 2026-10-29 in chat (`src:517058a14965c942a353`).
 - **Related:** [word lookup spec](../word-lookup/SPEC.md); this spec supersedes its English-only scope and single-result assumptions for bilingual lookup.
@@ -148,10 +148,10 @@ Keep the current English `20261018/en-en.ifo` and English cache keys. Spanish ge
 
 **Given** a fresh or stale legacy English cache entry lacks a valid source or license link **When** its definitions are displayed, including as a previous result after an error **Then** the definitions remain available, any valid link is shown, and an attribution-unavailable notice is displayed without inventing a link or requiring an online refresh solely to obtain one.
 
-## Out of scope
-
-Language selection, translation between languages, UI localization, automatic package updates, imported dictionaries, spelling suggestions, general inflection resolution, release publication and claims of untested platform support.
-
 ### Scenario: HTTP 502 is silent
 
 **Given** an online dictionary endpoint returns HTTP 502 **When** a lookup completes **Then** use any stale entry, otherwise do not display an error for that language or cache the failure as a missing entry; if no result or other visible failure is present, show a neutral availability message.
+
+## Out of scope
+
+Language selection, translation between languages, UI localization, automatic package updates, imported dictionaries, spelling suggestions and general inflection resolution (both specified in DOC-019), release publication and claims of untested platform support.

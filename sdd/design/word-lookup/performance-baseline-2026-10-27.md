@@ -5,7 +5,7 @@ summary: Startup and lookup timings and memory on the reference machine (i9-1390
 type: reference
 status: current
 updated: 2026-10-27
-verified:
+verified: 2026-11-18 e55404d
 covers: []
 related: []
 supersedes:
@@ -18,7 +18,7 @@ superseded_by:
 
 Reference machine: CachyOS Linux 7.3.0-3-cachyos, x86-64, Intel Core i9-13900HX (32 logical CPUs), 31 GiB RAM, Go 1.27.1-X:nodwarf5, Wails 3.0.0 using GTK3 and WebKit2GTK 4.1 (WebKitGTK 2.54.1). Measurements were made on a running desktop with other software active; CPU governor reported 51% scaling at the time. No attempt was made to clear OS caches. Results are a local baseline, not guarantees for other systems.
 
-The spec's targets are a usable window within 2 seconds and local operations within 250 ms, excluding cold OS cache. There is no agreed numeric memory or CPU ceiling. See `specs/word-lookup/SPEC.md`.
+The spec's targets are a usable window within 2 seconds and local operations within 250 ms, excluding cold OS cache. There is no agreed numeric memory or CPU ceiling. See `sdd/word-lookup/SPEC.md`.
 
 ## Native startup
 

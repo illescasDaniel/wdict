@@ -1,12 +1,12 @@
 ---
 id: DOC-007
 title: Spanish support specification decisions
-summary: Numbered decisions approved 2026-10-29: both languages per search, independent failure handling, no language selector
+summary: Numbered decisions approved 2026-10-29: both languages per search, independent failure handling, no search-language selector (the footer's interface-language selector is DOC-020)
 type: decision
 status: current
 updated: 2026-10-29
-verified:
-covers: []
+verified: 2026-11-18 e55404d
+covers: [internal/core/bilingual*.go, internal/adapters/spanish.go, internal/adapters/install.go]
 related: [DOC-006]
 supersedes:
 superseded_by:
@@ -23,5 +23,7 @@ These decisions were approved in chat on 2026-10-29 (`src:e86c89718081e601095e`)
 5. **Compatibility and rollout:** Keep English's installed path, cache identities and behavior readable without migration. Install Spanish separately and preserve English on install, recovery or failure. Ship the feature with the app; no flag or data migration. Rolling back to an older app retains English functionality; the older app does not expose Spanish data. Do not publish a new release as part of this design/spec approval.
 
 ## Source verification still required
+
+> Update: the Spanish package is now pinned with URL, SHA-256 and size in `internal/adapters/install.go`.
 
 The [Spanish Wiktionary entry for casa](https://es.wiktionary.org/wiki/casa) contains many language sections, confirming why extraction must isolate Spanish. The [publisher catalog](https://xxyzz.github.io/wiktionary_stardict/) lists a Spanish-to-Spanish dictionary. The publisher release listing identifies `es-es.tar.zst` and SHA-256 `0319285758d5d40022c3cc00c0e414b2d60883a1c1ae0bd53378789443c48676`; exact byte size, archive metadata and sample extraction remain to be verified. They must be verified before finalizing a source-specific spec and implementation.

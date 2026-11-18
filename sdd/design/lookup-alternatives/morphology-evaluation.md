@@ -5,7 +5,7 @@ summary: Incremental candidate sources and storage options for morphology data, 
 type: explanation
 status: current
 updated: 2026-11-06
-verified:
+verified: 2026-11-18 e55404d
 covers: []
 related: [DOC-009]
 supersedes:
@@ -68,7 +68,7 @@ In a separate read-only SQLite/Python process, first lookups for five sample for
 
 ## Rights and reproducibility
 
-The [English](https://github.com/unimorph/eng) and [Spanish](https://github.com/unimorph/spa) data repositories declare CC BY-SA 3.0; their upstream descriptions and [license text](https://creativecommons.org/licenses/by-sa/3.0/) should be reviewed for the actual derived artifact and distribution method. Record source revision, license, attribution and transformation; do not infer that a data grant changes wdict's MIT code license. This is not a legal clearance and does not resolve contributor-specific provenance questions. The prior [research report](<../../reports/English and Spanish morphology.md>) (DOC-013) describes its source limitations.
+The [English](https://github.com/unimorph/eng) and [Spanish](https://github.com/unimorph/spa) data repositories declare CC BY-SA 3.0; their upstream descriptions and [license text](https://creativecommons.org/licenses/by-sa/3.0/) should be reviewed for the actual derived artifact and distribution method. Record source revision, license, attribution and transformation; do not infer that a data grant changes wdict's MIT code license. This is not a legal clearance and does not resolve contributor-specific provenance questions. The prior [research report](<../../../docs/reports/English and Spanish morphology.md>) (DOC-013) describes its source limitations.
 
 Reproduce the local probes while pinned data and the installed dictionaries are available:
 
@@ -79,3 +79,5 @@ python3 /tmp/wdict-morph-query2.py
 ```
 
 Temporary-script SHA-256 values: sample `097e930fe83f91625765cec7f39611dedd3062aa7982a09b15eb56ef6166272d`, build `671eca9bbdbdff23216468561ea336a933352a93d66f749b1f8fe24351998c3b`, query `2dbf8efddc6914dd533d66fa60931cf6428643e1d0f46a7e1e50d8c74f127e2d`. Scripts and outputs under `/tmp` are disposable. The build script now refuses to overwrite existing temporary SQLite outputs; move those files to trash before rerunning. The measured version was identical apart from its overwrite behavior. Dataset hashes and dictionary index hashes should be checked as documented in [measurement.md](measurement.md) before comparing results.
+
+> Note (verified 2026-11-18): the reproduction scripts this evaluation used lived in `/tmp` and no longer exist; the results cannot be reproduced from the repository.

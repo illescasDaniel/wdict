@@ -5,7 +5,7 @@ summary: 29 frozen hand-written fixtures (SHA-256 recorded) scored against the r
 type: explanation
 status: current
 updated: 2026-11-06
-verified:
+verified: 2026-11-18 e55404d
 covers: []
 related: []
 supersedes:
@@ -55,3 +55,5 @@ Approximate membership checks used case folding, NFD accent stripping and Unicod
 ## Reproduction
 
 The frozen inputs are listed in the table. While temporary files remain, run `GOCACHE=/tmp/wdict-codex-go-cache go run /tmp/wdict-independent-holdout.go`. The generated program uses the unchanged scanning and ranking functions from `/tmp/wdict-ranking-variant.go` and replaces only its main fixture loop. Fixture generation and complete output are in `/tmp/wdict-independent-holdout.json`, `/tmp/wdict-independent-holdout.go`, and `/tmp/wdict-independent-holdout-output.txt`. Expected results should not be considered a language-quality oracle or a release acceptance threshold.
+
+> Note (verified 2026-11-18): the reproduction scripts this evaluation used lived in `/tmp` and no longer exist; the results cannot be reproduced from the repository.

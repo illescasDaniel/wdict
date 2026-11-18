@@ -5,18 +5,20 @@ summary: Design of offline lemma candidates and typo corrections after a miss; U
 type: explanation
 status: current
 updated: 2026-11-06
-verified:
-covers: [internal/core/alternatives*.go, internal/adapters/offline_alternatives.go]
-related: []
+verified: 2026-11-18 e55404d
+covers: [internal/core/alternatives*.go, internal/core/lookup.go, internal/adapters/offline_alternatives.go, main.go, frontend/src/routes/+page.svelte, frontend/src/lib-api.js, frontend/src/language.js]
+related: [DOC-019]
 supersedes:
 superseded_by:
 ---
 
 # Inflected forms and spelling suggestions — design
 
-- **Wireframe:** [lookup alternatives](../../wireframes/lookup-alternatives.html)
+- **Wireframe:** [lookup alternatives](../../../wireframes/lookup-alternatives.html)
 - **Spec:** to be written after design approval
 - **Design approved:** 2026-11-06 (`src:c34610a226566b0738a4`)
+
+> **Amended 2026-11-13:** the approved spec (DOC-019) supersedes this proposal's morphology and ranking parts: no UniMorph data or persistent index ships; base forms come from regular suffix rules (English s, es, ed, ing; Spanish s, es) verified against the installed dictionary, and spelling uses optimal-string-alignment distance up to 2. The `lookup-alternatives` event also carries an `Attempt` field.
 
 ## Summary
 
@@ -113,7 +115,7 @@ Existing `Lookup(query)` and per-language outcomes remain intact. A proposed sep
 - Investigate a compatible English and/or Spanish morphology dataset first. If none proves reliable and suitable, use partial regular-form coverage. The dataset, distribution method, licensing obligations, performance and fallback remain open for review.
 - How much additional download or disk usage is acceptable for a morphology index? A measured proposal will be needed before the spec.
 
-Research: [English and Spanish morphology](<../../reports/English and Spanish morphology.md>) (DOC-013). UniMorph is the recommended first candidate to evaluate, not an approved dataset.
+Research: [English and Spanish morphology](<../../../docs/reports/English and Spanish morphology.md>) (DOC-013). UniMorph is the recommended first candidate to evaluate, not an approved dataset.
 
 ## References and verification
 

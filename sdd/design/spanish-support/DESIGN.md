@@ -5,18 +5,18 @@ summary: How every search checks English and Spanish with per-language offline, 
 type: explanation
 status: current
 updated: 2026-10-29
-verified:
-covers: [internal/core/bilingual*.go, internal/adapters/spanish.go]
-related: []
+verified: 2026-11-18 e55404d
+covers: [internal/core/bilingual*.go, internal/core/lookup.go, internal/core/domain.go, internal/adapters/spanish.go, internal/adapters/install.go, internal/adapters/catalog.go, internal/adapters/cache.go, internal/adapters/offline.go, main.go, frontend/src/language.js]
+related: [DOC-018]
 supersedes:
 superseded_by:
 ---
 
 # Spanish lookup — system design
 
-- **Wireframe:** [Spanish lookup and dictionaries](../../wireframes/spanish-support.html)
+- **Wireframe:** [Spanish lookup and dictionaries](../../../wireframes/spanish-support.html)
 - **Design approved:** 2026-10-29 in chat (`src:58170218c984fa66a08b`).
-- **Spec:** to be written after confirming the [proposed decisions](DECISIONS.md).
+- **Spec:** [Automatic English and Spanish lookup](../../spanish-support/SPEC.md) (DOC-018), approved; see also the [proposed decisions](DECISIONS.md).
 
 ## Summary
 
@@ -107,7 +107,7 @@ flowchart LR
 
 ## Data and compatibility
 
-No database migration. Keep the existing English `20261018/en-en.ifo` layout and cache keys readable. Install Spanish into a separate identity-specific directory so installation, recovery and replacement cannot overwrite English. Catalog records carry language, source, package identity, size and checksum; only catalog IDs can trigger downloads. Use independent readers and caches per language. The existing cache key already includes provider and language; select a distinct Spanish provider ID without invalidating English cache entries. A failed install leaves any previously working dictionary intact. Existing English-only settings and data require no deletion. No language selection or setting is needed.
+No database migration. Keep the existing English `20261018/en-en.ifo` layout and cache keys readable. Install Spanish into a separate identity-specific directory so installation, recovery and replacement cannot overwrite English. Catalog records carry language, source, package identity, size and checksum; only catalog IDs can trigger downloads. Use independent readers per language and one shared memory and disk cache whose entries are isolated by the existing cache key (provider, language, normalized query); select a distinct Spanish provider ID without invalidating English cache entries. A failed install leaves any previously working dictionary intact. Existing English-only settings and data require no deletion. No language selection or setting is needed.
 
 ## Contracts and screen states
 

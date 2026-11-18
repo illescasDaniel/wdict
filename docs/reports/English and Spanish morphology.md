@@ -1,13 +1,13 @@
 ---
 id: DOC-013
 title: English and Spanish morphology candidates report
-summary: Research report recommending UniMorph as the first morphology dataset to evaluate for English and Spanish
+summary: Historical research, partly superseded by DOC-010 (UniMorph English not shipped): research report recommending UniMorph as the first morphology dataset to evaluate for English and Spanish
 type: explanation
 status: current
 updated: 2026-11-06
-verified:
+verified: 2026-11-18 e55404d
 covers: []
-related: [DOC-016]
+related: [DOC-016, DOC-009, DOC-010]
 supersedes:
 superseded_by:
 ---

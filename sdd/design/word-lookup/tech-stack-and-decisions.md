@@ -1,11 +1,11 @@
 ---
 id: DOC-002
 title: Word lookup technology options
-summary: GUI and stack options compared at the start (PySide6, pywebview, Wails, Tauri) and the proposed spec decisions before Wails was chosen
+summary: Historical record, Wails was chosen (DOC-001): GUI and stack options compared at the start (PySide6, pywebview, Wails, Tauri) and the proposed spec decisions before Wails was chosen
 type: decision
 status: current
 updated: 2026-10-27
-verified:
+verified: 2026-11-18 e55404d
 covers: []
 related: []
 supersedes:

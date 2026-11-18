@@ -15,5 +15,5 @@ dictionary for English and Spanish with same-language definitions, aiming for ma
 **Why:** Tkinter was unsuitable for the user's high-DPI display. Wails v3 had dropped its built-in SvelteKit starter, so
 a pinned v3 starter was adapted to SvelteKit's static adapter.
 **Rejected:** Tkinter.
-**How to apply:** more detail is in `design/word-lookup/tech-stack-and-decisions.md`. macOS and Windows are not tested; do
+**How to apply:** more detail is in `sdd/design/word-lookup/tech-stack-and-decisions.md`. macOS and Windows are not tested; do
 not claim support for them.

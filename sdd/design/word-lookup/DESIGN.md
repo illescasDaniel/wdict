@@ -5,23 +5,23 @@ summary: Wdict core design: online and offline lookup, two-level cache, bilingua
 type: explanation
 status: current
 updated: 2026-11-13
-verified:
-covers: [internal/core/**, internal/adapters/provider.go, internal/adapters/cache.go, main.go]
-related: []
+verified: 2026-11-18 e55404d
+covers: [internal/core/**, internal/adapters/provider.go, internal/adapters/cache.go, internal/adapters/offline.go, internal/adapters/install.go, internal/adapters/catalog.go, main.go]
+related: [DOC-006, DOC-017]
 supersedes:
 superseded_by:
 ---
 
 # Word lookup — system design
 
-- **Wireframe:** [word-lookup.html](../../wireframes/word-lookup.html)
+- **Wireframe:** [word-lookup.html](../../../wireframes/word-lookup.html)
 - **Initial design approved:** 2026-10-26, with later changes in chat
 - **Design decisions:** agreed 2026-10-27; revised flows below are for spec review
-- **Spec:** [SPEC.md](../../sdd/word-lookup/SPEC.md)
+- **Spec:** [SPEC.md](../../word-lookup/SPEC.md)
 
 ## Summary
 
-A Linux-first Wails desktop app uses a SvelteKit frontend and Go services to look up English words and phrases online. User action enables online lookup, making query transmission explicit. Definitions, part of speech and source attribution appear in a compact window. A two-level cache avoids repeat network requests and serves prior entries offline. An in-app downloadable offline dictionary is required in v1; Spanish is desirable but not required; inflections and suggestions are deferred. A provider boundary keeps those additions possible without requiring them now.
+A Linux-first Wails desktop app uses a SvelteKit frontend and Go services to look up English words and phrases online. User action enables online lookup, making query transmission explicit. Definitions, part of speech and source attribution appear in a compact window. A two-level cache avoids repeat network requests and serves prior entries offline. An in-app downloadable offline dictionary is required in v1; Spanish and inflection/spelling suggestions were deferred in this original design and now ship (see DOC-006 and DOC-008). A provider boundary keeps those additions possible without requiring them now.
 
 ## Main flow
 
@@ -102,9 +102,9 @@ The frontend holds presentation state, the use case validates and coordinates, a
 
 ## Contracts
 
-`Lookup(query, language)` returns `found(entries)`, `invalid_query` (F1), `not_found` (F2), or `source_unavailable` (F3/F4). The first release accepts `en` only. Example entry: `{headword: "hello", language: "en", meanings: [{part_of_speech: "noun", definitions: ["A greeting."]}], source_url: "https://en.wiktionary.org/wiki/hello"}`; wording is illustrative. Source URL and applicable attribution come from the provider response, not a fabricated attribution.
+`Lookup(query, language)` returns `found(entries)`, `invalid_query` (F1), `not_found` (F2), or `source_unavailable` (F3/F4). The original first release accepted `en` only; the app now searches English and Spanish per query (DOC-006). HTTP 502 maps to `silent_unavailable` (no error shown; UI says no definitions are available right now). Example entry: `{headword: "hello", language: "en", meanings: [{part_of_speech: "noun", definitions: ["A greeting."]}], source_url: "https://en.wiktionary.org/wiki/hello"}`; wording is illustrative. Source URL and applicable attribution come from the provider response, not a fabricated attribution.
 
-The adapter sends `GET https://api.dictionaryapi.dev/api/v2/entries/en/{encoded-query}`. The provider documents its v2 response as an array with `word`, `meanings`, `partOfSpeech`, and `definitions[].definition`; HTTP 404 maps to not found, 2xx valid entries to found, all other statuses and transport errors to unavailable. Invalid or absent required response fields map to unavailable. Lookups may update a versioned local cache, but do not modify source dictionary data. There is no app-owned HTTP API. Cache policy and limits are specified in the linked spec.
+The adapter sends `GET https://api.dictionaryapi.dev/api/v2/entries/en/{encoded-query}`. The provider documents its v2 response as an array with `word`, `meanings`, `partOfSpeech`, and `definitions[].definition`; HTTP 404 maps to not found, 2xx valid entries to found, HTTP 502 to `silent_unavailable`, all other statuses and transport errors to unavailable. Entries with missing definitions or non-http(s) source/license URLs are dropped; unavailable is returned only if none survive. Lookups may update a versioned local cache, but do not modify source dictionary data. There is no app-owned HTTP API. Cache policy and limits are specified in the linked spec.
 
 ## Data model
 
@@ -134,6 +134,7 @@ Disk records include a schema version and may be discarded and rebuilt. There is
 | Invalid | `invalid_query` (F1) |
 | No entry | `not_found` (F2) |
 | Source unavailable | `source_unavailable` (F3/F4), retry available |
+| Silent unavailable | `silent_unavailable` (provider HTTP 502); no error shown |
 
 ## Open questions
 

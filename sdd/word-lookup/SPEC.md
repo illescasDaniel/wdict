@@ -4,9 +4,9 @@ title: Word lookup specification
 summary: Spec for the desktop lookup window: success criteria, online provider, two-level cache, in-app dictionary download required in v1
 type: reference
 status: current
-updated: 2026-11-15
-verified:
-covers: [internal/core/**, internal/adapters/**, frontend/src/**]
+updated: 2026-11-18
+verified: 2026-11-18 e55404d
+covers: [internal/core/**, internal/adapters/**, frontend/src/**, main.go]
 related: [DOC-001]
 supersedes:
 superseded_by:
@@ -19,7 +19,7 @@ superseded_by:
 - **Feature:** A fast desktop window for English word and phrase definitions using an online dictionary and a two-level cache.
 - **Wireframe:** [word lookup](../../wireframes/word-lookup.html); initial design approved 2026-10-26, revised to incorporate decisions for spec review.
 - **Download wireframe:** [offline dictionary download](../../wireframes/dictionary-download.html); approved 2026-10-27.
-- **System design:** [design](../../design/word-lookup/DESIGN.md); initial design approved 2026-10-26.
+- **System design:** [design](../design/word-lookup/DESIGN.md); initial design approved 2026-10-26.
 - **Design decisions:** agreed 2026-10-27, with scope adjusted in chat.
 - **Spec approval:** approved 2026-10-27, with in-app dictionary download required in v1.
 
@@ -55,7 +55,7 @@ Match the [wireframe](../../wireframes/word-lookup.html): single input, English 
 
 ## Interfaces & contracts
 
-The frontend invokes the Go lookup use case through Wails with query and language `en`. Results are `found`, `invalid_query`, `not_found`, or `source_unavailable`. The Go adapter calls the Free Dictionary API documented in the [design](../../design/word-lookup/DESIGN.md), maps valid definitions to the domain, and returns source attribution from the response. The lookup checks the installed dictionary for the selected language first. If absent, unavailable, invalid or missing the entry, it checks memory then disk, and queries the provider only on a miss or when an entry is at least 365 days old. A successful online result replaces both cache tiers; not-found responses and errors are not cached. Stale entries are retained for fallback on source failure. The lookup may update cache state but does not alter source dictionary data. Provider terms and real-world phrase coverage must be verified before release; inability to satisfy them requires revisiting this spec.
+The frontend invokes the Go lookup use case through Wails with a single query; the backend returns one outcome per language (English and Spanish, see DOC-018). Outcomes are `found`, `invalid_query`, `not_found`, `source_unavailable`, or `silent_unavailable` (provider HTTP 502; no error shown). The Go adapter calls the Free Dictionary API documented in the [design](../design/word-lookup/DESIGN.md), maps valid definitions to the domain, and returns source attribution from the response. The lookup checks the installed dictionary for the selected language first. If absent, unavailable, invalid or missing the entry, it checks memory then disk, and queries the provider only on a miss or when an entry is at least 365 days old. A successful online result replaces both cache tiers; not-found responses and errors are not cached. Stale entries are retained for fallback on source failure. The lookup may update cache state but does not alter source dictionary data. Provider terms and real-world phrase coverage must be verified before release; inability to satisfy them requires revisiting this spec.
 
 ## Data & migration
 
@@ -67,7 +67,7 @@ For v1, offer at least one curated English-to-English StarDict package through a
 
 Go handles a fixed, reviewed HTTPS package source; the frontend selects a catalog identifier, not an arbitrary URL or filesystem path. Download to temporary app-owned storage, enforce bounded archive and extracted sizes, verify a published checksum from trusted catalog metadata, reject unsafe archive paths, links and invalid or unsupported files, then install atomically into a per-user application data directory. A failed or interrupted installation cleans up temporary files and leaves any previously working dictionary intact. Installed dictionary data persists across restarts and is separate from the disposable response cache. Open lazily or asynchronously so a missing, corrupt or large dictionary does not prevent startup; do not automatically download or send queries at startup.
 
-Use the pure-Go `github.com/ianlewis/go-stardict` reader as the selected candidate, subject to a compatibility, performance and license review. The selected dictionary's identity, source, version, content rights, attribution, size, update mechanism and phrase coverage must be verified before the feature ships; none is yet selected. Render dictionary content as untrusted text, and preserve source attribution. If a valid offline entry is found, show it and make no online request. Otherwise use the existing cache and online fallback; an offline read failure is not an online not-found result. The full offline dictionary is not subject to the response-cache TTL or LRU limits. Imported user files, background updates and a dictionary marketplace are out of scope.
+Use the pure-Go `github.com/ianlewis/go-stardict` reader as the selected candidate, subject to a compatibility, performance and license review. The selected dictionary's identity, source, version, content rights, attribution, size, update mechanism and phrase coverage must be verified before the feature ships; the shipped English package is the pinned xxyzz `wiktionary_stardict` 20261018 en-en dictionary (URL, SHA-256 and size in `internal/adapters/install.go`, CC BY-SA 4.0). Render dictionary content as untrusted text, and preserve source attribution. If a valid offline entry is found, show it and make no online request. Otherwise use the existing cache and online fallback; an offline read failure is not an online not-found result. The full offline dictionary is not subject to the response-cache TTL or LRU limits. Imported user files, background updates and a dictionary marketplace are out of scope.
 
 ### Download acceptance criteria
 
@@ -107,7 +107,7 @@ Use the pure-Go `github.com/ianlewis/go-stardict` reader as the selected candida
 
 ### Scenario: Source unavailable (F3)
 
-**Given** a network failure, timeout, or non-success provider status other than not found **When** the user submits a valid query **Then** the UI reports the source unavailable, retains the last successful result and permits retry.
+**Given** a network failure, timeout, or non-success provider status other than not found or HTTP 502 (which is silent) **When** the user submits a valid query **Then** the UI reports the source unavailable, retains the last successful result and permits retry.
 
 ### Scenario: Malformed provider response (F4)
 
@@ -163,8 +163,8 @@ Use the pure-Go `github.com/ianlewis/go-stardict` reader as the selected candida
 
 ## Out of scope
 
-- Spanish support is desirable but not required for release.
-- Inflected form resolution, spelling suggestions, and comprehensive morphology are deferred and recorded in project memory.
+- Spanish support was out of scope here and is specified in DOC-018.
+- Inflected form resolution and spelling suggestions were deferred here and are specified in DOC-019; comprehensive morphology remains out of scope.
 - Accounts, history, translation and a public application API.
 
 ## Revisions

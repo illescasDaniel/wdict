@@ -14,7 +14,7 @@ essential is missing and the code can't answer it, put it under "Open questions"
 
 ## Before designing
 - Read the project's `CLAUDE.md` / `AGENTS.md` and any rules they point to: layering, conventions, quality gate.
-- If they exist: the feature's `sdd/<feature>/SPEC.md`, wireframe and `design/<feature>/DESIGN.md`.
+- If they exist: the feature's `sdd/<feature>/SPEC.md`, wireframe and `sdd/design/<feature>/DESIGN.md`.
 - If the project has `memory/MEMORY.md`, read it and grep `memory/notes/` for the area you're designing: past
   decisions you must respect or explicitly revisit, bug causes, gotchas. Notes are dated claims: check them against the
   code. A `superseded` note is history, not the current answer.

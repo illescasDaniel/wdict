@@ -5,7 +5,7 @@ summary: Technical source-and-notice review of English sources (offline Wiktiona
 type: explanation
 status: current
 updated: 2026-10-27
-verified:
+verified: 2026-11-18 e55404d
 covers: []
 related: []
 supersedes:

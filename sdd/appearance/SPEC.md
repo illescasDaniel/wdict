@@ -4,9 +4,9 @@ title: Appearance specification
 summary: Spec for System, Light and Dark appearance selection with footer icons
 type: reference
 status: current
-updated: 2026-11-13
-verified:
-covers: [frontend/src/**]
+updated: 2026-11-18
+verified: 2026-11-18 e55404d
+covers: [frontend/src/**, frontend/build/**]
 related: []
 supersedes:
 superseded_by:

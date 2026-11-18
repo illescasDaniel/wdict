@@ -5,7 +5,7 @@ summary: Feasibility probe: pinned UniMorph files, installed dictionary hashes, 
 type: explanation
 status: current
 updated: 2026-11-06
-verified:
+verified: 2026-11-18 e55404d
 covers: []
 related: []
 supersedes:
@@ -80,7 +80,7 @@ Full-file offline overlap was approximated by taking unique form–lemma pairs, 
 
 All six Spanish examples in the previous table were present in both UniMorph and the dictionary. In English, `walking` maps to `walk`, `went` to `go`, but `children` had no UniMorph row in this file and `ran` returned `ran` and `rin`, not `run`. UniMorph `better` included `better`, `good`, `well`, `known` and `matching`, illustrating that blindly presenting all mappings can produce dubious suggestions. English sample possible incremental pairs include `abernathyites` → `abernathyite`; Spanish examples include `abacoradas` → `abacorar` and `abajadla` → `abajar`. These have not been checked for linguistic accuracy, actual app misses or useful definitions. At least one Spanish raw record had an empty form; input validation is required.
 
-Reproduce overlap with `python3 /tmp/wdict-unimorph-filtered-eval.py` while the temporary files remain. The script uses the full downloaded data and installed dictionary indexes. Recreate downloads from `https://raw.githubusercontent.com/unimorph/eng/66e0e9e8e2dcd196da081a25a48e5c1fe3d8b49b/eng` and `https://raw.githubusercontent.com/unimorph/spa/b9655efb0e5ce0f99809badaa7f4e93017ab8430/spa`, verify the SHA-256 values above, then run the probe. Dataset license and redistribution terms still need review for the exact intended package; see the [research report](<../../reports/English and Spanish morphology.md>) (DOC-013).
+Reproduce overlap with `python3 /tmp/wdict-unimorph-filtered-eval.py` while the temporary files remain. The script uses the full downloaded data and installed dictionary indexes. Recreate downloads from `https://raw.githubusercontent.com/unimorph/eng/66e0e9e8e2dcd196da081a25a48e5c1fe3d8b49b/eng` and `https://raw.githubusercontent.com/unimorph/spa/b9655efb0e5ce0f99809badaa7f4e93017ab8430/spa`, verify the SHA-256 values above, then run the probe. Dataset license and redistribution terms still need review for the exact intended package; see the [research report](<../../../docs/reports/English and Spanish morphology.md>) (DOC-013).
 
 ## Unresolved budgets
 
@@ -146,3 +146,5 @@ GOCACHE=/tmp/wdict-codex-go-cache go build -o /tmp/wdict-unicode-concurrent /tmp
 ```
 
 Source SHA-256s: `/tmp/wdict-unicode-osa-probe.go` `2763edd51f394d396865825c3716c09de36ac5f2122561fd09868a1159e8a97f`; `/tmp/wdict-unicode-osa-priority.go` `1631431bd44d85523f93b498ccb736bab2d1e33f80fc588456ada395267abe26`; `/tmp/wdict-unicode-concurrent.go` `21f319696bb26bf54352c49b67d94debc0970ac74fcb31a3a91d3f963adea11e`.
+
+> Note (verified 2026-11-18): the reproduction scripts and overlay files this probe used lived in `/tmp` and no longer exist; the results cannot be reproduced from the repository.

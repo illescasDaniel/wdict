@@ -5,7 +5,7 @@ summary: Research notes comparing UniMorph and Wiktextract across English and Sp
 type: explanation
 status: current
 updated: 2026-11-06
-verified:
+verified: 2026-11-18 e55404d
 covers: []
 related: []
 supersedes:
