@@ -45,3 +45,37 @@ jobs:
           go test -tags gtk3 ./...
       - name: Audit frontend dependencies
         run: npm audit --prefix frontend --audit-level=moderate
+
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build unsigned macOS app
+        run: ./scripts/build-macos-app.sh
+      - name: Check and test
+        run: |
+          npm run check --prefix frontend
+          npm test --prefix frontend
+          go test ./...
+      - name: Verify packaged app
+        shell: bash
+        run: |
+          set -euo pipefail
+          ditto -x -k dist/wdict-macos-arm64.zip "$RUNNER_TEMP/wdict-package"
+          actual=$(env -i PATH=/usr/bin:/bin:/usr/sbin:/sbin "$RUNNER_TEMP/wdict-package/wdict.app/Contents/MacOS/wdict" --version)
+          test "$actual" = "wdict $(cat VERSION)"
+      - name: Upload unsigned macOS app
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          archive: false
+          path: dist/wdict-macos-arm64.zip
+          if-no-files-found: error

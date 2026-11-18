@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>macOS app packaging</title>
+<style>
+/* Tokens. Light by default; dark follows the system. Colour never carries meaning alone: every colour has a text label. */
+:root{color-scheme:light;--ink:#172b3a;--muted:#405766;--line:#b8c8ce;--accent:#126451;--paper:#fff;--wash:#edf4f3;--page:#f4f7f8;--link:#075a80;--focus:#a34b00;
+--c-teal:#14b8a6;--c-vio:#8b5cf6;--c-pink:#ec4899;--c-amb:#f59e0b;--c-grn:#22c55e;--c-blue:#3b82f6;--c-fail:#f43f5e}
+@media screen and (prefers-color-scheme:dark){:root{color-scheme:dark;--ink:#e4edf1;--muted:#a7bbc5;--line:#34505c;--accent:#4fe0b6;--paper:#16232b;--wash:#1b2d36;--page:#0d171c;--link:#84cff5;--focus:#ffb36b}}
+*{box-sizing:border-box}body{margin:0;background:var(--page);color:var(--ink);font:1rem/1.6 system-ui,sans-serif}
+a{color:var(--link)}a:focus-visible,button:focus-visible,select:focus-visible,summary:focus-visible,.scroll:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+header,main,footer{max-width:68rem;margin:auto;padding:1.5rem}header{padding-top:2.5rem}
+h1{font-size:clamp(1.9rem,6vw,3rem);line-height:1.1;margin:.5rem 0 1rem;background:linear-gradient(90deg,color-mix(in srgb,var(--c-teal) 55%,var(--ink)),var(--c-vio) 55%,var(--c-pink));-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800}
+h2{line-height:1.25;color:color-mix(in srgb,var(--sc,var(--c-teal)) 60%,var(--ink))}p,li{max-width:75ch}code{overflow-wrap:anywhere}
+.badge{display:inline-block;border:1px solid var(--c-teal);background:color-mix(in srgb,var(--c-teal) 18%,transparent);color:color-mix(in srgb,var(--c-teal) 35%,var(--ink));border-radius:2rem;padding:.2rem .7rem;font-size:.9rem;font-weight:650}
+.note{border-left:4px solid var(--c-teal);padding:.7rem 1rem;background:color-mix(in srgb,var(--c-teal) 10%,transparent)}
+section{background:var(--paper);border:1px solid var(--line);border-left:5px solid var(--sc,var(--c-teal));border-radius:.75rem;padding:clamp(1rem,3vw,2rem);margin-bottom:1.2rem;scroll-margin-top:1rem}
+.gate{border-left-color:var(--c-amb)}.src,.hdr{font-size:.85rem;opacity:.8;margin:.3rem 0}
+.rep{margin:2rem 0 1rem;padding-bottom:.3rem;border-bottom:3px solid var(--c-teal)}
+nav.sub{display:flex;flex-wrap:wrap;gap:.6rem;margin:0 0 1rem}nav.sub a{text-decoration:none;font-weight:600;padding:.15rem .6rem;border-radius:2rem;background:color-mix(in srgb,var(--c-blue) 14%,transparent)}
+/* Tabs: without JavaScript every panel stays visible. */
+.tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:1.5rem}
+.tabs button{font:inherit;font-weight:700;cursor:pointer;padding:.5rem 1rem;border-radius:.6rem .6rem 0 0;border:2px solid var(--line);border-bottom:0;background:color-mix(in srgb,var(--c-blue) 8%,var(--paper));color:var(--ink)}
+.tabs button[aria-selected=true]{background:var(--paper);border-color:var(--c-teal);box-shadow:inset 0 4px 0 var(--c-teal)}
+.st{font-size:.72rem;font-weight:650;padding:.05rem .5rem;border-radius:2rem;margin-left:.3rem;border:1.5px solid var(--cc)}
+.st.ok{--cc:var(--c-grn);background:color-mix(in srgb,var(--c-grn) 16%,transparent)}.st.wait{--cc:var(--c-amb);background:color-mix(in srgb,var(--c-amb) 18%,transparent)}.st.todo{--cc:var(--c-vio);border-style:dashed}
+/* Chips: text label plus colour and line style. */
+.chip{display:inline-block;font-size:.8rem;font-weight:650;padding:.05rem .6rem;border-radius:2rem;border:1.5px solid var(--cc);background:color-mix(in srgb,var(--cc) 16%,transparent);margin:0 .4rem .3rem 0}
+.chip.chg{--cc:var(--c-amb)}.chip.ex{--cc:var(--c-blue)}.chip.new{--cc:var(--c-grn)}.chip.def{--cc:var(--c-vio);border-style:dashed}.chip.fail{--cc:var(--c-fail);border-style:dashed}
+.scroll{overflow:auto}table{border-collapse:collapse;width:100%;text-align:left;font-size:.95rem}th,td{padding:.6rem;border-bottom:1px solid var(--line);vertical-align:top;min-width:6rem}
+thead th{border-bottom:2px solid color-mix(in srgb,var(--sc,var(--c-teal)) 60%,transparent)}caption{text-align:left;font-weight:650;padding:.5rem 0}
+details{border-top:1px solid var(--line);padding:.6rem 0}summary{cursor:pointer;font-weight:650}pre{overflow:auto;white-space:pre-wrap;background:color-mix(in srgb,var(--c-teal) 6%,var(--paper));padding:1rem;border-radius:.4rem}
+.gwt{border-left:4px solid var(--c-vio);padding-left:.8rem;margin:.4rem 0;border-top:0}
+label{display:block;font-weight:650}select{font:inherit;padding:.5rem;max-width:100%;margin:.5rem 0}.sim{border:1px solid var(--c-vio);background:color-mix(in srgb,var(--c-vio) 8%,transparent);padding:.8rem 1rem;border-radius:.4rem}.simnote{font-size:.85rem;opacity:.8}
+.hero{border:1px solid var(--line,#8884);border-radius:.6rem;padding:.6rem .8rem;margin:.6rem 0}.hero figcaption,.hero .cap{font-weight:650;font-size:.85em;margin:0 0 .3rem}
+/* Diagrams */
+.dg{display:block;width:100%;color:var(--ink);max-width:none}.dg .t{font-size:11px;fill:currentColor}.dg .h{font-size:12px;font-weight:650;fill:currentColor}.dg .tag{font-size:10px;font-weight:700;fill:currentColor}.dg .f{font-size:11px;font-weight:700;fill:color-mix(in srgb,var(--c-fail) 70%,var(--ink))}
+.dg .hd{fill:color-mix(in srgb,var(--c-teal) 22%,var(--paper));stroke:var(--c-teal);stroke-width:2}.dg .fr{fill:color-mix(in srgb,var(--c-fail) 7%,transparent);stroke:var(--c-fail);stroke-width:1.5;stroke-dasharray:6 3}
+.dg .n{fill:var(--paper);stroke:currentColor;stroke-width:1.5}.dg .n.ex{fill:color-mix(in srgb,var(--c-blue) 14%,var(--paper));stroke:var(--c-blue)}.dg .n.chg{fill:color-mix(in srgb,var(--c-amb) 20%,var(--paper));stroke:var(--c-amb);stroke-width:3.5}
+.dg .n.new{fill:color-mix(in srgb,var(--c-grn) 16%,var(--paper));stroke:var(--c-grn);stroke-width:2}.dg .n.def{fill:color-mix(in srgb,var(--c-vio) 12%,var(--paper));stroke:var(--c-vio);stroke-width:2;stroke-dasharray:5 3}
+@media(max-width:38rem){header,main,footer{padding:1rem}}
+@media print{body{background:#fff;color:#000;font-size:10pt}.tabs,nav.sub{display:none}.tabpanel[hidden]{display:block!important}section{break-inside:avoid}details>*{display:block!important}details::details-content{content-visibility:visible;display:block}h1{color:#000;background:none}}
+@media (max-width:600px){table.cards,table.cards tbody,table.cards tr,table.cards td,table.cards th{display:block;min-width:0}table.cards caption{display:block}table.cards thead{position:absolute;clip:rect(0 0 0 0);width:1px;height:1px;overflow:hidden}table.cards tr{border:1px solid var(--line,#8884);border-radius:6px;margin:6px 0;padding:4px 8px}table.cards td,table.cards th{border-bottom:0;padding:.15rem 0;overflow-wrap:anywhere}table.cards td::before{content:attr(data-label) ": ";font-weight:650}table.cards th[scope=row]{font-size:1.05em}}
+@media (max-width:600px){.dg{min-width:34rem}}
+</style>
+<!-- Compact copy of the look for inline chat rendering. Inert in the page (media "not all"); scripts/inline_view.py enables it. Uses the host theme variables when present. -->
+<style data-inline media="not all">
+:root{--teal:#14b8a6;--vio:#8b5cf6;--amb:#f59e0b;--grn:#22c55e;--blue:#3b82f6;--fail:#f43f5e;--c-teal:var(--teal);--c-vio:var(--vio);--c-pink:#ec4899;--c-amb:var(--amb);--c-grn:var(--grn);--c-blue:var(--blue);--c-fail:var(--fail)}
+html,body{background:transparent;color:var(--foreground,inherit);font:14px/1.5 var(--font-sans,system-ui);margin:0}*{box-sizing:border-box}code,pre{font-family:var(--font-mono,monospace);font-size:12px}
+pre{white-space:pre-wrap;background:var(--code-background,transparent);border:1px solid var(--border,#8884);border-radius:6px;padding:8px}
+section{border:1px solid var(--border,#8884);border-left:5px solid var(--sc,var(--c-teal));border-radius:8px;padding:6px 14px;margin:8px 0;background:var(--card,transparent)}
+h2{font-size:15px;margin:6px 0;color:color-mix(in srgb,var(--sc,var(--c-teal)) 65%,var(--foreground,currentColor))}h3{font-size:13px;margin:8px 0 4px}
+.chip{display:inline-block;font-size:11px;font-weight:650;padding:0 8px;border-radius:99px;border:1.5px solid var(--cc);background:color-mix(in srgb,var(--cc) 15%,transparent);margin:0 4px 3px 0}
+.chg{--cc:var(--amb)}.ex{--cc:var(--blue)}.new{--cc:var(--grn)}.def{--cc:var(--vio);border-style:dashed}.fail{--cc:var(--fail);border-style:dashed}
+table{border-collapse:collapse;width:100%;font-size:12.5px}td,th{padding:4px 6px;border-bottom:1px solid var(--border,#8884);text-align:left;vertical-align:top}caption{text-align:left;font-weight:650}
+.gate{border-left-color:var(--amb)}.src,.hdr{font-size:12px;opacity:.8;margin:3px 0}.badge{display:inline-block;border:1px solid var(--teal);border-radius:99px;padding:0 8px;font-size:12px;font-weight:650}
+.hero{border:1px solid var(--border,#8884);border-radius:6px;padding:6px 10px;margin:6px 0}.hero .cap{font-weight:650;font-size:12px;margin:0 0 4px}.scroll{overflow:auto}details{margin:3px 0}summary{cursor:pointer;font-weight:650}.gwt{border-left:3px solid var(--vio);padding-left:8px}.big>summary{font-size:14px;padding:6px 0}
+.note{border-left:4px solid var(--teal);padding:4px 10px;background:color-mix(in srgb,var(--teal) 10%,transparent)}.simnote{font-size:12px;opacity:.75}
+.dg{display:block;color:var(--foreground,inherit);max-width:100%}.dg .t{font-size:11px;fill:currentColor}.dg .h{font-size:12px;font-weight:650;fill:currentColor}.dg .tag{font-size:10px;font-weight:700;fill:currentColor}.dg .f{font-size:11px;font-weight:700;fill:var(--fail)}
+.dg .hd{fill:color-mix(in srgb,var(--teal) 22%,transparent);stroke:var(--teal);stroke-width:2}.dg .fr{fill:color-mix(in srgb,var(--fail) 7%,transparent);stroke:var(--fail);stroke-width:1.5;stroke-dasharray:6 3}
+.dg .n{fill:var(--card,transparent);stroke:currentColor;stroke-width:1.5}.dg .n.ex{fill:color-mix(in srgb,var(--blue) 14%,transparent);stroke:var(--blue)}.dg .n.chg{fill:color-mix(in srgb,var(--amb) 20%,transparent);stroke:var(--amb);stroke-width:3}
+.dg .n.new{fill:color-mix(in srgb,var(--grn) 16%,transparent);stroke:var(--grn);stroke-width:2}.dg .n.def{fill:color-mix(in srgb,var(--vio) 12%,transparent);stroke:var(--vio);stroke-width:2;stroke-dasharray:5 3}
+@media (max-width:600px){table.cards,table.cards tbody,table.cards tr,table.cards td,table.cards th{display:block;min-width:0}table.cards caption{display:block}table.cards thead{position:absolute;clip:rect(0 0 0 0);width:1px;height:1px;overflow:hidden}table.cards tr{border:1px solid var(--line,#8884);border-radius:6px;margin:6px 0;padding:4px 8px}table.cards td,table.cards th{border-bottom:0;padding:.15rem 0;overflow-wrap:anywhere}table.cards td::before{content:attr(data-label) ": ";font-weight:650}table.cards th[scope=row]{font-size:1.05em}}
+@media (max-width:600px){.dg{min-width:34rem}}
+</style>
+</head>
+<body>
+<header>
+<span class="badge">Verification findings addressed</span>
+<h1>macOS app packaging</h1>
+<p>Build an unsigned app bundle and CI artifact for testing.</p>
+<p class="note"><strong>Review only.</strong> One file, one tab per phase. The walkthrough is a <strong>Simulation</strong>; no audio is played. Approval happens in chat, never on this page.</p>
+<div class="tabs" role="tablist" aria-label="Phases">
+<button role="tab" id="t-design" aria-controls="p-design" aria-selected="true" data-p="design">Design <span class="st ok">approved</span></button>
+<button role="tab" id="t-spec" aria-controls="p-spec" aria-selected="false" tabindex="-1" data-p="spec">Spec <span class="st ok">approved</span></button>
+<button role="tab" id="t-arch" aria-controls="p-arch" aria-selected="false" tabindex="-1" data-p="arch">Architecture <span class="st ok">approved</span></button>
+<button role="tab" id="t-build" aria-controls="p-build" aria-selected="false" tabindex="-1" data-p="build">Build <span class="st ok">done</span></button>
+<button role="tab" id="t-verify" aria-controls="p-verify" aria-selected="false" tabindex="-1" data-p="verify">Verify <span class="st wait">NEEDS WORK</span></button>
+<button role="tab" id="t-appr" aria-controls="p-appr" aria-selected="false" tabindex="-1" data-p="appr">Approvals <span class="st wait">3 of 3 gates</span></button>
+</div>
+</header>
+<main>
+
+<!-- ============ DESIGN ============ -->
+<div role="tabpanel" id="p-design" aria-labelledby="t-design" class="tabpanel"><section id="d-glance"><h2>At a glance</h2><div class="hero"><p>Source + frontend → native executable → wdict.app → zip → CI artifact.</p><p>F1: wrong platform or invalid version → fail. F2: output exists → fail without overwriting. F3: build or archive fails → no successful artifact.</p></div><p>Produce an unsigned, non-notarized bundle for the build host architecture. Speech synthesis remains an external dependency. CI artifacts are for testing and are not releases.</p><p class="note gate">User authorized wdict SDD gates on 2026-11-18: “skip the approvals for wdict fixes … I approve all.”</p></section><h2 class="rep">Detailed report</h2><section><h2>Decisions and scope</h2><p>Preserve existing Linux packaging and release workflow. Keep generated outputs under dist; refuse overwrite. Build locally with Go, Node and Xcode tools; use no signing credentials. The launcher preserves PATH and adds standard Homebrew locations for optional tools. No hard performance target or GUI behavior change; archive is validated before upload.</p><p>Unsigned downloads require user approval in macOS security settings. Only the build host architecture is produced; runtime GUI, audible speech, distribution and cross-version compatibility are not asserted.</p></section><section><h2>Checks run on this page</h2><p>Structural checker; testing and review are recorded in Verify.</p></section></div>
+<!-- ============ SPEC ============ -->
+<div role="tabpanel" id="p-spec" aria-labelledby="t-spec" class="tabpanel"><section id="s-glance"><h2>At a glance</h2><p>S1: build an executable app and zip with valid metadata and icon. S2/F1: reject non-macOS and invalid version. S3/F2: refuse overwrite. S4/F3: propagate build failure. S5: CI uploads the unsigned zip without creating a release. S6: launcher retains arguments and can locate optional host tools.</p><p class="note gate">Spec covered by user authorization.</p></section><h2 class="rep">Detailed report</h2><section><h2>Acceptance</h2><p>Archive must extract to wdict.app, executable prints the project version, metadata matches VERSION, and test gate passes. CI runs native tests and uploads an artifact; the existing release remains unchanged. README states actual tested scope and unsigned status.</p></section></div>
+<!-- ============ ARCHITECTURE ============ -->
+<div role="tabpanel" id="p-arch" aria-labelledby="t-arch" class="tabpanel"><section id="a-glance"><h2>At a glance</h2><p>A build script composes plist, launcher, executable and icon; Task exposes it; CI runs it on a macOS runner and uploads the zip.</p><p class="note gate">Architecture covered by user authorization.</p></section><h2 class="rep">Detailed report</h2><section><h2>Interfaces</h2><p>Input VERSION and frontend sources; outputs dist/wdict.app and dist/wdict-macos-&lt;arch&gt;.zip. No persistent data migration, signing or network publication.</p></section></div>
+<!-- ============ BUILD ============ -->
+<div role="tabpanel" id="p-build" aria-labelledby="t-build" class="tabpanel"><section id="b-glance"><h2>At a glance</h2><p>Built unsigned arm64 app and zip. The task test, native Go tests, plist validation, archive extraction, restricted-PATH version check and overwrite protection passed.</p><p class="note gate">Build checks passed.</p></section><h2 class="rep">Detailed report</h2><section><h2>Evidence</h2><p>Native build produced dist/wdict.app and dist/wdict-macos-arm64.zip. Tests ran with Node 24. Linker emitted deployment-target warnings.</p></section></div>
+<!-- ============ VERIFY ============ -->
+<div role="tabpanel" id="p-verify" aria-labelledby="t-verify" class="tabpanel"><section id="v-glance"><h2>Verification report</h2><p><strong>Independent grade:</strong> NEEDS WORK — concurrent output publication and failure recovery needed stronger handling and verification.</p><p class="note gate">Verification findings addressed; native GUI and audible playback remain unverified.</p></section><h2 class="rep">Detailed report</h2><section><h2>Evidence</h2><p>Sol independently validated the plist, zip and launcher. G1: added an atomic build lock and tested lock contention. G2: tested wrong OS, invalid version, dangling output, npm failure and Homebrew command lookup. A second grade found partial output on archive publication failure; staging on dist and rollback were added and an injected second-move failure passed. These fixes were not regraded. CI is configured to repeat the extracted-artifact version smoke check; hosted CI has not run. No GUI or audible playback was attempted.</p></section></div>
+<!-- ============ APPROVALS ============ -->
+<div role="tabpanel" id="p-appr" aria-labelledby="t-appr" class="tabpanel">
+<section id="appr" aria-labelledby="appr-t" style="--sc:var(--c-grn)"><h2 id="appr-t">Approvals</h2>
+<p class="note">Record only approvals actually received in chat, with the date, the tab content approved (hash or short description) and the user’s words. A page control never approves a gate. Later edits to status labels or traceability are not re-approvals; a change to behaviour, scope or contracts reopens the gate that owns it. Hashes identify what was approved, not what the page shows today.</p>
+<div class="scroll" tabindex="0" role="region" aria-label="Scrollable approvals table"><table><caption>Gate approvals</caption><thead><tr><th scope="col">Gate</th><th scope="col">Date</th><th scope="col">Approved artifact</th><th scope="col">Approval in chat</th></tr></thead><tbody>
+<tr><th scope="row">Design</th><td>2026-11-18</td><td>macOS app packaging</td><td>User: “skip the approvals for wdict fixes … I approve all.”</td></tr><tr><th scope="row">Spec</th><td>2026-11-18</td><td>macOS app packaging</td><td>User: “skip the approvals for wdict fixes … I approve all.”</td></tr><tr><th scope="row">Architecture</th><td>2026-11-18</td><td>macOS app packaging</td><td>User: “skip the approvals for wdict fixes … I approve all.”</td></tr><tr><th scope="row">Automatic verification</th><td>pending</td><td>QA and grade run after the build unless the user replied <code>no QA</code> or <code>no grade</code></td><td></td></tr>
+</tbody></table></div></section>
+</div>
+</main>
+<footer>Single-file SDD review · no network dependencies · no live backend</footer>
+<script>
+'use strict';
+const tabs=Array.from(document.querySelectorAll('[role=tab]'));
+const panels=Array.from(document.querySelectorAll('.tabpanel'));
+function act(p,focus,keep){tabs.forEach(t=>{const on=t.dataset.p===p;t.setAttribute('aria-selected',on);t.tabIndex=on?0:-1;document.getElementById('p-'+t.dataset.p).hidden=!on;if(on&&focus)t.focus();});if(!keep){try{history.replaceState(null,'','#p-'+p)}catch(_){}}}
+tabs.forEach((t,i)=>{t.addEventListener('click',()=>act(t.dataset.p));t.addEventListener('keydown',ev=>{const k={ArrowRight:1,ArrowLeft:-1}[ev.key];if(ev.key==='Home'){ev.preventDefault();act(tabs[0].dataset.p,1)}else if(ev.key==='End'){ev.preventDefault();act(tabs[tabs.length-1].dataset.p,1)}else if(k){ev.preventDefault();act(tabs[(i+k+tabs.length)%tabs.length].dataset.p,1)}});});
+function fromHash(){const id=location.hash.slice(1);const el=id&&document.getElementById(id);const pan=el&&el.closest('.tabpanel');act(pan?pan.id.slice(2):(tabs.find(t=>t.getAttribute('aria-selected')==='true')||tabs[0]).dataset.p,false,!!pan);if(el&&pan){for(let d=el.closest('details');d;d=d.parentElement&&d.parentElement.closest('details'))d.open=true;el.scrollIntoView();}}
+fromHash();window.addEventListener('hashchange',fromHash);
+</script>
+<!-- Sample simulation for the example path selector. Replace it with the feature's own, or delete this block with the selector section; inline_view --check fails if it is left in an approved or done Design tab. -->
+
+<script>
+'use strict';
+const details=Array.from(document.querySelectorAll('details'));let prior=[];
+window.addEventListener('beforeprint',()=>{panels.forEach(p=>{p.hidden=false;});prior=details.map(d=>d.open);details.forEach(d=>{d.open=true;});});
+window.addEventListener('afterprint',()=>{details.forEach((d,i)=>{d.open=prior[i]??true;});const s=tabs.find(t=>t.getAttribute('aria-selected')==='true');if(s)act(s.dataset.p);});
+</script>
+</body>
+</html>

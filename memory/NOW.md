@@ -2,7 +2,7 @@
 Updated: 2026-11-17 (legacy memory audit and docs-1 setup)
 
 ## Doing
-- macOS pronunciation: afplay support and portable tests passed independent QA and grading; native GUI and audible playback remain unverified.
+- macOS packaging: unsigned arm64 app and CI artifact prepared on feature/macOS; hosted CI, native GUI and audible playback remain unverified.
 - Upgraded the agent setup to agentic-loadout 0.7.0 (memory-1 and docs-1 skills, agemem removed) and converted the project memory to `memory/` notes. Reviewed and merged to `main` on 2026-11-16.
 
 ## Done recently

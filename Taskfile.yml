@@ -12,6 +12,11 @@ tasks:
       - npm run build --prefix frontend
       - go build -tags gtk3 -ldflags "-X main.version=$(cat VERSION)" -o ./wdict .
 
+  macos-app:
+    desc: Build an unsigned macOS app bundle and zip
+    cmds:
+      - ./scripts/build-macos-app.sh
+
   test:
     desc: Run frontend and Go checks
     cmds:
