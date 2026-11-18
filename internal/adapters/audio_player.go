@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -14,18 +15,20 @@ import (
 var nativePlayers = []struct {
 	name string
 	args []string
+	goos string
 }{
-	{"pw-play", nil},
-	{"paplay", nil},
-	{"aplay", []string{"-q"}},
-	{"ffplay", []string{"-nodisp", "-autoexit", "-loglevel", "quiet"}},
+	{name: "afplay", goos: "darwin"},
+	{name: "pw-play"},
+	{name: "paplay"},
+	{name: "aplay", args: []string{"-q"}},
+	{name: "ffplay", args: []string{"-nodisp", "-autoexit", "-loglevel", "quiet"}},
 }
 
 // defaultMaxPlayback bounds one native playback so a stuck player is killed.
 const defaultMaxPlayback = 30 * time.Second
 
 // NativeAudioPlayer plays a WAV with the first host player found on PATH
-// (pw-play, paplay, aplay, ffplay), so playback does not depend on the
+// (afplay on macOS, then pw-play, paplay, aplay, ffplay), so playback does not depend on the
 // webview's GStreamer plugins (absent from the AppImage). The players are host
 // binaries and are never bundled.
 type NativeAudioPlayer struct {
@@ -40,6 +43,9 @@ func (p *NativeAudioPlayer) Available() bool {
 func (p *NativeAudioPlayer) found() []string {
 	var paths []string
 	for _, player := range nativePlayers {
+		if player.goos != "" && player.goos != runtime.GOOS {
+			continue
+		}
 		if path, err := exec.LookPath(player.name); err == nil {
 			paths = append(paths, path)
 		}
@@ -54,6 +60,9 @@ func (p *NativeAudioPlayer) found() []string {
 func (p *NativeAudioPlayer) Play(ctx context.Context, wav []byte) error {
 	paths := p.found()
 	if len(paths) == 0 {
+		if runtime.GOOS == "darwin" {
+			return errors.New("no native audio player (afplay, pw-play, paplay, aplay, ffplay) found")
+		}
 		return errors.New("no native audio player (pw-play, paplay, aplay, ffplay) found")
 	}
 	file, err := os.CreateTemp("", "wdict-*.wav") // mode 0600
