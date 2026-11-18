@@ -212,7 +212,7 @@ func TestGivenFailedLookupWhenRetriedThenNotCached(t *testing.T) {
 }
 func TestGivenInvalidQueriesWhenLookingUpThenNoNetwork(t *testing.T) {
 	// given
-	for _, q := range []string{"", "  ", string(make([]byte, 257)), "a\nb", "hello\n", "\thello", string(make([]rune, 257))} {
+	for _, q := range []string{"", "  ", string(make([]byte, 257)), "a\nb", string(make([]rune, 257))} {
 		provider := &fakeSource{}
 		s := LookupService{Online: provider, Clock: fakeClock{time.Now()}}
 		// when
@@ -240,5 +240,33 @@ func TestGivenSilentProviderFailureWhenNoCacheThenStatusIsNotNotFound(t *testing
 	result, err := service.Lookup(context.Background(), LookupRequest{Query: "word", Language: English})
 	if err != nil || result.Status != SilentUnavailable || cache.puts != 0 {
 		t.Fatalf("result=%+v err=%v puts=%d", result, err, cache.puts)
+	}
+}
+
+func TestGivenSurroundingWhitespaceWhenLookingUpThenTrimmedQueryIsUsedEverywhere(t *testing.T) {
+	// given
+	now := time.Now()
+	var queries []string
+	source := languageSource(func(_ context.Context, q string, _ Language) ([]Entry, bool, error) {
+		queries = append(queries, q)
+		return []Entry{{Headword: "hello", Meanings: []Meaning{{Definitions: []string{"greeting"}}}}}, true, nil
+	})
+	var keys []CacheKey
+	for _, q := range []string{"\t hello \n", "hello"} {
+		cache := &fakeCache{}
+		s := LookupService{Online: source, Memory: cache, Clock: fakeClock{now}, Provider: "p"}
+		// when
+		r, err := s.Lookup(context.Background(), LookupRequest{Query: q, Language: English})
+		// then
+		if err != nil || r.Status != Found {
+			t.Fatalf("query %q result=%+v err=%v", q, r, err)
+		}
+		keys = append(keys, cache.record.Key)
+	}
+	if len(queries) != 2 || queries[0] != "hello" || queries[1] != "hello" {
+		t.Fatalf("provider queries=%q", queries)
+	}
+	if keys[0] != keys[1] || keys[0].NormalizedQuery != "hello" {
+		t.Fatalf("keys=%+v", keys)
 	}
 }

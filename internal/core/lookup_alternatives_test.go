@@ -140,7 +140,7 @@ func TestGivenOverlongSuggestionQueryWhenSearchingThenIndexIsNotScanned(t *testi
 }
 
 func TestGivenInvalidQueryWhenSearchingThenIndexIsNotScanned(t *testing.T) {
-	for _, query := range []string{"", "hello\n", string([]byte{0xff})} {
+	for _, query := range []string{"", "a\nb", string([]byte{0xff})} {
 		t.Run(query, func(t *testing.T) {
 			// Given an invalid query.
 			idx := &fakeAlternativesIndex{}
@@ -197,6 +197,17 @@ func TestGivenNoDictionaryWhenSearchingThenSuggestionsAreUnavailable(t *testing.
 	got, err := alternativesForTest(nil).FindAlternatives(context.Background(), AlternativesRequest{Query: "wrods", Language: English})
 	// Then suggestions are unavailable without a scan.
 	if err != nil || got.Status != AlternativesUnavailable || len(got.Spelling) != 0 || len(got.BaseForms) != 0 {
+		t.Fatalf("got %+v, err %v", got, err)
+	}
+}
+
+func TestGivenSurroundingWhitespaceWhenSearchingThenAlternativesMatchTrimmedQuery(t *testing.T) {
+	// given
+	idx := &fakeAlternativesIndex{words: []string{"words"}}
+	// when
+	got, err := alternativesForTest(idx).FindAlternatives(context.Background(), AlternativesRequest{Query: "\t wrods \n", Language: English})
+	// then
+	if err != nil || got.Status != AlternativesReady || !reflect.DeepEqual(got.Spelling, []string{"words"}) {
 		t.Fatalf("got %+v, err %v", got, err)
 	}
 }

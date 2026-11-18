@@ -5,7 +5,7 @@ summary: Spec for searching both languages per query with online or optional off
 type: reference
 status: current
 updated: 2026-11-18
-verified: 2026-11-18 e55404d
+verified: 2026-11-18 31b0df7
 covers: [internal/core/bilingual*.go, internal/core/lookup.go, internal/adapters/spanish.go, internal/adapters/install.go, internal/adapters/catalog.go, internal/adapters/cache.go, internal/adapters/provider.go, internal/adapters/offline.go, main.go, frontend/src/routes/+page.svelte, frontend/src/language.js]
 related: [DOC-006]
 supersedes:
@@ -48,7 +48,7 @@ Retain English dictionary path and provider/cache identities; store Spanish inde
 
 ## Triggers & routing
 
-Enter or the lookup button starts two language lookups for the same query. Input must be valid UTF-8, nonempty after trimming, at most 256 Unicode characters and free of control characters; retain internal spaces. No lookup or download occurs on startup. Search can continue during an installation. A new search cancels or invalidates all results and retries belonging to the prior search.
+Enter or the lookup button starts two language lookups for the same query. Input must be valid UTF-8. Leading and trailing whitespace (including tabs and newlines) is trimmed silently; the trimmed query must be nonempty, at most 256 Unicode characters and free of control characters; retain internal spaces. No lookup or download occurs on startup. Search can continue during an installation. A new search cancels or invalidates all results and retries belonging to the prior search.
 
 ## Visual & UI rules
 
@@ -82,7 +82,7 @@ Keep the current English `20261018/en-en.ifo` and English cache keys. Spanish ge
 
 ### Scenario: Invalid input (F1)
 
-**Given** an empty, invalid UTF-8, overlong or control-character query **When** submitted **Then** validation is shown and no dictionary or network request is made.
+**Given** an empty, invalid UTF-8, overlong or control-character query (after trimming) **When** submitted **Then** validation is shown and no dictionary or network request is made.
 
 ### Scenario: One provider unavailable (F2)
 
@@ -155,3 +155,7 @@ Keep the current English `20261018/en-en.ifo` and English cache keys. Spanish ge
 ## Out of scope
 
 Language selection, translation between languages, UI localization, automatic package updates, imported dictionaries, spelling suggestions and general inflection resolution (both specified in DOC-019), release publication and claims of untested platform support.
+
+### Scenario: Surrounding whitespace is trimmed
+
+**Given** a query with leading or trailing spaces, tabs or newlines around a valid word **When** submitted **Then** it is looked up as the trimmed word, with the same cache identity and results as the plain word, and no validation error is shown.

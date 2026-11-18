@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.8.4] - 2026-11-18
+
+- Fix searches with leading or trailing spaces, tabs or newlines being rejected: surrounding whitespace is now trimmed.
+- Show the pronunciation "no recording" and "could not synthesise" messages in Spanish when the interface is in Spanish.
+
 ## [0.8.3] - 2026-11-15
 
 - Fix the UI freezing (and no sound in the AppImage) when playing a pronunciation: sound now plays through the system audio player (`pw-play`, `paplay`, `aplay` or `ffplay`) instead of the web view, and the original MP3 recordings are no longer downloaded.

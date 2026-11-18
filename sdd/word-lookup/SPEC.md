@@ -5,7 +5,7 @@ summary: Spec for the desktop lookup window: success criteria, online provider, 
 type: reference
 status: current
 updated: 2026-11-18
-verified: 2026-11-18 e55404d
+verified: 2026-11-18 31b0df7
 covers: [internal/core/**, internal/adapters/**, frontend/src/**, main.go]
 related: [DOC-001]
 supersedes:
@@ -39,7 +39,7 @@ Targets, to be verified on a documented Linux reference machine: usable window w
 
 ### Trust boundary
 
-Search input, cached records and provider responses are untrusted. Store the cache in the user application cache directory, not a user-chosen path; validate cached records before use and ignore corrupted or incompatible records. Validate query as nonempty after trimming, at most 256 Unicode characters, without control characters; retain internal spaces. URL-encode the query as one path segment. Limit response body to 2 MiB and validate required entry content. Render remote text as text, never executable HTML. Only Go's provider adapter accesses the provider; the frontend cannot choose the destination. A user-initiated lookup may send the query online after a cache miss or expiry; the UI discloses this. No automatic requests at startup.
+Search input, cached records and provider responses are untrusted. Store the cache in the user application cache directory, not a user-chosen path; validate cached records before use and ignore corrupted or incompatible records. Trim leading and trailing whitespace (including tabs and newlines) silently, then validate the trimmed query as nonempty, at most 256 Unicode characters, without control characters; retain internal spaces. Amended 2026-11-18: surrounding whitespace is trimmed, not rejected. URL-encode the query as one path segment. Limit response body to 2 MiB and validate required entry content. Render remote text as text, never executable HTML. Only Go's provider adapter accesses the provider; the frontend cannot choose the destination. A user-initiated lookup may send the query online after a cache miss or expiry; the UI discloses this. No automatic requests at startup.
 
 ### Compatibility & rollout
 
@@ -99,7 +99,7 @@ Use the pure-Go `github.com/ianlewis/go-stardict` reader as the selected candida
 
 ### Scenario: Invalid input (F1)
 
-**Given** an empty, whitespace-only, overlong or control-character query **When** the user submits it **Then** the UI requests valid input and no provider request is made.
+**Given** an empty, whitespace-only, overlong or control-character query (after trimming) **When** the user submits it **Then** the UI requests valid input and no provider request is made.
 
 ### Scenario: No entry (F2)
 

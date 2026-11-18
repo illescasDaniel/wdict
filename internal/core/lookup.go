@@ -96,7 +96,7 @@ func (s *LookupService) Lookup(ctx context.Context, request LookupRequest) (Look
 
 func (s *LookupService) validateOnly(input string) (LookupResult, error) {
 	query := strings.TrimSpace(input)
-	if query == "" || !utf8.ValidString(input) || utf8.RuneCountInString(query) > 256 || strings.IndexFunc(input, unicode.IsControl) >= 0 {
+	if query == "" || !utf8.ValidString(input) || utf8.RuneCountInString(query) > 256 || strings.IndexFunc(query, unicode.IsControl) >= 0 {
 		return LookupResult{Status: InvalidQuery}, nil
 	}
 	return LookupResult{}, nil

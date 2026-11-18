@@ -28,7 +28,7 @@ func (s *AlternativesService) FindAlternatives(parent context.Context, req Alter
 		return result, err
 	}
 	query := strings.TrimSpace(req.Query)
-	if query == "" || !utf8.ValidString(req.Query) || strings.IndexFunc(req.Query, unicode.IsControl) >= 0 || utf8.RuneCountInString(query) > 64 || (req.Language != English && req.Language != Spanish) || s.Index == nil {
+	if query == "" || !utf8.ValidString(req.Query) || strings.IndexFunc(query, unicode.IsControl) >= 0 || utf8.RuneCountInString(query) > 64 || (req.Language != English && req.Language != Spanish) || s.Index == nil {
 		return result, nil
 	}
 	ctx, cancel := context.WithTimeout(parent, 2*time.Second)

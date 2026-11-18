@@ -198,3 +198,37 @@ func TestGivenUnsupportedLanguageWhenRetryingThenNoSourceOrOutcome(t *testing.T)
 		t.Fatalf("unsupported language called source=%t delivered outcome=%t", called, delivered)
 	}
 }
+
+func TestGivenSurroundingWhitespaceWhenSearchingThenSourcesReceiveTrimmedQuery(t *testing.T) {
+	// given
+	var mu sync.Mutex
+	var queries []string
+	source := languageSource(func(_ context.Context, q string, l Language) ([]Entry, bool, error) {
+		mu.Lock()
+		queries = append(queries, q)
+		mu.Unlock()
+		return []Entry{{Headword: q, Language: l, Meanings: []Meaning{{Definitions: []string{"definition"}}}}}, true, nil
+	})
+	svc := BilingualService{Sources: bilingualResolver{English: {Online: source, Provider: "en"}, Spanish: {Online: source, Provider: "es"}}, Clock: fakeClock{now: time.Now()}}
+	var outcomes []LanguageOutcome
+	// when
+	err := svc.Lookup(context.Background(), BilingualRequest{ID: "1", Query: "\thello \n"}, func(o LanguageOutcome) {
+		mu.Lock()
+		outcomes = append(outcomes, o)
+		mu.Unlock()
+	})
+	// then
+	if err != nil || len(outcomes) != 2 || len(queries) != 2 {
+		t.Fatalf("err=%v outcomes=%+v queries=%q", err, outcomes, queries)
+	}
+	for _, q := range queries {
+		if q != "hello" {
+			t.Fatalf("queries=%q", queries)
+		}
+	}
+	for _, o := range outcomes {
+		if o.Result.Status != Found {
+			t.Fatalf("outcome=%+v", o)
+		}
+	}
+}

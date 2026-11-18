@@ -5,7 +5,7 @@ summary: Spec for offline base-form and spelling alternatives on a miss, includi
 type: reference
 status: current
 updated: 2026-11-18
-verified: 2026-11-18 e55404d
+verified: 2026-11-18 31b0df7
 covers: [internal/core/alternatives*.go, internal/core/lookup.go, internal/adapters/offline_alternatives.go, main.go, frontend/src/routes/+page.svelte, frontend/src/lib-api.js, frontend/src/language.js]
 related: [DOC-008]
 supersedes:
@@ -136,7 +136,7 @@ No changes to existing cache or dictionary formats are required. Any new optiona
 
 ### Scenario: invalid query (F1)
 
-**Given** an empty, invalid UTF-8, control-containing or over-limit query **When** lookup is requested **Then** the existing invalid state is shown and no alternative index is scanned.
+**Given** an empty, invalid UTF-8, control-containing or over-limit query (after trimming surrounding whitespace) **When** lookup is requested **Then** the existing invalid state is shown and no alternative index is scanned.
 
 ### Scenario: lookup source unavailable (F2)
 
