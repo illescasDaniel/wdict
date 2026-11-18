@@ -17,6 +17,7 @@ Converted 2026-11-16 from the agemem project memory (the old files and `.agemem/
 - [Appearance defaults to System with footer icons for System, Light and Dark; the choice is](notes/appearance-system-default.md) 2026-10-28
 - [Online results stay fresh for 365 days; a stale result is used when the provider fails](notes/cache-freshness-365-days.md) 2026-10-28
 - [CI and release fail on moderate or higher npm audit findings and only display low ones](notes/npm-audit-fails-on-moderate.md) 2026-10-28
+- [0.8.4 release held: npm audit fails on picomatch with no patched version yet](notes/picomatch-advisory-blocks-0-8-4.md) 2026-11-18
 - [Releases come from a manually dispatched workflow that creates the tag; never push v* tags](notes/release-via-dispatched-workflow.md) 2026-10-28
 - [v0.1.0 was released Linux-only; macOS and Windows binaries stay deferred](notes/v0-1-0-linux-first-release.md) 2026-10-28
 - [Startup experiments (prerender, window geometry, deferred metadata) showed no gain and wer](notes/launch-experiments-rejected.md) 2026-10-29
