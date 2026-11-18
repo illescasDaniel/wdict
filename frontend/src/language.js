@@ -37,6 +37,9 @@ export const resources = {
       playPronunciation: "Play pronunciation",
       recordingSource: "Recording",
       playbackFailed: "Pronunciation playback failed. Try again.",
+      playbackNoSource:
+        "No recording, and eSpeak-NG is not installed. Install eSpeak-NG (or use the AppImage build) to hear this transcription.",
+      playbackNoSynthesis: "Could not synthesise this pronunciation.",
       license: "License",
       moreInformation: "More information",
       missingAttribution:
@@ -132,6 +135,9 @@ export const resources = {
       recordingSource: "Grabación",
       playbackFailed:
         "No se pudo reproducir la pronunciación. Vuelve a intentarlo.",
+      playbackNoSource:
+        "No hay grabación y eSpeak-NG no está instalado. Instala eSpeak-NG (o usa la AppImage) para escuchar esta transcripción.",
+      playbackNoSynthesis: "No se pudo sintetizar esta pronunciación.",
       license: "Licencia",
       moreInformation: "Más información",
       missingAttribution:

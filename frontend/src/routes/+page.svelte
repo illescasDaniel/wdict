@@ -420,6 +420,18 @@
       ? t("spellingNoSource")
       : t("spellingNoSynthesis");
   }
+  // Verbatim Go failure copies (internal/core/playback.go CopyNoSource and
+  // CopyNoSynthesis). Matched in full at render time, so the alert follows the
+  // interface language; any other message is shown as received.
+  const goCopyNoSource =
+    "No recording, and eSpeak-NG is not installed. Install eSpeak-NG (or use the AppImage build) to hear this transcription.";
+  const goCopyNoSynthesis = "Could not synthesise this pronunciation.";
+  function itemMessage(message) {
+    if (!message) return t("playbackFailed");
+    if (message === goCopyNoSource) return t("playbackNoSource");
+    if (message === goCopyNoSynthesis) return t("playbackNoSynthesis");
+    return message;
+  }
   function playItem(entry, entryIndex, position, language, item) {
     playback.play(playbackKey(entry, entryIndex, position), {
       Text: item.Text,
@@ -457,7 +469,7 @@
           ></button
         >{#if $playback.message?.key === playbackKey(entry, index, position)}<span
             class="playback-message"
-            role="alert">{$playback.message.text || t("playbackFailed")}</span
+            role="alert">{itemMessage($playback.message.text)}</span
           >{/if}{/each}
     </p>{:else}<p class="hint pronunciation-missing">
       {t("pronunciationUnavailable")}<button

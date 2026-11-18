@@ -1293,4 +1293,126 @@ describe("grouped records and spelling playback", () => {
       ),
     ).toBeTruthy();
   });
+  // Verbatim Go failure copies (internal/core/playback.go).
+  const CopyNoSource =
+    "No recording, and eSpeak-NG is not installed. Install eSpeak-NG (or use the AppImage build) to hear this transcription.";
+  const CopyNoSynthesis = "Could not synthesise this pronunciation.";
+  const pronounced = {
+    ...entry,
+    Pronunciations: [
+      { Text: "/həˈloʊ/", Label: "🇺🇸", LabelTitle: "General American" },
+    ],
+  };
+  it("given_spanish_interface_when_item_playback_copy_is_no_synthesis_then_alert_is_spanish", async () => {
+    // given
+    localStorage.clear();
+    mockBackend(async (method) =>
+      method === "Lookup"
+        ? { Status: "found", Origin: "offline", Entries: [pronounced] }
+        : method === "PlayPronunciation"
+          ? { Message: CopyNoSynthesis }
+          : method === "Dictionaries"
+            ? []
+            : null,
+    );
+    render(Page);
+    await fireEvent.change(screen.getByLabelText("Language"), {
+      target: { value: "es" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Buscar" }));
+    const play = await screen.findByRole("button", {
+      name: "Reproducir la pronunciación — General American",
+    });
+    // when
+    await fireEvent.click(play);
+    // then
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "No se pudo sintetizar esta pronunciación.",
+    );
+  });
+  it("given_spanish_interface_when_item_playback_copy_is_no_source_then_alert_is_spanish", async () => {
+    // given
+    localStorage.clear();
+    mockBackend(async (method) =>
+      method === "Lookup"
+        ? { Status: "found", Origin: "offline", Entries: [pronounced] }
+        : method === "PlayPronunciation"
+          ? { Message: CopyNoSource }
+          : method === "Dictionaries"
+            ? []
+            : null,
+    );
+    render(Page);
+    await fireEvent.change(screen.getByLabelText("Language"), {
+      target: { value: "es" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Buscar" }));
+    const play = await screen.findByRole("button", {
+      name: "Reproducir la pronunciación — General American",
+    });
+    // when
+    await fireEvent.click(play);
+    // then
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "No hay grabación y eSpeak-NG no está instalado. Instala eSpeak-NG (o usa la AppImage) para escuchar esta transcripción.",
+    );
+  });
+  it("given_alert_visible_when_language_switches_then_alert_is_retranslated", async () => {
+    // given
+    localStorage.clear();
+    mockBackend(async (method) =>
+      method === "Lookup"
+        ? { Status: "found", Origin: "offline", Entries: [pronounced] }
+        : method === "PlayPronunciation"
+          ? { Message: CopyNoSource }
+          : method === "Dictionaries"
+            ? []
+            : null,
+    );
+    render(Page);
+    await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+    const play = await screen.findByRole("button", {
+      name: "Play pronunciation — General American",
+    });
+    await fireEvent.click(play);
+    expect((await screen.findByRole("alert")).textContent).toBe(CopyNoSource);
+    // when
+    await fireEvent.change(screen.getByLabelText("Language"), {
+      target: { value: "es" },
+    });
+    // then
+    await waitFor(() =>
+      expect(screen.getByRole("alert").textContent).toBe(
+        "No hay grabación y eSpeak-NG no está instalado. Instala eSpeak-NG (o usa la AppImage) para escuchar esta transcripción.",
+      ),
+    );
+  });
+  it.each([
+    ["no_source", CopyNoSource],
+    ["no_synthesis", CopyNoSynthesis],
+  ])(
+    "given_english_interface_when_item_playback_copy_is_%s_then_alert_is_the_go_copy_verbatim",
+    async (_, copy) => {
+      // given
+      localStorage.clear();
+      mockBackend(async (method) =>
+        method === "Lookup"
+          ? { Status: "found", Origin: "offline", Entries: [pronounced] }
+          : method === "PlayPronunciation"
+            ? { Message: copy }
+            : method === "Dictionaries"
+              ? []
+              : null,
+      );
+      render(Page);
+      await fireEvent.click(screen.getByRole("button", { name: "Look up" }));
+      const play = await screen.findByRole("button", {
+        name: "Play pronunciation — General American",
+      });
+      // when
+      await fireEvent.click(play);
+      // then
+      expect((await screen.findByRole("alert")).textContent).toBe(copy);
+    },
+  );
 });
