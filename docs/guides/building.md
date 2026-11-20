@@ -1,7 +1,7 @@
 ---
 id: DOC-022
 title: Building and installing wdict
-summary: Linux prerequisites and Go installation, macOS app packaging, and AppImage builds
+summary: Linux and macOS prerequisites and Go installation, macOS app packaging, and AppImage builds
 type: how-to
 status: current
 updated: 2026-11-20
@@ -14,15 +14,15 @@ superseded_by:
 
 # Building and installing wdict
 
-Use these instructions to build from source or install the released Linux binary with Go. Commands run from the repository root unless stated otherwise.
+Use these instructions to build from source or install a released version with Go. Commands run from the repository root unless stated otherwise.
 
 ## Common setup
 
 Install Go 1.26.4 or newer and Node.js 24.15 or newer in the 24.x series. Go modules, project-local npm dependencies and the pinned [Task](https://taskfile.dev/) Go tool provide the development tools; no global Task or Wails install is needed. The first `go tool task` invocation downloads and compiles Task. Run `go tool task --list` to see the commands. `go tool task setup` installs frontend dependencies on both platforms.
 
-## Build and run on Linux
+## Build and run
 
-Install a C compiler, `pkg-config`, and GTK 3 and WebKit2GTK 4.1 development packages. On Ubuntu, CI also installs `libayatana-appindicator3-dev` alongside `build-essential`, `libgtk-3-dev` and `libwebkit2gtk-4.1-dev`. Then run:
+On Linux, install a C compiler, `pkg-config`, and GTK 3 and WebKit2GTK 4.1 system development packages. On Ubuntu, CI installs `build-essential`, `pkg-config`, `libgtk-3-dev`, `libwebkit2gtk-4.1-dev` and `libayatana-appindicator3-dev`. On macOS, install Xcode Command Line Tools. `task setup` does not install these system prerequisites. Then, on either platform, run:
 
 ```sh
 go tool task setup
@@ -34,18 +34,27 @@ The `gtk3` tag is needed on systems with GTK 3/WebKit2GTK 4.1 instead of Wails v
 
 A downloaded AppImage may require FUSE. Alternatively run `./wdict-x86_64.AppImage --appimage-extract-and-run`.
 
-## Install with Go (Linux)
+<a id="install-with-go-linux"></a>
 
-Install Go 1.26.4 or newer, a C compiler, `pkg-config`, and the GTK 3 and WebKit2GTK 4.1 development packages. Then run:
+## Install with Go
+
+Install Go 1.26.4 or newer and the platform system prerequisites above (Node.js is not required). On Linux, run:
 
 ```sh
 go install -tags gtk3 github.com/illescasDaniel/wdict@v0.8.3
 wdict
 ```
 
+On macOS, the GTK build tag is unnecessary:
+
+```sh
+go install github.com/illescasDaniel/wdict@v0.8.3
+wdict
+```
+
 To update later, rerun `go install` with the desired newer version (or use `@latest`); it replaces the executable in the same Go binary directory.
 
-Go installs the executable to `GOBIN` (normally `~/go/bin`), which must be on your `PATH`. GTK and WebKit libraries must also be installed at runtime. The frontend is embedded; Node.js is not needed for `go install`. This does not create a desktop launcher. The `gtk3` tag selects GTK 3 / WebKit2GTK 4.1.
+Go installs the executable to `GOBIN` (or `GOPATH/bin`, normally `~/go/bin`, if `GOBIN` is unset), which must be on your `PATH`. On Linux, GTK and WebKit libraries must also be installed at runtime. The frontend is embedded; Node.js is not needed for `go install`. This does not create a desktop launcher or macOS app bundle. The v0.8.3 release predates the macOS pronunciation changes on main. The `gtk3` tag selects GTK 3 / WebKit2GTK 4.1.
 
 ## Build the macOS app
 

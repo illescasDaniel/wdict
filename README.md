@@ -30,21 +30,14 @@ On macOS, download the unsigned Apple silicon ZIP artifact from a successful [CI
 
 ## Requirements and limits
 
-Linux and macOS builds and automated tests are supported. Native macOS GUI and audible playback still need manual verification; Windows is untested. The release provides a Linux AppImage; macOS CI artifacts are unsigned and not notarized. Offline dictionaries and optional voices are separate downloads.
+Linux and macOS builds and automated tests are supported. The native macOS GUI and audible playback have been manually verified; Windows is untested. The release provides a Linux AppImage; macOS CI artifacts are unsigned and not notarized. Offline dictionaries and optional voices are separate downloads.
 
 ## Build from source
 
-Install Go 1.26.4 or newer and Node.js 24.15 or newer in the 24.x series, plus the platform prerequisites in the [build guide](docs/guides/building.md). From the repository root, install frontend dependencies:
+Install Go 1.26.4 or newer and Node.js 24.15 or newer in the 24.x series, plus the platform prerequisites in the [build guide](docs/guides/building.md). On Linux, install the required GTK and WebKit system development packages first; on macOS, install Xcode Command Line Tools. From the repository root:
 
 ```sh
 go tool task setup
-```
-
-### Build and run on Linux
-
-After installing GTK 3 and WebKit2GTK 4.1 development dependencies:
-
-```sh
 go tool task build
 ./wdict
 ```
@@ -67,9 +60,9 @@ With the additional packaging prerequisites in the [build guide](docs/guides/bui
 go tool task appimage
 ```
 
-### Install with Go (Linux)
+### Install with Go
 
-See the [Go installation instructions](docs/guides/building.md#install-with-go-linux) for the released version and runtime prerequisites.
+See the [Go installation instructions](docs/guides/building.md#install-with-go) for the released version and runtime prerequisites.
 
 ## Tests
 

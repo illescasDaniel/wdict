@@ -10,5 +10,5 @@ Updated: 2026-11-20
 
 ## Next
 - User reviews the README commit.
-- (Mine) Native macOS GUI and audible pronunciation still need manual verification; cross-distribution AppImage and bundled-licence checks remain open.
+- The user has verified that the native macOS GUI and audible playback work. Cross-distribution AppImage and bundled-licence checks remain open.
 - (Mine) Check release readiness and the npm audit hold before publishing a release.
