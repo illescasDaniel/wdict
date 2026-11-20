@@ -2,11 +2,11 @@
 Updated: 2026-11-20
 
 ## Doing
-- README refreshed with create-repo-skill on main; awaiting user review before any push.
+- README simplified on main; detailed build, testing, voices, sources and release guidance moved to docs. Awaiting user review before any push.
 
 ## Done recently
 - macOS support and unsigned app packaging merged to main; Linux and macOS CI passed and uploaded the Apple silicon ZIP.
-- README now distinguishes the v0.8.4 development version from the v0.8.3 release.
+- README distinguishes the v0.8.4 development version from the v0.8.3 release; a Sol review checked the platform instructions.
 
 ## Next
 - User reviews the README commit.

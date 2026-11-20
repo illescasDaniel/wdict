@@ -17,149 +17,84 @@ A desktop dictionary built with Go, Wails v3 and SvelteKit. Development version:
 
 ## Quick start
 
-Download the [latest Linux AppImage](https://github.com/illescasDaniel/wdict/releases/latest), make it executable and run it. For macOS, build the [unsigned app](#build-the-macos-app) or download the Apple silicon artifact from a successful [CI run](https://github.com/illescasDaniel/wdict/actions/workflows/ci.yml).
+On Linux, download `wdict-x86_64.AppImage` from the [latest release](https://github.com/illescasDaniel/wdict/releases/latest), then run:
 
 ```sh
 chmod +x wdict-x86_64.AppImage
 ./wdict-x86_64.AppImage
 ```
 
+On macOS, download the unsigned Apple silicon ZIP artifact from a successful [CI run](https://github.com/illescasDaniel/wdict/actions/workflows/ci.yml), or [build the app](#build-the-macos-app).
+
 <a id="status"></a>
 
 ## Requirements and limits
 
-Linux and macOS builds and automated tests are supported. Native macOS GUI and audible playback still need manual verification; Windows is untested. The current release provides a Linux AppImage, not a macOS app. Offline dictionaries and optional voices require separate downloads. See the platform instructions below for build dependencies and the [data and sources](#data-and-sources) section for attribution.
+Linux and macOS builds and automated tests are supported. Native macOS GUI and audible playback still need manual verification; Windows is untested. The release provides a Linux AppImage; macOS CI artifacts are unsigned and not notarized. Offline dictionaries and optional voices are separate downloads.
 
-## Evaluation
+## Build from source
 
-The [CI workflow](https://github.com/illescasDaniel/wdict/actions/workflows/ci.yml) builds and tests on Linux and macOS. Historical measurements and their limits are in the [documentation index](docs/INDEX.md); they are not a current app-wide quality score.
-
-## Tests
-
-Run `go tool task test` after installing the platform build dependencies. It runs frontend checks and tests followed by Go tests. CI also checks the committed frontend assets and verifies the packaged macOS app's version. Optional browser and integration checks are described below.
-
-## Documentation
-
-The [documentation index](docs/INDEX.md) links to specifications, design decisions and historical research. Build, packaging, release and source details follow here.
-
-## Install on Linux
-
-Choose either the ready-to-run AppImage or install from source with Go:
-
-- **AppImage:** Download `wdict-x86_64.AppImage` from the [v0.8.3 release](https://github.com/illescasDaniel/wdict/releases/tag/v0.8.3), then make it executable and run it:
-
-  ```sh
-  chmod +x wdict-x86_64.AppImage
-  ./wdict-x86_64.AppImage
-  ```
-
-  FUSE may be required; alternatively run `./wdict-x86_64.AppImage --appimage-extract-and-run`.
-- **Go:** Follow [Install with Go](#install-with-go-linux) below. This builds the executable locally and requires Go, a C compiler and Linux development libraries.
-
-## Build and run on Linux
-
-Install Go 1.26.4 or newer, Node.js 22.17 or newer (Node 24 recommended), and the development packages for GTK 3 and WebKit2GTK 4.1. These are system build prerequisites; the project uses Go modules and project-local npm dependencies, not globally installed Wails or JavaScript tools.
-
-The project pins [Task](https://taskfile.dev/) as a Go tool, so no global Task installation is required. From the repository root, run:
+Install Go 1.26.4 or newer and Node.js 24.15 or newer in the 24.x series, plus the platform prerequisites in the [build guide](docs/guides/building.md). From the repository root, install frontend dependencies:
 
 ```sh
 go tool task setup
+```
+
+### Build and run on Linux
+
+After installing GTK 3 and WebKit2GTK 4.1 development dependencies:
+
+```sh
 go tool task build
 ./wdict
 ```
 
-The first `go tool task` invocation downloads and compiles the pinned tool. Run `go tool task --list` to see all available commands.
+### Build the macOS app
 
-The `gtk3` tag is needed on systems with GTK 3/WebKit2GTK 4.1 instead of Wails v3's default GTK 4/WebKitGTK 6. The binary embeds the static frontend; after UI changes, rebuild and commit `frontend/build` alongside the source. CI verifies the generated assets are up to date.
-
-For checks:
-
-```sh
-go tool task test
-```
-
-The default Go tests use deterministic fixtures and fake providers. The cache persistence test recreates the service and memory cache against the same on-disk cache, without launching a separate app process.
-
-An optional real-browser smoke test checks footer positioning, scrolling and focus at desktop and narrow sizes. It requires the built frontend, Node.js, a Chrome-compatible browser and permission to bind a loopback server. From the repository root:
-
-```sh
-cd frontend
-npm run build
-CHROME_PATH=/path/to/chrome node scripts/footer-browser-check.mjs
-```
-
-If `google-chrome` is on `PATH`, omit `CHROME_PATH`. The check uses synthetic long content and does not replace testing the native WebKit window. It is not part of `go tool task test`.
-
-To additionally check the real Spanish package and a saved MediaWiki response, supply local files and run the opt-in integration tests:
-
-```sh
-WDICT_TEST_SPANISH_ARCHIVE=/path/to/es-es.tar.zst \
-WDICT_TEST_SPANISH_RESPONSE=/path/to/casa-response.json \
-go test -tags 'gtk3 integration' -run '^TestGivenRealSpanish' ./internal/adapters
-```
-
-The package test verifies the pinned checksum during installation. These integration tests do not download files; tests whose local fixture is not supplied are skipped.
-
-## Install with Go (Linux)
-
-Install Go 1.26.4 or newer, a C compiler, `pkg-config`, and the GTK 3 and WebKit2GTK 4.1 development packages. Then run:
-
-```sh
-go install -tags gtk3 github.com/illescasDaniel/wdict@v0.8.3
-wdict
-```
-
-To update later, rerun `go install` with the desired newer version (or use `@latest`); it replaces the executable in the same Go binary directory.
-
-Go installs the executable to `GOBIN` (normally `~/go/bin`), which must be on your `PATH`. GTK and WebKit libraries must also be installed at runtime. The frontend is embedded; Node.js is not needed for `go install`. This does not create a desktop launcher. The `gtk3` tag selects GTK 3 / WebKit2GTK 4.1.
-
-## Build the macOS app
-
-Install Go 1.26.4 or newer, Node 24, and Xcode Command Line Tools, then run:
+With Xcode Command Line Tools installed:
 
 ```sh
 go tool task macos-app
 ```
 
-This builds `dist/wdict.app` and `dist/wdict-macos-<architecture>.zip` for the host architecture. The app is unsigned and not notarized; macOS may block it until you explicitly allow it in Privacy & Security. The build refuses to overwrite existing output. CI is configured to upload an Apple silicon zip as a workflow artifact; it is not a release. For speech synthesis, install eSpeak NG separately (for example, `brew install espeak-ng`) or configure a Piper voice.
+This creates an unsigned `dist/wdict.app` and ZIP for the host architecture. See the [build guide](docs/guides/building.md) for prerequisites, output and macOS security details.
 
-## Build a Linux AppImage
+### Build a Linux AppImage
 
-On Linux, install the build prerequisites above, plus `pkg-config`, `file`, `find`, librsvg and GObject Introspection development files. Run:
+With the additional packaging prerequisites in the [build guide](docs/guides/building.md):
 
 ```sh
 go tool task appimage
 ```
 
-The script installs frontend dependencies locally, builds the app and invokes the pinned Wails v3.0.0 generator. It downloads linuxdeploy and writes `dist/wdict-<architecture>.AppImage`; the linuxdeploy download tracks its continuous release, so builds are not fully reproducible. Run the image after making it executable (`chmod +x dist/*.AppImage`). FUSE may be required; alternatively run with `--appimage-extract-and-run`.
+### Install with Go (Linux)
 
-Build on an appropriately old supported Linux distribution for wider compatibility: system library versions from the build host affect which other distributions can run the image. The bundled GTK/WebKit stack and its licenses should be reviewed before distribution. Offline dictionary data remains in the user's data directory, outside the AppImage.
+See the [Go installation instructions](docs/guides/building.md#install-with-go-linux) for the released version and runtime prerequisites.
 
-The AppImage also bundles the unmodified [eSpeak-NG](https://github.com/espeak-ng/espeak-ng) CLI (the build host's package, plus its data directory, ≈ 20 MB) so the eSpeak-NG playback fallback works on systems without it. eSpeak-NG is GPLv3; it runs as a separate process (an aggregate under GPL-3.0 §5, so the application's MIT license is unaffected) and the image ships the license text and a source offer under `usr/share/licenses/wdict/`. Requires `espeak-ng` on the build machine's PATH; the build fails without it.
+## Tests
 
-## Natural voices
+On either platform, after installing the build prerequisites and running setup:
 
-Pronunciation playback can optionally use natural neural voices ([Piper](https://github.com/OHF-Voice/piper1-gpl)): when a voice pack is installed, play buttons read the shown IPA transcription with a natural voice instead of eSpeak-NG; without one, playback is unchanged and eSpeak-NG remains the automatic fallback.
+```sh
+go tool task test
+```
 
-Synthesised audio is played natively using host players found on `PATH`. On macOS, the app tries the built-in `afplay` first. The other candidates are `pw-play`, `paplay`, `aplay` and `ffplay`, in that order. PipeWire and PulseAudio normally provide `pw-play` and `paplay`, respectively. Without a native player, playback falls back to the webview's audio element. The AppImage ships without the GStreamer plugins that WebKit needs for audio playback.
+This runs frontend checks and tests, followed by Go tests. See the [testing guide](docs/guides/testing.md) for optional browser and integration checks.
 
-In the app's download screen, first install the **Piper runtime** once (≈ 210 MB installed; it runs in its own Python environment inside the app data directory and is verified against a pinned SHA-256 checksum), then one voice per language (≈ 63–77 MB each, checksummed at the pinned Hugging Face revision). This requires `python3` (≥ 3.9) on the PATH; on Debian/Ubuntu also install `python3-venv`, or the runtime install cannot complete. Piper is third-party GPLv3 code ([COPYING](https://github.com/OHF-Voice/piper1-gpl/blob/main/COPYING)), attributed to **rhasspy / OHF-Voice piper voices**; each voice's dataset and licence are linked from its model card in the app ([en_GB-alba-medium](https://huggingface.co/rhasspy/piper-voices/blob/6b9cfaacb4fb2e02a9621227e3c1a48bec9710c3/en/en_GB/alba/medium/MODEL_CARD), [en_US-amy-medium](https://huggingface.co/rhasspy/piper-voices/blob/6b9cfaacb4fb2e02a9621227e3c1a48bec9710c3/en/en_US/amy/medium/MODEL_CARD), [es_ES-sharvard-medium](https://huggingface.co/rhasspy/piper-voices/blob/6b9cfaacb4fb2e02a9621227e3c1a48bec9710c3/es/es_ES/sharvard/medium/MODEL_CARD)).
+## Evaluation
 
-## Preparing a release
+[CI](https://github.com/illescasDaniel/wdict/actions/workflows/ci.yml) builds and tests on Linux and macOS. Historical measurements and their limits are in the [documentation index](docs/INDEX.md); they are not a current app-wide quality score.
 
-Before a release, update `VERSION`, the frontend package version and lockfile, and the matching dated section in `CHANGELOG.md`. Commit these changes to `main` and ensure CI passes. Start the **Release** workflow on `main` with the matching version (for example `0.4.0`). It validates the version and release notes, runs the checks, builds a Linux AppImage, creates the `v`-prefixed tag and publishes a GitHub release with the AppImage attached. Do not run it until the release is ready; this workflow publishes only the AppImage.
+## Documentation
 
-If publishing fails after the tag is pushed, inspect the existing tag and release before retrying; the workflow refuses to reuse an existing tag. The version tag also makes the Go module available to Go tooling. Release versions must not be retagged after publication.
+- [Building and installation](docs/guides/building.md)
+- [Testing](docs/guides/testing.md)
+- [Pronunciation and voices](docs/guides/pronunciation.md)
+- [Dictionary data and sources](docs/guides/data-and-sources.md)
+- [Preparing a release](docs/guides/releasing.md)
+- [Documentation index](docs/INDEX.md)
 
-## Data and sources
-
-The app offers the pinned [20261018 English Wiktionary StarDict release](https://github.com/xxyzz/wiktionary_stardict/releases/tag/20261018), compiled by [xxyzz](https://xxyzz.github.io/wiktionary_stardict/) from [Wiktionary](https://en.wiktionary.org/). Its package metadata identifies the snapshot as [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/); credit belongs to Wiktionary contributors and xxyzz. wdict extracts definitions and changes their formatting. The download is approximately 142 MB, is user initiated, and is verified against the publisher's SHA-256 checksum before installation.
-
-Spanish offline definitions use the pinned [20261018 Spanish Wiktionary StarDict release](https://github.com/xxyzz/wiktionary_stardict/releases/tag/20261018), compiled by [xxyzz](https://xxyzz.github.io/wiktionary_stardict/) from [Wikcionario](https://es.wiktionary.org/); package metadata identifies CC BY-SA 4.0. The download is about 23 MB and is verified using the publisher’s SHA-256 checksum. Credit belongs to Wiktionary contributors and xxyzz; wdict extracts definitions and changes their formatting.
-
-English online lookups use [Free Dictionary API](https://dictionaryapi.dev/); the app displays each response's supplied source and license links, and sampled responses identified [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). Spanish online lookups use the [Spanish Wiktionary](https://es.wiktionary.org/) MediaWiki API, with attribution to Wiktionary contributors and links to the entry and to [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), the site's license; wdict extracts definitions and changes their formatting. Offline results link to their Wiktionary source and license, and the offline dictionary screen also links to its source and license. Wiktionary may contain material from other sources with separate requirements; see [Wikimedia's reuse terms](https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use).
-
-Offline dictionary data is stored separately from the disposable response cache, in the user's data directory. When a lookup misses, installed dictionaries can provide possible base forms and spelling suggestions for words and phrases. Inflection rules are limited, and suggestions may be unavailable if a search exceeds its time limit.
+<a id="install-on-linux"></a><a id="natural-voices"></a><a id="preparing-a-release"></a><a id="data-and-sources"></a>
 
 ## Author and license
 
