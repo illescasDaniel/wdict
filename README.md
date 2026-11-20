@@ -1,16 +1,52 @@
+<p align="center"><img src="packaging/linux/wdict.svg" alt="wdict book icon" width="96"></p>
+
 # wdict
 
-A desktop dictionary built with Go, Wails v3 and SvelteKit. Current version: **0.8.4**. Search English and Spanish words and phrases online, reuse saved results, or download Wiktionary dictionaries in the app for offline use. Queries are sent to the online provider only after an offline and cache miss or an expired cache entry. Online results stay fresh for 365 days; when refresh fails, a stale saved result can still be shown.
+[![CI](https://github.com/illescasDaniel/wdict/actions/workflows/ci.yml/badge.svg)](https://github.com/illescasDaniel/wdict/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-## Status
+A desktop dictionary built with Go, Wails v3 and SvelteKit. Development version: **0.8.4**. Search English and Spanish words and phrases online, reuse saved results, or download Wiktionary dictionaries in the app for offline use. Queries are sent to the online provider only after an offline and cache miss or an expired cache entry. Online results stay fresh for 365 days; when refresh fails, a stale saved result can still be shown.
 
-Linux and macOS builds and automated tests are supported. Native macOS GUI and audible playback still need manual verification; Windows is untested. CI is configured to build an unsigned Apple silicon app artifact, while the manually started release workflow publishes an AppImage. The current release does not include a macOS app.
+## How it works
+
+| Step | What happens |
+| --- | --- |
+| Search | A query is checked against installed English and Spanish offline dictionaries. |
+| Reuse | A saved online result is used when available and fresh. |
+| Look up | On a miss or expired result, the appropriate online provider is queried; a stale result can be shown if refresh fails. |
+| Listen | Optional pronunciation uses eSpeak NG or an installed Piper voice and a host audio player. |
+
+## Quick start
+
+Download the [latest Linux AppImage](https://github.com/illescasDaniel/wdict/releases/latest), make it executable and run it. For macOS, build the [unsigned app](#build-the-macos-app) or download the Apple silicon artifact from a successful [CI run](https://github.com/illescasDaniel/wdict/actions/workflows/ci.yml).
+
+```sh
+chmod +x wdict-x86_64.AppImage
+./wdict-x86_64.AppImage
+```
+
+<a id="status"></a>
+
+## Requirements and limits
+
+Linux and macOS builds and automated tests are supported. Native macOS GUI and audible playback still need manual verification; Windows is untested. The current release provides a Linux AppImage, not a macOS app. Offline dictionaries and optional voices require separate downloads. See the platform instructions below for build dependencies and the [data and sources](#data-and-sources) section for attribution.
+
+## Evaluation
+
+The [CI workflow](https://github.com/illescasDaniel/wdict/actions/workflows/ci.yml) builds and tests on Linux and macOS. Historical measurements and their limits are in the [documentation index](docs/INDEX.md); they are not a current app-wide quality score.
+
+## Tests
+
+Run `go tool task test` after installing the platform build dependencies. It runs frontend checks and tests followed by Go tests. CI also checks the committed frontend assets and verifies the packaged macOS app's version. Optional browser and integration checks are described below.
+
+## Documentation
+
+The [documentation index](docs/INDEX.md) links to specifications, design decisions and historical research. Build, packaging, release and source details follow here.
 
 ## Install on Linux
 
 Choose either the ready-to-run AppImage or install from source with Go:
 
-- **AppImage:** Download `wdict-x86_64.AppImage` from the [v0.8.4 release](https://github.com/illescasDaniel/wdict/releases/tag/v0.8.4), then make it executable and run it:
+- **AppImage:** Download `wdict-x86_64.AppImage` from the [v0.8.3 release](https://github.com/illescasDaniel/wdict/releases/tag/v0.8.3), then make it executable and run it:
 
   ```sh
   chmod +x wdict-x86_64.AppImage
@@ -69,7 +105,7 @@ The package test verifies the pinned checksum during installation. These integra
 Install Go 1.26.4 or newer, a C compiler, `pkg-config`, and the GTK 3 and WebKit2GTK 4.1 development packages. Then run:
 
 ```sh
-go install -tags gtk3 github.com/illescasDaniel/wdict@v0.8.4
+go install -tags gtk3 github.com/illescasDaniel/wdict@v0.8.3
 wdict
 ```
 
@@ -109,10 +145,6 @@ Synthesised audio is played natively using host players found on `PATH`. On macO
 
 In the app's download screen, first install the **Piper runtime** once (≈ 210 MB installed; it runs in its own Python environment inside the app data directory and is verified against a pinned SHA-256 checksum), then one voice per language (≈ 63–77 MB each, checksummed at the pinned Hugging Face revision). This requires `python3` (≥ 3.9) on the PATH; on Debian/Ubuntu also install `python3-venv`, or the runtime install cannot complete. Piper is third-party GPLv3 code ([COPYING](https://github.com/OHF-Voice/piper1-gpl/blob/main/COPYING)), attributed to **rhasspy / OHF-Voice piper voices**; each voice's dataset and licence are linked from its model card in the app ([en_GB-alba-medium](https://huggingface.co/rhasspy/piper-voices/blob/6b9cfaacb4fb2e02a9621227e3c1a48bec9710c3/en/en_GB/alba/medium/MODEL_CARD), [en_US-amy-medium](https://huggingface.co/rhasspy/piper-voices/blob/6b9cfaacb4fb2e02a9621227e3c1a48bec9710c3/en/en_US/amy/medium/MODEL_CARD), [es_ES-sharvard-medium](https://huggingface.co/rhasspy/piper-voices/blob/6b9cfaacb4fb2e02a9621227e3c1a48bec9710c3/es/es_ES/sharvard/medium/MODEL_CARD)).
 
-## Author and license
-
-Created by Daniel Illescas Romero ([illescas.daniel@protonmail.com](mailto:illescas.daniel@protonmail.com)). The project source is licensed under the [MIT License](LICENSE). Dictionary content and bundled third-party components have their own licenses.
-
 ## Preparing a release
 
 Before a release, update `VERSION`, the frontend package version and lockfile, and the matching dated section in `CHANGELOG.md`. Commit these changes to `main` and ensure CI passes. Start the **Release** workflow on `main` with the matching version (for example `0.4.0`). It validates the version and release notes, runs the checks, builds a Linux AppImage, creates the `v`-prefixed tag and publishes a GitHub release with the AppImage attached. Do not run it until the release is ready; this workflow publishes only the AppImage.
@@ -128,3 +160,7 @@ Spanish offline definitions use the pinned [20261018 Spanish Wiktionary StarDict
 English online lookups use [Free Dictionary API](https://dictionaryapi.dev/); the app displays each response's supplied source and license links, and sampled responses identified [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). Spanish online lookups use the [Spanish Wiktionary](https://es.wiktionary.org/) MediaWiki API, with attribution to Wiktionary contributors and links to the entry and to [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), the site's license; wdict extracts definitions and changes their formatting. Offline results link to their Wiktionary source and license, and the offline dictionary screen also links to its source and license. Wiktionary may contain material from other sources with separate requirements; see [Wikimedia's reuse terms](https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use).
 
 Offline dictionary data is stored separately from the disposable response cache, in the user's data directory. When a lookup misses, installed dictionaries can provide possible base forms and spelling suggestions for words and phrases. Inflection rules are limited, and suggestions may be unavailable if a search exceeds its time limit.
+
+## Author and license
+
+Created by Daniel Illescas Romero ([illescas.daniel@protonmail.com](mailto:illescas.daniel@protonmail.com)). The project source is licensed under the [MIT License](LICENSE). Dictionary content and bundled third-party components have their own licenses.
