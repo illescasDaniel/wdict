@@ -5,6 +5,7 @@ Updated: 2026-11-23
 - Nothing in progress. French support (lookup, interface, Piper and eSpeak voice, morphology and spelling alternatives) is committed. Gate passes. Last independent grade was NEEDS WORK; findings G4 to G9 were fixed afterwards and not re-graded. See `sdd/french-support.html`.
 
 ## Done recently
+- Released 0.10.0 (footer language and appearance popup menus); system install updated to 0.10.0.
 - Removed the two project-local SDD skill copies; global installation updated from skill repository commit de1b64c. The removals are uncommitted.
 - Released 0.9.0 (French support, folded in the held 0.8.4 fixes); v0.9.0 tag and GitHub release with the Linux AppImage. The npm audit hold cleared (0 vulnerabilities).
 - README simplified on main; detailed build, testing, voices, sources and release guidance moved to docs. Awaiting user review before any push.

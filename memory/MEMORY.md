@@ -20,6 +20,7 @@ Converted 2026-11-16 from the agemem project memory (the old files and `.agemem/
 - [CI and release fail on moderate or higher npm audit findings and only display low ones](notes/npm-audit-fails-on-moderate.md) 2026-10-28
 - [0.8.4 release held: npm audit fails on picomatch with no patched version yet](notes/picomatch-advisory-blocks-0-8-4.md) 2026-11-18
 - [0.9.0 published with French support; rebuild frontend/build after a version bump](notes/release-0-9-0-published.md) 2026-11-23
+- [0.10.0 published; footer selectors are popup menus](notes/release-0-10-0-popup-menus.md) 2026-11-23
 - [Releases come from a manually dispatched workflow that creates the tag; never push v* tags](notes/release-via-dispatched-workflow.md) 2026-10-28
 - [v0.1.0 was released Linux-only; macOS and Windows binaries stay deferred](notes/v0-1-0-linux-first-release.md) 2026-10-28
 - [Startup experiments (prerender, window geometry, deferred metadata) showed no gain and wer](notes/launch-experiments-rejected.md) 2026-10-29
