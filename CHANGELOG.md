@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.10.0] - 2026-11-23
+
+- Turn the footer language and appearance selectors into compact popup menus that take less space, with full keyboard support.
+
 ## [0.9.0] - 2026-11-23
 
 - Add French: definitions from French Wiktionary, an optional offline French dictionary, a French interface, and French pronunciation with an optional Piper voice and an eSpeak fallback.
