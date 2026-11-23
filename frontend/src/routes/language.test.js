@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/sv
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Page from './+page.svelte';
+import { chooseLanguage, chooseAppearance, openAppearance } from './menu-helpers.js';
 import { resources } from '../language.js';
 import { call, onLookupResult } from '../lib-api.js';
 
@@ -44,9 +45,9 @@ describe('interface language', () => {
 		// given
 		render(Page);
 		// when
-		const selector = screen.getByRole('combobox', { name: 'Language' });
+		const trigger = screen.getByRole('button', { name: 'Language: English' });
 		// then
-		expect(selector.value).toBe('en');
+		expect(trigger.textContent).toBe('English');
 		expect(screen.getByRole('heading', { name: 'Look up a word' })).toBeTruthy();
 		expect(document.documentElement.lang).toBe('en');
 	});
@@ -58,15 +59,14 @@ describe('interface language', () => {
 		await fireEvent.input(input, { target: { value: 'hello' } });
 		const callsBefore = call.mock.calls.length;
 		// when
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+		await chooseLanguage('es');
 		// then
 		await screen.findByRole('heading', { name: 'Buscar una palabra' });
 		expect(screen.getByLabelText('Palabra o expresión').value).toBe('hello');
-		expect(screen.getByRole('radiogroup', { name: 'Apariencia' })).toBeTruthy();
-		expect(screen.getByRole('radio', { name: 'Sistema' }).title).toBe('Sistema');
+		expect(screen.getByRole('button', { name: 'Apariencia: Sistema' }).title).toBe('Apariencia');
 		expect(document.documentElement.lang).toBe('es');
 		expect(call.mock.calls.length).toBe(callsBefore);
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Idioma' }), 'en');
+		await chooseLanguage('en');
 		await screen.findByRole('heading', { name: 'Look up a word' });
 		expect(screen.getByLabelText('Word or phrase').value).toBe('hello');
 		expect(document.documentElement.lang).toBe('en');
@@ -75,14 +75,14 @@ describe('interface language', () => {
 	it('given_spanish_selected_when_restarted_then_preference_is_restored', async () => {
 		// given
 		render(Page);
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+		await chooseLanguage('es');
 		await screen.findByRole('heading', { name: 'Buscar una palabra' });
 		// when
 		cleanup();
 		render(Page);
 		// then
 		await screen.findByRole('heading', { name: 'Buscar una palabra' });
-		expect(screen.getByRole('combobox', { name: 'Idioma' }).value).toBe('es');
+		expect(screen.getByRole('button', { name: /^Idioma: Español/ })).toBeTruthy();
 	});
 
 	it('given_unreadable_preference_when_started_then_english_is_usable', () => {
@@ -91,7 +91,7 @@ describe('interface language', () => {
 		// when
 		render(Page);
 		// then
-		expect(screen.getByRole('combobox', { name: 'Language' }).value).toBe('en');
+		expect(screen.getByRole('button', { name: /^Language: English/ })).toBeTruthy();
 		expect(screen.getByRole('heading', { name: 'Look up a word' })).toBeTruthy();
 	});
 
@@ -100,10 +100,10 @@ describe('interface language', () => {
 		vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw Error('denied'); });
 		render(Page);
 		// when
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+		await chooseLanguage('es');
 		// then
 		await screen.findByRole('heading', { name: 'Buscar una palabra' });
-		expect(screen.getByRole('combobox', { name: 'Idioma' }).value).toBe('es');
+		expect(screen.getByRole('button', { name: /^Idioma: Español/ })).toBeTruthy();
 	});
 
 	it('given_cached_result_when_language_changes_then_date_and_labels_change_but_content_remains', async () => {
@@ -118,7 +118,7 @@ describe('interface language', () => {
 		await screen.findByText('a greeting');
 		expect(screen.getByText(new RegExp(new Date(fetched).toLocaleDateString('en').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeTruthy();
 		// when
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+		await chooseLanguage('es');
 		// then
 		await screen.findByRole('heading', { name: 'Buscar una palabra' });
 		expect(screen.getByText('a greeting')).toBeTruthy();
@@ -136,7 +136,7 @@ describe('interface language', () => {
 		await fireEvent.click(screen.getByRole('button', { name: 'Offline content' }));
 		const original = (await screen.findByText('Unable to load dictionary information.')).textContent;
 		// when
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+		await chooseLanguage('es');
 		// then
 		await screen.findByRole('heading', { name: 'Contenido sin conexión' });
 		expect(screen.queryByText(original)).toBeNull();
@@ -165,7 +165,7 @@ describe('interface language', () => {
 	it('given_spanish_interface_when_lookup_returns_both_languages_then_both_definitions_remain_original', async () => {
 		// given
 		render(Page);
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+		await chooseLanguage('es');
 		await fireEvent.input(screen.getByLabelText('Palabra o expresión'), { target: { value: 'sol' } });
 		// when
 		await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
@@ -185,9 +185,9 @@ describe('interface language', () => {
 		await userEvent.click(screen.getByRole('button', { name: 'Offline content' }));
 		await screen.findByText('English dictionary');
 		// when
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+		await chooseLanguage('es');
 		await screen.findByRole('heading', { name: 'Contenido sin conexión' });
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Idioma' }), 'en');
+		await chooseLanguage('en');
 		// then
 		await screen.findByRole('heading', { name: 'Offline content' });
 		expect(screen.getByText('English dictionary')).toBeTruthy();
@@ -203,7 +203,7 @@ describe('interface language', () => {
 		deliver({ SearchID: 'search-1', Language: 'es', Result: { Status: 'not_found' } });
 		await screen.findByText('a greeting');
 		// when
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+		await chooseLanguage('es');
 		// then
 		await screen.findByText('No se dispone de información sobre la fuente o la licencia de esta entrada guardada.');
 		expect(screen.queryByRole('link', { name: 'Fuente' })).toBeNull();
@@ -222,7 +222,7 @@ describe('interface language', () => {
 		deliver({ SearchID: 'search-1', Language: 'fr', Result: { Status: 'not_found' } });
 		await screen.findByText('The dictionary is unavailable. Check your connection and try again.');
 		// when
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+		await chooseLanguage('es');
 		// then
 		await screen.findByText('El diccionario no está disponible. Comprueba tu conexión y vuelve a intentarlo.');
 		expect(screen.getByText('La búsqueda en línea en Inglés no está disponible.')).toBeTruthy();
@@ -245,7 +245,7 @@ describe('interface language', () => {
 		await userEvent.click(screen.getByRole('button', { name: 'Download' }));
 		await screen.findByText('Couldn’t install the dictionary. Check your connection and available storage, then try again.');
 		// when
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+		await chooseLanguage('es');
 		// then
 		await screen.findByText('No se pudo instalar el diccionario. Comprueba tu conexión y el espacio disponible y vuelve a intentarlo.');
 		await userEvent.click(screen.getByRole('button', { name: 'Volver a intentar' }));
@@ -259,7 +259,7 @@ describe('interface language', () => {
 		// when
 		render(Page);
 		// then
-		expect(screen.getByRole('combobox', { name: 'Language' }).value).toBe('en');
+		expect(screen.getByRole('button', { name: /^Language: English/ })).toBeTruthy();
 		expect(document.documentElement.lang).toBe('en');
 	});
 
@@ -279,7 +279,7 @@ describe('interface language', () => {
 		expect(screen.getByRole('progressbar', { name: 'Dictionary download' })).toBeTruthy();
 		const downloadCalls = call.mock.calls.filter(([method]) => method === 'Download').length;
 		// when
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+		await chooseLanguage('es');
 		// then
 		await screen.findByRole('heading', { name: 'Contenido sin conexión' });
 		expect(screen.getByRole('progressbar')).toBeTruthy();
@@ -291,14 +291,124 @@ describe('interface language', () => {
 		// given
 		const user = userEvent.setup();
 		render(Page);
-		await user.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
-		const system = await screen.findByRole('radio', { name: 'Sistema' });
+		await chooseLanguage('es', user);
+		const trigger = await screen.findByRole('button', { name: 'Apariencia: Sistema' });
 		// when
-		system.focus();
-		await user.keyboard('{ArrowLeft}');
+		trigger.focus();
+		await user.keyboard('{ArrowDown}');
+		const system = screen.getByRole('menuitemradio', { name: 'Sistema' });
+		expect(document.activeElement).toBe(system);
+		await user.keyboard('{ArrowUp}{Enter}');
 		// then
-		const dark = screen.getByRole('radio', { name: 'Oscuro' });
-		expect(dark.getAttribute('aria-checked')).toBe('true');
-		expect(document.activeElement).toBe(dark);
+		expect(screen.queryByRole('menu')).toBeNull();
+		expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Apariencia: Oscuro' }));
+		expect(document.documentElement.dataset.theme).toBe('dark');
+	});
+});
+
+describe('footer popup menus', () => {
+	const languageTrigger = () => screen.getByRole('button', { name: /^Language:/ });
+
+	it('given_closed_menu_when_trigger_clicked_then_popup_opens_with_current_option_marked_and_focused', async () => {
+		// given
+		const user = userEvent.setup();
+		render(Page);
+		expect(languageTrigger().getAttribute('aria-haspopup')).toBe('menu');
+		expect(languageTrigger().getAttribute('aria-expanded')).toBe('false');
+		// when
+		await user.click(languageTrigger());
+		// then
+		expect(languageTrigger().getAttribute('aria-expanded')).toBe('true');
+		const options = screen.getAllByRole('menuitemradio').map((o) => o.textContent);
+		expect(options).toEqual(['English', 'Español', 'Français']);
+		const current = screen.getByRole('menuitemradio', { name: 'English' });
+		expect(current.getAttribute('aria-checked')).toBe('true');
+		expect(document.activeElement).toBe(current);
+	});
+
+	it('given_open_menu_when_option_selected_then_language_applies_popup_closes_and_focus_returns', async () => {
+		// given
+		const user = userEvent.setup();
+		render(Page);
+		await user.click(languageTrigger());
+		// when
+		await user.click(screen.getByRole('menuitemradio', { name: 'Français' }));
+		// then
+		await screen.findByRole('button', { name: /^Langue: Français/ });
+		expect(screen.queryByRole('menu')).toBeNull();
+		expect(document.documentElement.lang).toBe('fr');
+		expect(document.activeElement).toBe(screen.getByRole('button', { name: /^Langue:/ }));
+	});
+
+	it('given_open_menu_when_escape_pressed_then_popup_closes_and_focus_returns_without_change', async () => {
+		// given
+		const user = userEvent.setup();
+		render(Page);
+		await user.click(languageTrigger());
+		await user.keyboard('{ArrowDown}');
+		// when
+		await user.keyboard('{Escape}');
+		// then
+		expect(screen.queryByRole('menu')).toBeNull();
+		expect(document.activeElement).toBe(languageTrigger());
+		expect(languageTrigger().textContent).toBe('English');
+	});
+
+	it('given_open_menu_when_outside_clicked_then_popup_closes', async () => {
+		// given
+		const user = userEvent.setup();
+		render(Page);
+		await user.click(languageTrigger());
+		// when
+		await user.click(document.body);
+		// then
+		expect(screen.queryByRole('menu')).toBeNull();
+		expect(languageTrigger().getAttribute('aria-expanded')).toBe('false');
+	});
+
+	it('given_one_menu_open_when_other_trigger_clicked_then_only_one_popup_is_open', async () => {
+		// given
+		const user = userEvent.setup();
+		render(Page);
+		await user.click(languageTrigger());
+		// when
+		await openAppearance(user);
+		// then
+		expect(screen.getAllByRole('menu')).toHaveLength(1);
+		expect(screen.getByRole('menu', { name: 'Appearance' })).toBeTruthy();
+		expect(languageTrigger().getAttribute('aria-expanded')).toBe('false');
+	});
+
+	it('given_open_menu_when_navigating_with_keys_then_focus_wraps_and_tab_closes', async () => {
+		// given
+		const user = userEvent.setup();
+		render(Page);
+		languageTrigger().focus();
+		// when
+		await user.keyboard('{ArrowDown}');
+		await user.keyboard('{End}');
+		expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: 'Français' }));
+		await user.keyboard('{ArrowDown}');
+		expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: 'English' }));
+		await user.keyboard('{ArrowUp}');
+		expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: 'Français' }));
+		await user.keyboard('{Home}');
+		expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: 'English' }));
+		await user.keyboard('{Tab}');
+		// then
+		expect(screen.queryByRole('menu')).toBeNull();
+	});
+
+	it('given_trigger_focused_when_space_pressed_then_popup_opens_and_trigger_shows_current_mode', async () => {
+		// given
+		const user = userEvent.setup();
+		render(Page);
+		const trigger = screen.getByRole('button', { name: 'Appearance: System' });
+		trigger.focus();
+		// when
+		await user.keyboard(' ');
+		// then
+		expect(screen.getByRole('menuitemradio', { name: 'System' }).getAttribute('aria-checked')).toBe('true');
+		expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: 'System' }));
 	});
 });

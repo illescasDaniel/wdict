@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { createLanguageController } from "../language.js";
   let languageController = createLanguageController();
   let interfaceLanguage = "en";
@@ -16,8 +16,8 @@
     };
     return groupRecords(entries).sort((a, b) => rank(a.language) - rank(b.language));
   }
-  async function changeLanguage(event) {
-    await languageController.setLanguage(event.currentTarget.value);
+  async function changeLanguage(value) {
+    await languageController.setLanguage(value);
     interfaceLanguage = languageController.language;
     document.documentElement.lang = interfaceLanguage;
   }
@@ -42,22 +42,74 @@
       systemDark,
     );
   }
-  function modeKey(event) {
-    const values = ["system", "light", "dark"];
-    if (
-      !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)
-    )
-      return;
+  const languages = [
+    { value: "en", name: "English" },
+    { value: "es", name: "Español" },
+    { value: "fr", name: "Français" },
+  ];
+  const appearanceModes = ["system", "light", "dark"];
+  let openMenu = null;
+  const menuRoot = (name) => document.querySelector(`[data-menu="${name}"]`);
+  async function openPopup(name) {
+    openMenu = name;
+    await tick();
+    const root = menuRoot(name);
+    (
+      root?.querySelector('[aria-checked="true"]') ??
+      root?.querySelector("[role=menuitemradio]")
+    )?.focus();
+  }
+  function closePopup(restoreFocus = true) {
+    const name = openMenu;
+    openMenu = null;
+    if (restoreFocus && name) menuRoot(name)?.querySelector(".menu-trigger")?.focus();
+  }
+  function toggleMenu(name) {
+    if (openMenu === name) closePopup();
+    else openPopup(name);
+  }
+  function triggerKey(event, name) {
+    if (event.key !== "ArrowDown") return;
     event.preventDefault();
-    const step = event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1;
-    const next =
-      values[
-        (values.indexOf(appearance) + step + values.length) % values.length
-      ];
-    selectAppearance(next);
-    event.currentTarget.parentElement
-      .querySelector(`[data-mode="${next}"]`)
-      .focus();
+    if (openMenu !== name) openPopup(name);
+  }
+  function popupKey(event) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      closePopup();
+      return;
+    }
+    if (event.key === "Tab") {
+      closePopup();
+      return;
+    }
+    const items = [
+      ...event.currentTarget.querySelectorAll("[role=menuitemradio]"),
+    ];
+    const current = items.indexOf(document.activeElement);
+    let next;
+    if (event.key === "ArrowDown" || event.key === "ArrowRight")
+      next = (current + 1) % items.length;
+    else if (event.key === "ArrowUp" || event.key === "ArrowLeft")
+      next = (current - 1 + items.length) % items.length;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = items.length - 1;
+    else return;
+    event.preventDefault();
+    items[next]?.focus();
+  }
+  function outsideClick(event) {
+    if (openMenu && !event.target.closest?.(`[data-menu="${openMenu}"]`))
+      closePopup(false);
+  }
+  async function chooseLanguage(value) {
+    closePopup();
+    await changeLanguage(value);
+  }
+  function chooseAppearance(value) {
+    closePopup();
+    selectAppearance(value);
   }
   function selectAppearance(value) {
     appearance = value;
@@ -851,72 +903,90 @@
       </article>
     {/if}{/if}
 </main></div>
+{#snippet modeIcon(mode)}
+  <svg viewBox="0 0 24 24" aria-hidden="true"
+    >{#if mode === "system"}<rect x="3" y="4" width="18" height="13" rx="2" /><path
+        d="M8 21h8M12 17v4"
+      />{:else if mode === "light"}<circle cx="12" cy="12" r="4" /><path
+        d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"
+      />{:else}<path
+        d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7Z"
+      />{/if}</svg
+  >
+{/snippet}
+<svelte:window onclick={outsideClick} />
 <footer>
   <div class="footer-inner">
-    <div class="setting">
-      <label for="interface-language">{t("language")}</label><select
+    <div class="menu" data-menu="language">
+      <button
+        type="button"
         id="interface-language"
-        value={interfaceLanguage}
-        onchange={changeLanguage}
-        ><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option
-        ></select
+        class="menu-trigger"
+        aria-label={`${t("language")}: ${languages.find((l) => l.value === interfaceLanguage)?.name}`}
+        title={t("language")}
+        aria-haspopup="menu"
+        aria-expanded={openMenu === "language"}
+        onclick={() => toggleMenu("language")}
+        onkeydown={(event) => triggerKey(event, "language")}
+        >{languages.find((l) => l.value === interfaceLanguage)?.name}</button
       >
+      {#if openMenu === "language"}
+        <div
+          class="popup"
+          role="menu"
+          aria-label={t("language")}
+          tabindex="-1"
+          onkeydown={popupKey}
+        >
+          {#each languages as language}
+            <button
+              type="button"
+              role="menuitemradio"
+              class="menu-option"
+              data-language={language.value}
+              aria-checked={interfaceLanguage === language.value}
+              tabindex="-1"
+              onclick={() => chooseLanguage(language.value)}
+              >{language.name}</button
+            >
+          {/each}
+        </div>
+      {/if}
     </div>
-    <div class="setting">
-      <span>{t("appearance")}</span>
-      <div class="modes" role="radiogroup" aria-label={t("appearance")}>
-        <button
-          type="button"
-          class="mode"
-          data-mode="system"
-          aria-label={t("system")}
-          title={t("system")}
-          role="radio"
-          aria-checked={appearance === "system"}
-          tabindex={appearance === "system" ? 0 : -1}
-          onkeydown={modeKey}
-          onclick={() => selectAppearance("system")}
-          ><svg viewBox="0 0 24 24" aria-hidden="true"
-            ><rect x="3" y="4" width="18" height="13" rx="2" /><path
-              d="M8 21h8M12 17v4"
-            /></svg
-          ></button
+    <div class="menu" data-menu="appearance">
+      <button
+        type="button"
+        class="menu-trigger icon-trigger"
+        aria-label={`${t("appearance")}: ${t(appearance)}`}
+        title={t("appearance")}
+        aria-haspopup="menu"
+        aria-expanded={openMenu === "appearance"}
+        onclick={() => toggleMenu("appearance")}
+        onkeydown={(event) => triggerKey(event, "appearance")}
+        >{@render modeIcon(appearance)}</button
+      >
+      {#if openMenu === "appearance"}
+        <div
+          class="popup"
+          role="menu"
+          aria-label={t("appearance")}
+          tabindex="-1"
+          onkeydown={popupKey}
         >
-        <button
-          type="button"
-          class="mode"
-          data-mode="light"
-          aria-label={t("light")}
-          title={t("light")}
-          role="radio"
-          aria-checked={appearance === "light"}
-          tabindex={appearance === "light" ? 0 : -1}
-          onkeydown={modeKey}
-          onclick={() => selectAppearance("light")}
-          ><svg viewBox="0 0 24 24" aria-hidden="true"
-            ><circle cx="12" cy="12" r="4" /><path
-              d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"
-            /></svg
-          ></button
-        >
-        <button
-          type="button"
-          class="mode"
-          data-mode="dark"
-          aria-label={t("dark")}
-          title={t("dark")}
-          role="radio"
-          aria-checked={appearance === "dark"}
-          tabindex={appearance === "dark" ? 0 : -1}
-          onkeydown={modeKey}
-          onclick={() => selectAppearance("dark")}
-          ><svg viewBox="0 0 24 24" aria-hidden="true"
-            ><path
-              d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7Z"
-            /></svg
-          ></button
-        >
-      </div>
+          {#each appearanceModes as mode}
+            <button
+              type="button"
+              role="menuitemradio"
+              class="menu-option mode"
+              data-mode={mode}
+              aria-checked={appearance === mode}
+              tabindex="-1"
+              onclick={() => chooseAppearance(mode)}
+              >{@render modeIcon(mode)}<span>{t(mode)}</span></button
+            >
+          {/each}
+        </div>
+      {/if}
     </div>
     {#if version}<span class="version"
         >{version === "dev" ? "dev" : `v${version}`}</span
@@ -976,55 +1046,82 @@
     color: var(--muted);
     font-size: 13px;
   }
-  .setting {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
   .version {
     margin-left: auto;
     font-size: 11px;
     opacity: 0.85;
   }
-  .setting label {
-    margin: 0;
-    font-weight: 400;
+  .menu {
+    position: relative;
   }
-  select {
+  .menu-trigger {
     font: inherit;
-    min-height: 38px;
-    padding: 5px 9px;
+    font-weight: 400;
+    min-height: 34px;
+    padding: 4px 10px;
     border: 1px solid var(--input-border);
     border-radius: 7px;
     background: var(--surface);
     color: var(--text);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
-  .modes {
+  .menu-trigger.icon-trigger {
+    width: 38px;
+    padding: 0;
+    justify-content: center;
+  }
+  .menu-trigger[aria-expanded="true"] {
+    border-color: var(--accent);
+  }
+  .popup {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    z-index: 20;
+    min-width: 140px;
+    max-width: calc(100vw - 36px);
+    padding: 4px;
     display: flex;
+    flex-direction: column;
     gap: 2px;
-    padding: 3px;
     border: 1px solid var(--border);
     border-radius: 9px;
+    background: var(--surface);
+    box-shadow: 0 4px 14px #0003;
   }
-  button.mode {
-    width: 36px;
-    height: 34px;
-    padding: 0;
-    display: grid;
-    place-items: center;
+  .menu-option {
+    font: inherit;
+    font-weight: 400;
+    min-height: 34px;
+    padding: 4px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     border: 0;
     border-radius: 6px;
     background: transparent;
-    color: var(--muted);
-  }
-  button.mode[aria-checked="true"] {
-    background: var(--surface);
     color: var(--text);
-    box-shadow: 0 1px 3px #0003;
+    text-align: left;
+    cursor: pointer;
   }
-  .mode svg {
+  .menu-option:hover {
+    background: var(--bg);
+  }
+  .menu-option[aria-checked="true"] {
+    background: var(--bg);
+    font-weight: 600;
+  }
+  .menu-option[aria-checked="true"]::after {
+    content: "✓";
+    margin-left: auto;
+    padding-left: 10px;
+  }
+  .menu svg {
     width: 19px;
     height: 19px;
+    flex: none;
     fill: none;
     stroke: currentColor;
     stroke-width: 1.8;
@@ -1144,7 +1241,6 @@
   }
   button:focus-visible,
   input:focus-visible,
-  select:focus-visible,
   a:focus-visible {
     outline: 3px solid var(--focus);
     outline-offset: 3px;
@@ -1275,16 +1371,8 @@
       padding: 18px;
     }
     .footer-inner {
-      flex-wrap: wrap;
-      padding: 12px 18px;
-    }
-    .setting {
-      width: 100%;
-      justify-content: space-between;
-    }
-    .version {
-      width: 100%;
-      text-align: right;
+      padding: 10px 18px;
+      gap: 8px;
     }
     .search {
       flex-wrap: wrap;

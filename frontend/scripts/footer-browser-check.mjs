@@ -62,10 +62,10 @@ try {
   }
   await command('Page.enable');
   for (let i = 0; i < 100; i++) {
-    if (await evaluate('Boolean(document.querySelector("footer select"))')) break;
+    if (await evaluate('Boolean(document.querySelector("footer .menu-trigger"))')) break;
     await new Promise(resolve => setTimeout(resolve, 100));
   }
-  assert.equal(await evaluate('Boolean(document.querySelector("footer select"))'), true, 'App failed to render');
+  assert.equal(await evaluate('Boolean(document.querySelector("footer .menu-trigger"))'), true, 'App failed to render');
   for (const [width, height] of [[1024, 768], [360, 620]]) {
     await command('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
     for (const screen of ['lookup', 'dictionaries']) {
@@ -92,11 +92,23 @@ try {
       assert.ok(Math.abs(result.footerBottom - result.viewportBottom) < 1 && result.footerVisible, JSON.stringify({ width, screen, result }));
       assert.ok(result.markerBottom <= result.footerTop && result.markerTop >= result.mainTop && result.focused, JSON.stringify({ width, screen, result }));
       assert.equal(result.horizontalOverflow, false, JSON.stringify({ width, screen, result }));
-      const select = await evaluate(`(() => { const s=document.querySelector('footer select'); s.focus(); return document.activeElement === s; })()`);
-      assert.equal(select, true, 'Language selector is focusable');
+      const select = await evaluate(`(() => { const s=document.querySelector('footer .menu-trigger'); s.focus(); return document.activeElement === s; })()`);
+      assert.equal(select, true, 'Language trigger is focusable');
       await command('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
       await command('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
-      assert.equal(await evaluate('document.activeElement.getAttribute("role")'), 'radio', 'Tab reaches appearance control');
+      assert.equal(await evaluate('document.activeElement.closest("[data-menu]")?.dataset.menu'), 'appearance', 'Tab reaches appearance control');
+      const popup = await evaluate(`(() => {
+        const t = document.querySelector('[data-menu="language"] .menu-trigger');
+        t.click();
+        const p = document.querySelector('[data-menu="language"] .popup');
+        const r = p.getBoundingClientRect(), f = document.querySelector('footer').getBoundingClientRect();
+        const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        const out = {inViewport: r.left >= 0 && r.right <= innerWidth && r.top >= 0, above: r.bottom <= f.top + 1,
+          topmost: p.contains(top), footerHeight: f.height, overflow: document.documentElement.scrollWidth > innerWidth};
+        t.click();
+        return out;
+      })()`);
+      assert.ok(popup.inViewport && popup.above && popup.topmost && !popup.overflow && popup.footerHeight < 70, JSON.stringify({ width, screen, popup }));
       if (screen === 'dictionaries') await evaluate('document.querySelector("header button").click()');
       console.log(`PASS ${screen} ${width}x${height}: footer, scrolling and focus`);
     }

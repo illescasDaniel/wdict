@@ -1,5 +1,6 @@
 import { render, fireEvent, screen, cleanup } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { chooseLanguage } from "./menu-helpers.js";
 import Page from "./+page.svelte";
 import { call, onLookupResult } from "../lib-api.js";
 vi.mock("../lib-api.js", () => ({
@@ -136,9 +137,7 @@ describe("pronunciation line", () => {
       Entries: [entryWith([{ Text: "[ˈola]" }])],
     }));
     render(Page);
-    await fireEvent.change(screen.getByRole("combobox"), {
-      target: { value: "es" },
-    });
+    await chooseLanguage("es");
     // when
     await fireEvent.click(screen.getByRole("button", { name: "Buscar" }));
     await screen.findByText("a greeting");

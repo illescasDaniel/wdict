@@ -134,6 +134,9 @@ try {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   for (const theme of ["light", "dark"]) {
+    await evaluate(
+      `document.querySelector('[data-menu="appearance"] .menu-trigger').click()`,
+    );
     await evaluate(`document.querySelector('[data-mode="${theme}"]').click()`);
     const result = await evaluate(`(() => {
       const article = document.querySelector('article');

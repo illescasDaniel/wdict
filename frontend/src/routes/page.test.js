@@ -6,6 +6,7 @@ import {
   cleanup,
 } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { chooseAppearance, chooseLanguage } from "./menu-helpers.js";
 import Page from "./+page.svelte";
 import { call, onLookupResult } from "../lib-api.js";
 import userEvent from "@testing-library/user-event";
@@ -1009,10 +1010,8 @@ describe("appearance", () => {
     render(Page);
     // then
     expect(
-      screen
-        .getByRole("radio", { name: "System" })
-        .getAttribute("aria-checked"),
-    ).toBe("true");
+      screen.getByRole("button", { name: "Appearance: System" }),
+    ).toBeTruthy();
     expect(document.documentElement.dataset.theme).toBe("light");
     listener({ matches: true });
     expect(document.documentElement.dataset.theme).toBe("dark");
@@ -1021,19 +1020,19 @@ describe("appearance", () => {
     // given
     render(Page);
     // when
-    await fireEvent.click(screen.getByRole("radio", { name: "Dark" }));
+    await chooseAppearance("Dark");
     listener({ matches: false });
     // then
     expect(document.documentElement.dataset.theme).toBe("dark");
     cleanup();
     render(Page);
     expect(
-      screen.getByRole("radio", { name: "Dark" }).getAttribute("aria-checked"),
-    ).toBe("true");
+      screen.getByRole("button", { name: "Appearance: Dark" }),
+    ).toBeTruthy();
     expect(document.documentElement.dataset.theme).toBe("dark");
-    await fireEvent.click(screen.getByRole("radio", { name: "Light" }));
+    await chooseAppearance("Light");
     expect(document.documentElement.dataset.theme).toBe("light");
-    await fireEvent.click(screen.getByRole("radio", { name: "System" }));
+    await chooseAppearance("System");
     listener({ matches: true });
     expect(document.documentElement.dataset.theme).toBe("dark");
   });
@@ -1048,10 +1047,8 @@ describe("appearance", () => {
     render(Page);
     // then
     expect(
-      screen
-        .getByRole("radio", { name: "System" })
-        .getAttribute("aria-checked"),
-    ).toBe("true");
+      screen.getByRole("button", { name: "Appearance: System" }),
+    ).toBeTruthy();
     read.mockRestore();
   });
   it("given_storage_failure_when_mode_changes_then_session_remains_usable", async () => {
@@ -1063,7 +1060,7 @@ describe("appearance", () => {
       });
     render(Page);
     // when
-    await fireEvent.click(screen.getByRole("radio", { name: "Dark" }));
+    await chooseAppearance("Dark");
     // then
     expect(document.documentElement.dataset.theme).toBe("dark");
     save.mockRestore();
@@ -1073,13 +1070,13 @@ describe("appearance", () => {
     const user = userEvent.setup();
     render(Page);
     // when
-    screen.getByRole("radio", { name: "System" }).focus();
-    await user.keyboard("{ArrowLeft}");
+    screen.getByRole("button", { name: "Appearance: System" }).focus();
+    await user.keyboard("{ArrowDown}{ArrowUp}{Enter}");
     await user.click(screen.getByRole("button", { name: "Offline content" }));
     // then
     expect(
-      screen.getByRole("radio", { name: "Dark" }).getAttribute("aria-checked"),
-    ).toBe("true");
+      screen.getByRole("button", { name: "Appearance: Dark" }),
+    ).toBeTruthy();
     expect(document.documentElement.dataset.theme).toBe("dark");
   });
 });
@@ -1149,9 +1146,7 @@ describe("result order", () => {
       ([name]) => name === "Lookup",
     ).length;
     // when
-    await fireEvent.change(screen.getByLabelText("Language"), {
-      target: { value: "es" },
-    });
+    await chooseLanguage("es");
     // then
     await waitFor(() =>
       expect(
@@ -1280,9 +1275,7 @@ describe("grouped records and spelling playback", () => {
           : null,
     );
     render(Page);
-    await fireEvent.change(screen.getByLabelText("Language"), {
-      target: { value: "es" },
-    });
+    await chooseLanguage("es");
     // when
     await fireEvent.click(screen.getByRole("button", { name: "Buscar" }));
     // then
@@ -1321,9 +1314,7 @@ describe("grouped records and spelling playback", () => {
             : null,
     );
     render(Page);
-    await fireEvent.change(screen.getByLabelText("Language"), {
-      target: { value: "es" },
-    });
+    await chooseLanguage("es");
     await fireEvent.click(screen.getByRole("button", { name: "Buscar" }));
     const play = await screen.findByRole("button", {
       name: "Reproducir la pronunciación — General American",
@@ -1348,9 +1339,7 @@ describe("grouped records and spelling playback", () => {
             : null,
     );
     render(Page);
-    await fireEvent.change(screen.getByLabelText("Language"), {
-      target: { value: "es" },
-    });
+    await chooseLanguage("es");
     await fireEvent.click(screen.getByRole("button", { name: "Buscar" }));
     const play = await screen.findByRole("button", {
       name: "Reproducir la pronunciación — General American",
@@ -1382,9 +1371,7 @@ describe("grouped records and spelling playback", () => {
     await fireEvent.click(play);
     expect((await screen.findByRole("alert")).textContent).toBe(CopyNoSource);
     // when
-    await fireEvent.change(screen.getByLabelText("Language"), {
-      target: { value: "es" },
-    });
+    await chooseLanguage("es");
     // then
     await waitFor(() =>
       expect(screen.getByRole("alert").textContent).toBe(

@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Page from './+page.svelte';
+import { chooseLanguage, chooseAppearance, openAppearance } from './menu-helpers.js';
 import { resources } from '../language.js';
 import { call, onLookupResult } from '../lib-api.js';
 
@@ -54,13 +55,13 @@ describe('French support', () => {
 		// given
 		render(Page);
 		// when
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'fr');
+		await chooseLanguage('fr');
 		await waitFor(() => expect(document.documentElement.lang).toBe('fr'));
 		cleanup();
 		render(Page);
 		// then
 		await waitFor(() => expect(document.documentElement.lang).toBe('fr'));
-		expect(screen.getByRole('combobox').value).toBe('fr');
+		expect(screen.getByRole('button', { name: /^Langue: Français/ })).toBeTruthy();
 		expect(resources.fr.translation).toBeTruthy();
 		expect(Object.keys(resources.fr.translation).sort()).toEqual(Object.keys(resources.en.translation).sort());
 		for (const key of Object.keys(resources.en.translation)) {
@@ -80,7 +81,7 @@ describe('French support', () => {
 		send('search-1', 'es', { Status: 'not_found' });
 		await screen.findByText('formule de salutation');
 		// when
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'fr');
+		await chooseLanguage('fr');
 		// then
 		await waitFor(() => expect(document.documentElement.lang).toBe('fr'));
 		expect(screen.getByText('formule de salutation')).toBeTruthy();
@@ -99,7 +100,7 @@ describe('French support', () => {
 		await screen.findByText('bebida española');
 		send('search-1', 'en', found(entry('cafe', 'English definition')));
 		await screen.findByText('English definition');
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'fr');
+		await chooseLanguage('fr');
 		// then
 		await waitFor(() => expect(document.documentElement.lang).toBe('fr'));
 		const french = screen.getByText('boisson française');
@@ -128,7 +129,7 @@ describe('French support', () => {
 		const spanish = screen.getByText('definición española');
 		expect(before(english, spanish)).toBe(true);
 		expect(before(spanish, french)).toBe(true);
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'fr');
+		await chooseLanguage('fr');
 		await waitFor(() => expect(document.documentElement.lang).toBe('fr'));
 		expect(before(screen.getByText('définition française'), screen.getByText('English definition'))).toBe(true);
 		expect(before(screen.getByText('English definition'), screen.getByText('definición española'))).toBe(true);
@@ -170,7 +171,7 @@ describe('French support', () => {
 		send('search-1', 'es', { Status: 'not_found' });
 		await screen.findByRole('button', { name: 'Retry English' });
 		// when
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'fr');
+		await chooseLanguage('fr');
 		// then
 		await waitFor(() => expect(document.documentElement.lang).toBe('fr'));
 		expect(screen.getByRole('button', { name: 'Réessayer en anglais' })).toBeTruthy();
@@ -189,7 +190,7 @@ describe('French support', () => {
 		send('search-1', 'es', { Status: 'not_found' });
 		// when
 		const english = await screen.findByRole('button', { name: 'Retry English' });
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+		await chooseLanguage('es');
 		// then
 		expect(english).toBeTruthy();
 		await waitFor(() => expect(document.documentElement.lang).toBe('es'));

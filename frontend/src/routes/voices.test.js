@@ -1,5 +1,6 @@
 import { render, fireEvent, screen, waitFor, cleanup } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { chooseLanguage } from "./menu-helpers.js";
 import Page from "./+page.svelte";
 import { call, onLookupResult } from "../lib-api.js";
 
@@ -282,9 +283,7 @@ describe("natural voices section (C7)", () => {
     render(Page);
     await openDictionaries();
     // when
-    await fireEvent.change(screen.getByLabelText("Language"), {
-      target: { value: "es" },
-    });
+    await chooseLanguage("es");
     // then: the Spanish copy replaces the English Go copy
     await waitFor(() =>
       expect(
@@ -310,9 +309,7 @@ describe("natural voices section (C7)", () => {
     render(Page);
     await openDictionaries();
     // when
-    await fireEvent.change(screen.getByLabelText("Language"), {
-      target: { value: "es" },
-    });
+    await chooseLanguage("es");
     // then
     await waitFor(() =>
       expect(
@@ -334,9 +331,7 @@ describe("natural voices section (C7)", () => {
     render(Page);
     await openDictionaries();
     // when
-    await fireEvent.change(screen.getByLabelText("Language"), {
-      target: { value: "es" },
-    });
+    await chooseLanguage("es");
     // then: the Go copy is not replaced by the Spanish translation
     expect(screen.getAllByText(PythonCopy).length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText(SpanishPythonCopy)).toBeNull();
