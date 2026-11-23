@@ -1,7 +1,10 @@
 # Changelog
 
-## [0.8.4] - 2026-11-18
+## [0.9.0] - 2026-11-23
 
+- Add French: definitions from French Wiktionary, an optional offline French dictionary, a French interface, and French pronunciation with an optional Piper voice and an eSpeak fallback.
+- After a French search finds nothing, suggest possible base forms (such as plurals) and spelling matches from the installed French dictionary.
+- Search English, Spanish and French independently, so one language failing no longer hides the others.
 - Fix searches with leading or trailing spaces, tabs or newlines being rejected: surrounding whitespace is now trimmed.
 - Show the pronunciation "no recording" and "could not synthesise" messages in Spanish when the interface is in Spanish.
 

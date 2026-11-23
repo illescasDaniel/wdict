@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/illescasDaniel/wdict/actions/workflows/ci.yml/badge.svg)](https://github.com/illescasDaniel/wdict/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-A desktop dictionary built with Go, Wails v3 and SvelteKit. Development version: **0.8.4**. Search English, Spanish and French words and phrases online, reuse saved results, or download Wiktionary dictionaries in the app for offline use. Queries are sent to the online provider only after an offline and cache miss or an expired cache entry. Online results stay fresh for 365 days; when refresh fails, a stale saved result can still be shown.
+A desktop dictionary built with Go, Wails v3 and SvelteKit. Development version: **0.9.0**. Search English, Spanish and French words and phrases online, reuse saved results, or download Wiktionary dictionaries in the app for offline use. Queries are sent to the online provider only after an offline and cache miss or an expired cache entry. Online results stay fresh for 365 days; when refresh fails, a stale saved result can still be shown.
 
 ## How it works
 
