@@ -7,7 +7,15 @@
     interfaceLanguage;
     return languageController.translate(key, options);
   };
-  $: languageOrder = interfaceLanguage === "es" ? ["es", "en"] : ["en", "es"];
+  $: languageOrder = [interfaceLanguage, ...["en", "es", "fr"].filter((language) => language !== interfaceLanguage)];
+  const languageKey = (language) => ({ en: "english", es: "spanish", fr: "french" })[language] ?? "english";
+  function previousGroups(entries, order) {
+    const rank = (language) => {
+      const index = order.indexOf(language);
+      return index < 0 ? order.length : index;
+    };
+    return groupRecords(entries).sort((a, b) => rank(a.language) - rank(b.language));
+  }
   async function changeLanguage(event) {
     await languageController.setLanguage(event.currentTarget.value);
     interfaceLanguage = languageController.language;
@@ -212,7 +220,7 @@
   });
   function acceptOutcome(outcome) {
     if (outcome.SearchID !== activeSearch) return;
-    if (!["en", "es"].includes(outcome.Language)) return;
+    if (!["en", "es", "fr"].includes(outcome.Language)) return;
     const attempt = outcome.Attempt ?? attempts[outcome.Language] ?? 1;
     if (attempt !== (attempts[outcome.Language] ?? 1)) return;
     results = { ...results, [outcome.Language]: outcome.Result };
@@ -228,7 +236,7 @@
     } else {
       alternatives = { ...alternatives, [outcome.Language]: null };
     }
-    busy = !results.en || !results.es;
+    busy = !results.en || !results.es || !results.fr;
     const values = Object.values(results);
     const found = values.some((v) => v?.Status === "found");
     if (found) {
@@ -249,7 +257,7 @@
     if (
       outcome.SearchID !== activeSearch ||
       outcome.Query !== searchQuery ||
-      !["en", "es"].includes(outcome.Language)
+      !["en", "es", "fr"].includes(outcome.Language)
     )
       return;
     const attempt = outcome.Attempt ?? 1;
@@ -273,7 +281,7 @@
     results = {};
     playback.reset();
     alternatives = {};
-    attempts = { en: 1, es: 1 };
+    attempts = { en: 1, es: 1, fr: 1 };
     pendingAlternatives = {};
     searchQuery = submitted;
     busy = true;
@@ -532,7 +540,7 @@
       {#if results[language]?.Status === "found"}
         {#each groupRecords(results[language].Entries) as group}<article>
             <h2>
-              {t(language === "en" ? "english" : "spanish")} · {group.headword}
+              {t(languageKey(language))} · {group.headword}
             </h2>
             {#each clusterByPronunciation(group) as cluster}
               {@const first = cluster.records[0]}
@@ -594,17 +602,17 @@
       {:else if results[language]?.Status === "source_unavailable"}
         <p class="error">
           {t("languageUnavailable", {
-            language: t(language === "en" ? "english" : "spanish"),
+            language: t(languageKey(language)),
           })}
           <button onclick={() => retryLanguage(language)}
             >{t("retryLanguage", {
-              language: t(language === "en" ? "english" : "spanish"),
+              language: t(languageKey(language)),
             })}</button
           >
         </p>
       {:else if results[language]?.Status === "not_found"}
         <article class="alternative-section">
-          <h2>{t(language === "en" ? "english" : "spanish")}</h2>
+          <h2>{t(languageKey(language))}</h2>
           <p>{t("noDefinition")}</p>
           {#if alternatives[language]?.Status === "loading"}
             <p role="status">{t("checkingAlternatives")}</p>
@@ -660,24 +668,20 @@
       {:else if busy && !results[language]}
         <p role="status">
           {t("searchingLanguage", {
-            language: t(language === "en" ? "english" : "spanish"),
+            language: t(languageKey(language)),
           })}
         </p>
       {/if}
     {/each}
     {#if !Object.values(results).some((v) => v?.Status === "found") && entries.length}
-      {#each groupRecords(entries) as group}<article>
+      {#each previousGroups(entries, languageOrder) as group}<article>
           <h2>
-            {group.language === "en"
-              ? t("english") + " · "
-              : group.language === "es"
-                ? t("spanish") + " · "
-                : ""}{group.headword}
+            {["en", "es", "fr"].includes(group.language) ? t(languageKey(group.language)) + " · " : ""}{group.headword}
           </h2>
           {#each clusterByPronunciation(group) as cluster}
             {@const first = cluster.records[0]}
             {@const firstIndex = cluster.indexes[0]}
-            {@const firstLanguage = first.Language === "es" ? "es" : "en"}
+            {@const firstLanguage = ["en", "es", "fr"].includes(first.Language) ? first.Language : "en"}
             <div class="record">
               {@render pronunciation(first, firstIndex, firstLanguage)}
               <p class="hint">
@@ -748,7 +752,7 @@
           </div>
           <p class="hint">
             {t("dictionaryLanguage", {
-              language: t(dictionary.Language === "es" ? "spanish" : "english"),
+              language: t(languageKey(dictionary.Language)),
             })}<br />{t("source")}:
             <a
               href={dictionary.Source.AdditionalURLs[0]}
@@ -854,7 +858,7 @@
         id="interface-language"
         value={interfaceLanguage}
         onchange={changeLanguage}
-        ><option value="en">English</option><option value="es">Español</option
+        ><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option
         ></select
       >
     </div>

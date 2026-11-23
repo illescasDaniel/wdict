@@ -1,10 +1,12 @@
 package adapters
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -80,7 +82,7 @@ func pretendVoice(t *testing.T, dir, id string) {
 	}
 }
 
-func TestGivenCatalogWhenListedThenRuntimeAndThreeVoicesArePinned(t *testing.T) {
+func TestGivenCatalogWhenListedThenRuntimeAndFourVoicesArePinned(t *testing.T) {
 	// (C1/C6): the catalog is code-only; entries carry names, languages,
 	// exact sizes and attribution.
 	i := &VoicePackInstaller{Dir: t.TempDir()}
@@ -88,7 +90,7 @@ func TestGivenCatalogWhenListedThenRuntimeAndThreeVoicesArePinned(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(list) != 4 {
+	if len(list) != 5 {
 		t.Fatalf("entries=%d", len(list))
 	}
 	runtime, voices := list[0], list[1:]
@@ -101,7 +103,7 @@ func TestGivenCatalogWhenListedThenRuntimeAndThreeVoicesArePinned(t *testing.T) 
 	if runtime.Source.LicenseURL == "" || runtime.Source.Attribution == "" {
 		t.Fatalf("runtime source %+v", runtime.Source)
 	}
-	if len(voices) != 3 {
+	if len(voices) != 4 {
 		t.Fatalf("voice entries %d", len(voices))
 	}
 	want := []struct {
@@ -113,6 +115,7 @@ func TestGivenCatalogWhenListedThenRuntimeAndThreeVoicesArePinned(t *testing.T) 
 		{"en_GB-alba-medium", "en_GB · alba (medium)", core.English, 63221984},
 		{"en_US-amy-medium", "en_US · amy (medium)", core.English, 63221984},
 		{"es_ES-sharvard-medium", "es_ES · sharvard (medium)", core.Spanish, 76753841},
+		{"fr_FR-siwis-medium", "fr_FR · siwis (medium)", core.French, 63221984},
 	}
 	for n, v := range voices {
 		if v.ID != core.VoicePackID(want[n].id) || v.Kind != core.VoicePackVoice || v.Name != want[n].name || v.Language != want[n].language || v.SizeBytes != want[n].size {
@@ -397,4 +400,72 @@ func TestGivenUnknownPackWhenInstalledThenItIsRejected(t *testing.T) {
 	if err := i.Install(context.Background(), "not-a-pack", nil); err == nil {
 		t.Fatal("unknown pack accepted")
 	}
+}
+
+func TestGivenFrenchVoiceDownloadFailureWhenRetriedThenExistingVoicesRemain(t *testing.T) {
+	for _, broken := range []string{"model", "configuration"} {
+		t.Run(broken, func(t *testing.T) {
+			dir := t.TempDir()
+			pretendRuntime(t, dir)
+			pretendVoice(t, dir, "en_GB-alba-medium")
+			pretendVoice(t, dir, "es_ES-sharvard-medium")
+			model, config := []byte("french-model"), []byte("french-config")
+			msum, csum := sha256.Sum256(model), sha256.Sum256(config)
+			entry := frenchVoiceEntry(t)
+			entry.url = "https://example.test/fr.onnx"
+			entry.extraURL = "https://example.test/fr.onnx.json"
+			entry.sha = hex.EncodeToString(msum[:])
+			entry.extraSHA = hex.EncodeToString(csum[:])
+			entry.size = int64(len(model))
+			entry.extraSize = int64(len(config))
+			corrupted := true
+			client := &http.Client{Transport: transportFunc(func(req *http.Request) (*http.Response, error) {
+				body := model
+				target := "model"
+				if strings.HasSuffix(req.URL.Path, ".json") {
+					body = config
+					target = "configuration"
+				}
+				if corrupted && target == broken {
+					body = []byte("corrupt")
+				}
+				return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(bytes.NewReader(body))}, nil
+			})}
+			installer := &VoicePackInstaller{Dir: dir, Client: client, packOverride: map[core.VoicePackID]voicePackEntry{entry.id: entry}}
+			if err := installer.Install(context.Background(), entry.id, nil); err == nil {
+				t.Fatal("expected checksum failure")
+			}
+			if installer.voiceInstalled(entry.id) {
+				t.Fatal("partial French voice offered")
+			}
+			for _, id := range []core.VoicePackID{"en_GB-alba-medium", "es_ES-sharvard-medium"} {
+				if !installer.voiceInstalled(id) {
+					t.Fatalf("existing voice %s lost", id)
+				}
+			}
+			corrupted = false
+			if err := installer.Install(context.Background(), entry.id, nil); err != nil {
+				t.Fatalf("retry: %v", err)
+			}
+			if !installer.voiceInstalled(entry.id) {
+				t.Fatal("French voice missing after retry")
+			}
+			for _, id := range []core.VoicePackID{"en_GB-alba-medium", "es_ES-sharvard-medium"} {
+				if !installer.voiceInstalled(id) {
+					t.Fatalf("existing voice %s lost on retry", id)
+				}
+			}
+		})
+	}
+}
+
+func frenchVoiceEntry(t *testing.T) voicePackEntry {
+	t.Helper()
+	for _, entry := range voiceCatalog {
+		if entry.id == "fr_FR-siwis-medium" && entry.language == core.French {
+			return entry
+		}
+	}
+	t.Fatal("French voice missing from catalog")
+	return voicePackEntry{}
 }

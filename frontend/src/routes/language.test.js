@@ -219,6 +219,7 @@ describe('interface language', () => {
 		await waitFor(() => expect(call).toHaveBeenCalledWith('Lookup', ''));
 		deliver({ SearchID: 'search-1', Language: 'en', Result: { Status: 'source_unavailable' } });
 		deliver({ SearchID: 'search-1', Language: 'es', Result: { Status: 'not_found' } });
+		deliver({ SearchID: 'search-1', Language: 'fr', Result: { Status: 'not_found' } });
 		await screen.findByText('The dictionary is unavailable. Check your connection and try again.');
 		// when
 		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');

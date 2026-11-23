@@ -115,10 +115,10 @@ func (a *App) Lookup(query string) (string, error) {
 	a.searchNumber++
 	a.searchQuery = query
 	id := core.SearchID(fmt.Sprint(a.searchNumber))
-	a.attempts = map[core.Language]core.AttemptID{core.English: 1, core.Spanish: 1}
+	a.attempts = map[core.Language]core.AttemptID{core.English: 1, core.Spanish: 1, core.French: 1}
 	a.attemptCancels = make(map[core.Language]context.CancelFunc)
 	a.attemptContexts = make(map[core.Language]context.Context)
-	for _, language := range []core.Language{core.English, core.Spanish} {
+	for _, language := range []core.Language{core.English, core.Spanish, core.French} {
 		child, stop := context.WithCancel(ctx)
 		a.attemptContexts[language], a.attemptCancels[language] = child, stop
 	}
@@ -129,7 +129,7 @@ func (a *App) Lookup(query string) (string, error) {
 	return string(id), nil
 }
 func (a *App) RetryLanguage(id, query string, language core.Language) error {
-	if language != core.English && language != core.Spanish {
+	if language != core.English && language != core.Spanish && language != core.French {
 		return fmt.Errorf("unsupported language")
 	}
 	a.mu.Lock()
@@ -359,15 +359,16 @@ func main() {
 		return
 	}
 	installer := &adapters.Installer{Dir: filepath.Join(xdg.DataHome, "wdict", "dictionaries")}
-	spanish := &adapters.Installer{Dir: installer.Dir, Spanish: true}
+	spanish := &adapters.Installer{Dir: installer.Dir, Language: core.Spanish}
+	french := &adapters.Installer{Dir: installer.Dir, Language: core.French}
 	go func() {
-		for _, i := range []*adapters.Installer{installer, spanish} {
+		for _, i := range []*adapters.Installer{installer, spanish, french} {
 			if err := i.Recover(); err != nil {
 				log.Printf("dictionary recovery: %v", err)
 			}
 		}
 	}()
-	catalog := &adapters.Catalog{English: installer, Spanish: spanish}
+	catalog := &adapters.Catalog{English: installer, Spanish: spanish, French: french}
 	memory := &adapters.MemoryCache{}
 	disk := diskCache(os.UserCacheDir)
 	piperDir := filepath.Join(xdg.DataHome, "wdict", "piper")
@@ -387,16 +388,17 @@ func main() {
 		}
 	}
 	playback := &core.PronunciationAudioService{Piper: piper, Voices: espeak, Player: &adapters.NativeAudioPlayer{}}
-	bilingual := &core.BilingualService{Sources: sourceResolver{english: core.LanguageSources{Offline: &adapters.OfflineDictionary{IFO: installer.CurrentIFO(), Source: adapters.DictionarySourceInfo}, Online: adapters.OnlineDictionary{}, Provider: "free-dictionary-api"}, spanish: core.LanguageSources{Offline: &adapters.OfflineDictionary{IFO: spanish.CurrentIFO(), Source: adapters.SpanishDictionarySourceInfo, Language: core.Spanish}, Online: adapters.SpanishOnlineDictionary{}, Provider: "spanish-wiktionary"}}, Memory: memory, Disk: disk, Clock: clock{}}
+	bilingual := &core.BilingualService{Sources: sourceResolver{english: core.LanguageSources{Offline: &adapters.OfflineDictionary{IFO: installer.CurrentIFO(), Source: adapters.DictionarySourceInfo}, Online: adapters.OnlineDictionary{}, Provider: "free-dictionary-api"}, spanish: core.LanguageSources{Offline: &adapters.OfflineDictionary{IFO: spanish.CurrentIFO(), Source: adapters.SpanishDictionarySourceInfo, Language: core.Spanish}, Online: adapters.SpanishOnlineDictionary{}, Provider: "spanish-wiktionary"}, french: core.LanguageSources{Offline: &adapters.OfflineDictionary{IFO: french.CurrentIFO(), Source: adapters.FrenchDictionarySourceInfo, Language: core.French}, Online: adapters.FrenchOnlineDictionary{}, Provider: "french-wiktionary"}}, Memory: memory, Disk: disk, Clock: clock{}}
 	appService := &App{
 		dictionaries:  &core.DictionaryService{Catalog: catalog, Installer: catalog},
 		playback:      playback,
 		voices:        &core.VoiceService{Catalog: voicePacks, Installer: voicePacks},
 		bilingual:     bilingual,
-		dictionaryIFO: map[core.Language]string{core.English: installer.CurrentIFO(), core.Spanish: spanish.CurrentIFO()},
+		dictionaryIFO: map[core.Language]string{core.English: installer.CurrentIFO(), core.Spanish: spanish.CurrentIFO(), core.French: french.CurrentIFO()},
 		alternatives: map[core.Language]core.Alternatives{
 			core.English: &core.AlternativesService{Index: &adapters.StarDictHeadwordIndex{IFO: installer.CurrentIFO(), Language: core.English}},
 			core.Spanish: &core.AlternativesService{Index: &adapters.StarDictHeadwordIndex{IFO: spanish.CurrentIFO(), Language: core.Spanish}},
+			core.French:  &core.AlternativesService{Index: &adapters.StarDictHeadwordIndex{IFO: french.CurrentIFO(), Language: core.French}},
 		},
 	}
 
@@ -420,7 +422,7 @@ func main() {
 	}
 }
 
-type sourceResolver struct{ english, spanish core.LanguageSources }
+type sourceResolver struct{ english, spanish, french core.LanguageSources }
 
 func (r sourceResolver) Resolve(language core.Language) (core.LanguageSources, error) {
 	switch language {
@@ -428,6 +430,8 @@ func (r sourceResolver) Resolve(language core.Language) (core.LanguageSources, e
 		return r.english, nil
 	case core.Spanish:
 		return r.spanish, nil
+	case core.French:
+		return r.french, nil
 	default:
 		return core.LanguageSources{}, fmt.Errorf("unsupported language")
 	}

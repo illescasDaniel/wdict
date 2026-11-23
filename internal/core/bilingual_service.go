@@ -15,7 +15,7 @@ type BilingualService struct {
 
 func (s *BilingualService) Lookup(ctx context.Context, request BilingualRequest, deliver func(LanguageOutcome)) error {
 	var wg sync.WaitGroup
-	for _, language := range []Language{English, Spanish} {
+	for _, language := range []Language{English, Spanish, French} {
 		wg.Add(1)
 		go func(l Language) { defer wg.Done(); _ = s.RetryLanguage(ctx, request, l, deliver) }(language)
 	}
@@ -23,7 +23,7 @@ func (s *BilingualService) Lookup(ctx context.Context, request BilingualRequest,
 	return ctx.Err()
 }
 func (s *BilingualService) RetryLanguage(ctx context.Context, request BilingualRequest, language Language, deliver func(LanguageOutcome)) error {
-	if language != English && language != Spanish {
+	if language != English && language != Spanish && language != French {
 		return errors.New("unsupported language")
 	}
 	// Validate before resolving any sources.

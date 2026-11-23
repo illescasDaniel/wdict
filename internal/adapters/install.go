@@ -28,6 +28,8 @@ const dictionarySize int64 = 142487509
 const dictionaryVersion = "20261018"
 const dictionaryID = "wiktionary-en-20261018"
 
+var FrenchDictionarySourceInfo = core.Source{ID: "wiktionary-fr-20261018", Name: "Wiktionnaire Français-Français", URL: "https://fr.wiktionary.org/", Attribution: "Wiktionary contributors, CC BY-SA 4.0; compiled by xxyzz; adapted by wdict", LicenseURL: "https://creativecommons.org/licenses/by-sa/4.0/", AdditionalURLs: []string{"https://xxyzz.github.io/wiktionary_stardict/"}}
+
 var SpanishDictionarySourceInfo = core.Source{ID: "wiktionary-es-20261018", Name: "Wikcionario Español-Español", URL: "https://es.wiktionary.org/", Attribution: "Wiktionary contributors, CC BY-SA 4.0; compiled by xxyzz; adapted by wdict", LicenseURL: "https://creativecommons.org/licenses/by-sa/4.0/", AdditionalURLs: []string{"https://xxyzz.github.io/wiktionary_stardict/"}}
 var DictionarySourceInfo = core.Source{ID: dictionaryID, Name: "Wiktionary English-English", URL: "https://en.wiktionary.org/", Attribution: "Wiktionary contributors, CC BY-SA 4.0; compiled by xxyzz; adapted by wdict", LicenseURL: "https://creativecommons.org/licenses/by-sa/4.0/", AdditionalURLs: []string{"https://xxyzz.github.io/wiktionary_stardict/"}}
 
@@ -36,7 +38,7 @@ type Installer struct {
 	Client          *http.Client
 	mu              sync.Mutex
 	packageOverride *packageMetadata // injected only by package tests
-	Spanish         bool
+	Language        core.Language
 }
 
 type packageMetadata struct {
@@ -45,19 +47,28 @@ type packageMetadata struct {
 }
 
 func (i *Installer) base() string {
-	if i.Spanish {
+	if i.Language == core.French {
+		return "fr-fr"
+	}
+	if i.Language == core.Spanish {
 		return "es-es"
 	}
 	return "en-en"
 }
 func (i *Installer) version() string {
-	if i.Spanish {
+	if i.Language == core.French {
+		return "fr-20261018"
+	}
+	if i.Language == core.Spanish {
 		return "es-20261018"
 	}
 	return dictionaryVersion
 }
 func (i *Installer) id() core.DictionaryID {
-	if i.Spanish {
+	if i.Language == core.French {
+		return "wiktionary-fr-20261018"
+	}
+	if i.Language == core.Spanish {
 		return "wiktionary-es-20261018"
 	}
 	return dictionaryID
@@ -66,7 +77,10 @@ func (i *Installer) metadata() packageMetadata {
 	if i.packageOverride != nil {
 		return *i.packageOverride
 	}
-	if i.Spanish {
+	if i.Language == core.French {
+		return packageMetadata{URL: "https://github.com/xxyzz/wiktionary_stardict/releases/download/20261018/fr-fr.tar.zst", SHA: "f08c1004209f38aea1bb07c1363003159a200200e0343a59fe04463cde3e9513", Size: 86864423}
+	}
+	if i.Language == core.Spanish {
 		return packageMetadata{URL: "https://github.com/xxyzz/wiktionary_stardict/releases/download/20261018/es-es.tar.zst", SHA: "0319285758d5d40022c3cc00c0e414b2d60883a1c1ae0bd53378789443c48676", Size: 23446485}
 	}
 	return packageMetadata{URL: dictionaryURL, SHA: dictionarySHA, Size: dictionarySize}
@@ -112,7 +126,10 @@ func (i *Installer) Recover() error {
 }
 func (i *Installer) List(_ context.Context) ([]core.Dictionary, error) {
 	err := i.validateInstalled()
-	if i.Spanish {
+	if i.Language == core.French {
+		return []core.Dictionary{{ID: i.id(), Name: "Wiktionary French-French", Language: "fr", Source: FrenchDictionarySourceInfo, Version: dictionaryVersion, License: "CC BY-SA 4.0", DownloadBytes: i.metadata().Size, Installed: err == nil}}, nil
+	}
+	if i.Language == core.Spanish {
 		return []core.Dictionary{{ID: i.id(), Name: "Wiktionary Spanish-Spanish", Language: "es", Source: SpanishDictionarySourceInfo, Version: dictionaryVersion, License: "CC BY-SA 4.0", DownloadBytes: i.metadata().Size, Installed: err == nil}}, nil
 	}
 	return []core.Dictionary{{ID: dictionaryID, Name: "Wiktionary English-English", Language: "en", Source: DictionarySourceInfo, Version: dictionaryVersion, License: "CC BY-SA 4.0", DownloadBytes: dictionarySize, Installed: err == nil}}, nil
@@ -228,7 +245,10 @@ func (i *Installer) Download(ctx context.Context, id core.DictionaryID, progress
 		return fmt.Errorf("invalid dictionary: %w", err)
 	}
 	sample := "hello"
-	if i.Spanish {
+	if i.Language == core.French {
+		sample = "bonjour"
+	}
+	if i.Language == core.Spanish {
 		sample = "casa"
 	}
 	entries, err := d.Search(sample)

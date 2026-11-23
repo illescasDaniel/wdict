@@ -17,7 +17,7 @@ func TestGivenRealSpanishArchiveWhenInstalledThenDefinitionsWorkOffline(t *testi
 	if archive == "" {
 		t.Skip("set WDICT_TEST_SPANISH_ARCHIVE to the publisher archive")
 	}
-	installer := &Installer{Dir: t.TempDir(), Spanish: true, Client: &http.Client{Transport: archiveTransport{archive}}}
+	installer := &Installer{Dir: t.TempDir(), Language: core.Spanish, Client: &http.Client{Transport: archiveTransport{archive}}}
 	if err := installer.Download(context.Background(), installer.id(), nil); err != nil {
 		t.Fatal(err)
 	}

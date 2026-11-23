@@ -36,7 +36,7 @@ func (i *StarDictHeadwordIndex) IterateHeadwords(ctx context.Context, language c
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if language != i.Language || (language != core.English && language != core.Spanish) {
+	if language != i.Language || (language != core.English && language != core.Spanish && language != core.French) {
 		return errors.New("dictionary language mismatch")
 	}
 	if visit == nil {

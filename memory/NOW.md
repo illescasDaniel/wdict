@@ -1,14 +1,14 @@
 # Now
-Updated: 2026-11-20
+Updated: 2026-11-23
 
 ## Doing
-- README simplified on main; detailed build, testing, voices, sources and release guidance moved to docs. Awaiting user review before any push.
+- Nothing in progress. French support (lookup, interface, Piper and eSpeak voice, morphology and spelling alternatives) is committed. Gate passes. Last independent grade was NEEDS WORK; findings G4 to G9 were fixed afterwards and not re-graded. See `sdd/french-support.html`.
 
 ## Done recently
+- README simplified on main; detailed build, testing, voices, sources and release guidance moved to docs. Awaiting user review before any push.
 - macOS support and unsigned app packaging merged to main; Linux and macOS CI passed and uploaded the Apple silicon ZIP.
-- README distinguishes the v0.8.4 development version from the v0.8.3 release; a Sol review checked the platform instructions.
 
 ## Next
-- User reviews the README commit.
+- (User) Review the French support verification report; remaining gaps: real-window checks, older-binary rollback, French pronunciation quality, no re-grade after the G4-G9 fixes. French alternatives now take about 0.5-0.7 s on the real index (fold fast path); slower hardware has less margin under the 2 s deadline.
 - The user has verified that the native macOS GUI and audible playback work. Cross-distribution AppImage and bundled-licence checks remain open.
 - (Mine) Check release readiness and the npm audit hold before publishing a release.

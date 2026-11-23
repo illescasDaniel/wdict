@@ -28,7 +28,7 @@ func (s *AlternativesService) FindAlternatives(parent context.Context, req Alter
 		return result, err
 	}
 	query := strings.TrimSpace(req.Query)
-	if query == "" || !utf8.ValidString(req.Query) || strings.IndexFunc(query, unicode.IsControl) >= 0 || utf8.RuneCountInString(query) > 64 || (req.Language != English && req.Language != Spanish) || s.Index == nil {
+	if query == "" || !utf8.ValidString(req.Query) || strings.IndexFunc(query, unicode.IsControl) >= 0 || utf8.RuneCountInString(query) > 64 || (req.Language != English && req.Language != Spanish && req.Language != French) || s.Index == nil {
 		return result, nil
 	}
 	ctx, cancel := context.WithTimeout(parent, 2*time.Second)
@@ -40,11 +40,14 @@ func (s *AlternativesService) FindAlternatives(parent context.Context, req Alter
 	isPhrase := strings.Contains(query, " ")
 	bases := alternativeBases(query, req.Language)
 	foldedBases := make([]string, len(bases))
-	foundBases := make([]string, len(bases))
+	foundBases := make([][]string, len(bases))
+	const maxBaseVariants = 128
 	for i, b := range bases {
 		foldedBases[i] = alternativeFold(b)
 	}
 	best := make([]rankedAlternative, 0, 5)
+	// Reused across headwords: zeroing a fresh array per entry is costly.
+	var candidateBuffer [1024]rune
 	err := s.Index.IterateHeadwords(ctx, req.Language, func(word string) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -67,14 +70,16 @@ func (s *AlternativesService) FindAlternatives(parent context.Context, req Alter
 		}
 		wordFold := alternativeFold(word)
 		for i, base := range foldedBases {
-			if base == wordFold && (foundBases[i] == "" || word < foundBases[i]) {
-				foundBases[i] = word
+			if base == wordFold && !containsAlternative(foundBases[i], word) {
+				if len(foundBases[i]) >= maxBaseVariants {
+					return errors.New("too many base variants")
+				}
+				foundBases[i] = append(foundBases[i], word)
 			}
 		}
 		if !matchingPhrase {
 			return nil
 		}
-		var candidateBuffer [1024]rune
 		candidate := candidateBuffer[:0]
 		for _, r := range wordFold {
 			if len(candidate) >= len(q)+2 {
@@ -119,9 +124,12 @@ func (s *AlternativesService) FindAlternatives(parent context.Context, req Alter
 		return result, nil
 	}
 	result.Status = AlternativesReady
-	for _, word := range foundBases {
-		if word != "" && !containsAlternative(result.BaseForms, word) {
-			result.BaseForms = append(result.BaseForms, word)
+	for _, variants := range foundBases {
+		sort.Strings(variants)
+		for _, word := range variants {
+			if !containsAlternative(result.BaseForms, word) {
+				result.BaseForms = append(result.BaseForms, word)
+			}
 		}
 	}
 	for _, r := range best {
@@ -145,11 +153,16 @@ func alternativeBases(query string, language Language) []string {
 		suffixes = []string{"s", "es", "ed", "ing"}
 	case Spanish:
 		suffixes = []string{"s", "es"}
+	case French:
+		suffixes = []string{"s", "x"}
 	default:
 		return nil
 	}
 	query = strings.ToLower(query)
 	var out []string
+	if language == French && strings.HasSuffix(query, "aux") && len(query) > len("aux") {
+		out = append(out, strings.TrimSuffix(query, "aux")+"al")
+	}
 	for _, suffix := range suffixes {
 		if strings.HasSuffix(query, suffix) && len(query) > len(suffix) {
 			stem := strings.TrimSuffix(query, suffix)
@@ -164,10 +177,87 @@ func alternativeBases(query string, language Language) []string {
 	return out
 }
 
+// alternativeFoldTable caches the slow fold of every single Latin-1 or Latin
+// Extended-A rune, so common accented names avoid Unicode normalization.
+// foldSimple marks runes whose fold is context-free (no whitespace).
+var alternativeFoldTable = func() (t [0x180]string) {
+	for r := rune(0); r < 0x180; r++ {
+		if unicode.IsSpace(r) || unicode.IsControl(r) || unicode.Is(unicode.Mn, r) || r == 0x85 || r == 0xA0 {
+			continue
+		}
+		t[r] = alternativeFoldSlow(string(r))
+		if t[r] == "" && !unicode.IsPunct(r) {
+			t[r] = "\x00" // unexpected: force slow path
+		}
+	}
+	return t
+}()
+
+// alternativeFoldFast folds names made of single spaces and runes from the
+// precomputed table. ok is false when the slow path is required.
+func alternativeFoldFast(s string) (string, bool) {
+	if len(s) == 0 || s[0] == ' ' || s[len(s)-1] == ' ' {
+		return "", false
+	}
+	var buf [64]byte
+	out := buf[:0]
+	prevSpace := false
+	for i := 0; i < len(s); {
+		c := s[i]
+		if c < utf8.RuneSelf {
+			i++
+			if c == ' ' {
+				if prevSpace {
+					return "", false
+				}
+				prevSpace = true
+				out = append(out, ' ')
+				continue
+			}
+			prevSpace = false
+			if (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') {
+				out = append(out, c)
+				continue
+			}
+			if c >= 'A' && c <= 'Z' {
+				out = append(out, c+'a'-'A')
+				continue
+			}
+			if f := alternativeFoldTable[c]; f != "" && f != "\x00" {
+				out = append(out, f...)
+				continue
+			}
+			if unicode.IsPunct(rune(c)) {
+				continue
+			}
+			return "", false
+		}
+		r, size := utf8.DecodeRuneInString(s[i:])
+		if r == utf8.RuneError || r >= 0x180 {
+			return "", false
+		}
+		f := alternativeFoldTable[r]
+		if f == "" || f == "\x00" {
+			return "", false
+		}
+		prevSpace = false
+		out = append(out, f...)
+		i += size
+	}
+	return string(out), true
+}
+
 func alternativeFold(s string) string {
 	if alternativePlainASCII(s) {
 		return strings.ToLower(s)
 	}
+	if f, ok := alternativeFoldFast(s); ok {
+		return f
+	}
+	return alternativeFoldSlow(s)
+}
+
+func alternativeFoldSlow(s string) string {
 	s = cases.Fold().String(norm.NFD.String(s))
 	s = strings.Join(strings.Fields(s), " ")
 	return strings.Map(func(r rune) rune {

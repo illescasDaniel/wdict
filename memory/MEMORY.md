@@ -10,6 +10,7 @@ Converted 2026-11-16 from the agemem project memory (the old files and `.agemem/
 - [Releases and packaging](topics/releases-and-packaging.md) 10 notes: release workflow, AppImage, versions, CI
 
 ## Decisions
+- [French support includes automatic lookup, a French interface, a French Piper voice and bounded morphology alternatives](notes/french-language-support-scope.md) 2026-11-21
 - [AppImage is built with the pinned Wails v3.0.0 generator plus scripts/build-appimage.sh; l](notes/appimage-wails3-generator.md) 2026-10-27
 - [wdict is a Linux-first desktop dictionary built with Wails v3, Go and SvelteKit, English a](notes/dictionary-app-direction.md) 2026-10-27
 - [Offline dictionaries are xxyzz Wiktionary StarDict releases (20261018); first lookup uses](notes/offline-dictionary-xxyzz-stardict.md) 2026-10-27

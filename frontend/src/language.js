@@ -6,7 +6,7 @@ export const resources = {
       offlineDictionaries: "Offline content",
       backLookup: "← Look up",
       heading: "Look up a word",
-      intro: "Find English and Spanish definitions for words and phrases.",
+      intro: "Find English, Spanish and French definitions for words and phrases.",
       query: "Word or phrase",
       queryPlaceholder: "Enter a word or phrase",
       lookup: "Look up",
@@ -21,6 +21,10 @@ export const resources = {
       lookupFailed: "The dictionary is unavailable. Please try again.",
       english: "English",
       spanish: "Spanish",
+      french: "French",
+      englishInline: "English",
+      spanishInline: "Spanish",
+      frenchInline: "French",
       staleResult: "Stale saved result",
       offlineResult: "Offline result",
       onlineResult: "Online result",
@@ -100,7 +104,7 @@ export const resources = {
       backLookup: "← Buscar",
       heading: "Buscar una palabra",
       intro:
-        "Encuentra definiciones en inglés y español de palabras y expresiones.",
+        "Encuentra definiciones en inglés, español y francés de palabras y expresiones.",
       query: "Palabra o expresión",
       queryPlaceholder: "Introduce una palabra o expresión",
       lookup: "Buscar",
@@ -117,6 +121,10 @@ export const resources = {
       lookupFailed: "El diccionario no está disponible. Vuelve a intentarlo.",
       english: "Inglés",
       spanish: "Español",
+      french: "Francés",
+      englishInline: "Inglés",
+      spanishInline: "Español",
+      frenchInline: "Francés",
       staleResult: "Resultado guardado desactualizado",
       offlineResult: "Resultado sin conexión",
       onlineResult: "Resultado en línea",
@@ -195,14 +203,111 @@ export const resources = {
       voiceBlockedRuntimeFirst: "Descarga primero el runtime de Piper.",
     },
   },
+  fr: {
+    translation: {
+      offlineDictionaries: "Contenu hors ligne",
+      backLookup: "← Rechercher",
+      heading: "Rechercher un mot",
+      intro: "Trouvez des définitions en anglais, espagnol et français pour des mots et expressions.",
+      query: "Mot ou expression",
+      queryPlaceholder: "Saisissez un mot ou une expression",
+      lookup: "Rechercher",
+      privacy: "Si un dictionnaire hors ligne ou une entrée enregistrée ne peut pas répondre à votre recherche, celle-ci peut être envoyée au dictionnaire en ligne.",
+      searching: "Recherche…",
+      invalidQuery: "Saisissez un mot ou une expression de 256 caractères maximum.",
+      sourceUnavailable: "Le dictionnaire est indisponible. Vérifiez votre connexion et réessayez.",
+      silentUnavailable: "Aucune définition disponible pour le moment.",
+      notFound: "Aucune entrée trouvée. Essayez un autre mot ou une autre expression.",
+      lookupFailed: "Le dictionnaire est indisponible. Veuillez réessayer.",
+      english: "Anglais",
+      spanish: "Espagnol",
+      french: "Français",
+      englishInline: "anglais",
+      spanishInline: "espagnol",
+      frenchInline: "français",
+      staleResult: "Résultat enregistré périmé",
+      offlineResult: "Résultat hors ligne",
+      onlineResult: "Résultat en ligne",
+      savedResult: "Résultat enregistré",
+      source: "Source",
+      pronunciation: "Prononciation",
+      pronunciationUnavailable: "Prononciation indisponible dans cette source",
+      readWordAloud: "Lire le mot à voix haute",
+      spellingSynthesized: "Voix synthétisée à partir de l’orthographe ; prononciation de la source indisponible",
+      spellingNoSource: "eSpeak-NG est indisponible. Installez-le ou utilisez l’AppImage pour lire ce mot.",
+      spellingNoSynthesis: "Impossible de synthétiser ce mot. Réessayez.",
+      playPronunciation: "Écouter la prononciation",
+      recordingSource: "Enregistrement",
+      playbackFailed: "Échec de la lecture de la prononciation. Réessayez.",
+      playbackNoSource: "eSpeak-NG n’est pas installé. Installez-le ou utilisez l’AppImage pour écouter cette transcription.",
+      playbackNoSynthesis: "Impossible de synthétiser cette prononciation.",
+      license: "Licence",
+      moreInformation: "Plus d’informations",
+      missingAttribution: "Les informations de source ou de licence sont indisponibles pour cette entrée enregistrée.",
+      languageUnavailable: "Recherche en ligne en {{language}} indisponible.",
+      retryLanguage: "Réessayer en {{language}}",
+      searchingLanguage: "Recherche en {{language}}…",
+      noDefinition: "Aucune définition trouvée.",
+      checkingAlternatives: "Recherche d’autres possibilités…",
+      alternativesUnavailable: "Suggestions indisponibles pour le moment.",
+      alternativesTimedOut: "Le délai de recherche des suggestions est dépassé.",
+      alternativesNeedDictionary: "Installez le dictionnaire hors ligne pour voir les suggestions.",
+      noAlternatives: "Aucune suggestion trouvée.",
+      possibleBaseForms: "Formes de base possibles",
+      didYouMean: "Vouliez-vous dire ?",
+      previousResult: "Résultat précédent pour « {{query}} »",
+      offlineHeading: "Rechercher hors ligne",
+      offlineIntro: "Téléchargez des dictionnaires pour obtenir des définitions hors ligne.",
+      viewDictionaries: "Voir les dictionnaires hors ligne →",
+      dictionariesIntro: "Téléchargez un dictionnaire pour rechercher des mots sans connexion.",
+      metadataUnavailable: "Impossible de charger les informations des dictionnaires.",
+      retryMetadata: "Réessayer de charger les informations des dictionnaires",
+      installed: "Installé",
+      installing: "Installation",
+      downloading: "Téléchargement",
+      notInstalled: "Non installé",
+      dictionaryLanguage: "Langue : définitions en {{language}}",
+      downloadLabel: "Télécharger",
+      dictionaryDownload: "Téléchargement du dictionnaire",
+      progress: "{{read}} Mo sur {{total}} Mo",
+      checking: "Vérification et installation du dictionnaire…",
+      tryAgain: "Réessayer",
+      ready: "Prêt à être utilisé hors ligne.",
+      installationFailed: "Impossible d’installer le dictionnaire. Vérifiez votre connexion et l’espace disponible, puis réessayez.",
+      voiceInstallationFailed: "Impossible d’installer la voix. Vérifiez votre connexion et l’espace disponible, puis réessayez.",
+      continueLookup: "Vous pouvez continuer à rechercher des mots pendant le téléchargement.",
+      loadingMetadata: "Chargement des informations des dictionnaires…",
+      language: "Langue",
+      appearance: "Apparence",
+      system: "Système",
+      light: "Clair",
+      dark: "Sombre",
+      naturalVoices: "Voix naturelles",
+      piperOptional: "Piper · facultatif",
+      voiceDownload: "Téléchargement des voix naturelles",
+      voiceBlockedPythonMissing: "Python 3 est nécessaire pour les voix naturelles. Installez Python 3 et réessayez.",
+      voiceBlockedRuntimeFirst: "Téléchargez d’abord le moteur Piper.",
+    },
+  },
 };
+
+// Messages that embed a language name inside a sentence. The page passes the
+// standalone (title-case) label as `language`; these messages use the
+// `<name>Inline` form instead, which French needs in lowercase.
+const inlineLanguageMessages = new Set([
+  "languageUnavailable",
+  "retryLanguage",
+  "searchingLanguage",
+  "dictionaryLanguage",
+]);
+const languageLabelKeys = ["english", "spanish", "french"];
 
 export function createLanguageController(storage) {
   const i18n = createInstance();
   let language = "en";
   try {
     const saved = storage?.getItem("wdict-language");
-    if (saved === "es" || saved === "en") language = saved;
+    if (["en", "es", "fr"].includes(saved)) language = saved;
   } catch {}
   i18n.init({
     resources,
@@ -222,10 +327,14 @@ export function createLanguageController(storage) {
       return language;
     },
     translate(key, options) {
+      if (inlineLanguageMessages.has(key) && typeof options?.language === "string") {
+        const labelKey = languageLabelKeys.find((name) => i18n.t(name) === options.language);
+        if (labelKey) options = { ...options, language: i18n.t(`${labelKey}Inline`) };
+      }
       return i18n.t(key, options);
     },
     async setLanguage(next) {
-      if (next !== "en" && next !== "es") return;
+      if (!["en", "es", "fr"].includes(next)) return;
       await i18n.changeLanguage(next);
       language = next;
       for (const subscriber of subscribers) subscriber(language);

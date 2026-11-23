@@ -6,6 +6,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"golang.org/x/text/unicode/norm"
 )
 
 // PlayRequest carries one transcription item from the pronunciation line.
@@ -81,6 +83,7 @@ var voiceForFlag = func() map[string]string {
 var languageVoices = map[Language]string{
 	English: "en-us",
 	Spanish: "es",
+	French:  "fr-fr",
 }
 
 // VoiceForAccent maps an accent label to an eSpeak voice (C5): the same
@@ -98,7 +101,10 @@ func VoiceForAccent(language Language, accentTitle string) (voice string) {
 			return defaultVoice(language)
 		}
 		runes := []rune(title)
-		return voiceForFlag[string(runes[0:2])]
+		if voice := voiceForFlag[string(runes[0:2])]; voice != "" {
+			return voice
+		}
+		return defaultVoice(language)
 	}
 	for _, part := range strings.Split(title, ",") {
 		name := strings.ToLower(strings.TrimSpace(part))
@@ -149,6 +155,9 @@ func StripPronunciationDelimiters(text string) string {
 // schwa-plus-sonorant sequence. Phones no engine of the language speaks are
 // rejected so playback falls back instead of synthesising untrained noise.
 func NormalizePiperIPA(language Language, ipa string) (string, bool) {
+	if language == French {
+		return normalizeFrenchPiperIPA(ipa)
+	}
 	if language != English && language != Spanish {
 		return "", false
 	}
@@ -307,6 +316,67 @@ func NormalizePiperIPA(language Language, ipa string) (string, bool) {
 	return out.String(), true
 }
 
+// normalizeFrenchPiperIPA preserves nasality and explicit stress. For an
+// isolated word lacking stress, use its final vowel; phrase stress is not guessed.
+func normalizeFrenchPiperIPA(ipa string) (string, bool) {
+	text := norm.NFD.String(StripPronunciationDelimiters(ipa))
+	var b strings.Builder
+	pending := rune(0)
+	for _, r := range text {
+		if strings.ContainsRune(".͜͡‿-", r) {
+			continue
+		}
+		if r == 'ˈ' || r == 'ˌ' {
+			if pending != 0 {
+				return "", false
+			}
+			pending = r
+			continue
+		}
+		if unicode.IsSpace(r) {
+			if pending != 0 {
+				return "", false
+			}
+			b.WriteRune(' ')
+			continue
+		}
+		if unicode.Is(unicode.Mn, r) && r != '̃' {
+			return "", false
+		}
+		if !piperSpeakable(French, r) {
+			return "", false
+		}
+		if pending != 0 && isIPAVowel(r) {
+			b.WriteRune(pending)
+			pending = 0
+		}
+		switch r {
+		case 'ɲ':
+			b.WriteString("nj")
+		case 'ɥ':
+			b.WriteRune('y')
+		default:
+			b.WriteRune(r)
+		}
+	}
+	if pending != 0 {
+		return "", false
+	}
+	runes := []rune(strings.Join(strings.Fields(b.String()), " "))
+	if len(runes) == 0 {
+		return "", false
+	}
+	if !strings.ContainsAny(string(runes), "ˈˌ ") && !strings.ContainsRune(text, '‿') {
+		for i := len(runes) - 1; i >= 0; i-- {
+			if isIPAVowel(runes[i]) {
+				runes = append(runes[:i], append([]rune{'ˈ'}, runes[i:]...)...)
+				break
+			}
+		}
+	}
+	return string(runes), true
+}
+
 func isIPAVowel(r rune) bool {
 	// Cover the IPA vowel symbols in the pinned Piper/espeak inventory, not
 	// only the common English/Spanish subset. Stress must move past an onset
@@ -329,6 +399,7 @@ var piperNotation = map[rune]bool{'ˈ': true, 'ˌ': true, 'ː': true, '(': true,
 var piperExtras = map[Language]map[rune]bool{
 	English: {'ɐ': true, 'ʰ': true, 'ʍ': true, 'x': true, 'ʔ': true, 'ᵻ': true},
 	Spanish: {},
+	French:  {'ʁ': true, 'ɥ': true, 'ɲ': true},
 }
 
 // piperTableRunes expands the per-language IPA→mnemonic table keys into the
@@ -405,6 +476,7 @@ func stripNonPhonemic(text string) string {
 // stay inside letters, :, ', @, ^, digits and space (the adapter whitelists
 // that set). Two-symbol keys are matched longest-first.
 var ipaMnemonics = map[Language]map[string]string{
+	French: {"ɑ̃": "A~", "ɛ̃": "E~", "ɔ̃": "O~", "œ̃": "W~", "a": "a", "ɑ": "A", "e": "e", "ɛ": "E", "i": "i", "o": "o", "ɔ": "O", "u": "u", "y": "y", "ø": "2", "œ": "9", "ə": "@", "ʁ": "R", "ɲ": "n^", "ʃ": "S", "ʒ": "Z", "ɥ": "y", "j": "j", "w": "w", "p": "p", "b": "b", "t": "t", "d": "d", "k": "k", "ɡ": "g", "g": "g", "f": "f", "v": "v", "s": "s", "z": "z", "m": "m", "n": "n", "l": "l"},
 	English: {
 		// vowels, longest first in effect: length marks and r-colours
 		"ɑː": "A:", "ɔː": "O:", "ɜː": "3:", "iː": "i:", "uː": "u:",
@@ -461,6 +533,7 @@ func MnemonicTable(language Language) (map[string]string, bool) {
 // Kept beside the tables; the unit tests assert every value exists in the
 // language's table.
 var ipaVowelMnemonics = map[Language]map[string]bool{
+	French: {"A~": true, "E~": true, "O~": true, "W~": true, "a": true, "A": true, "e": true, "E": true, "i": true, "o": true, "O": true, "u": true, "y": true, "2": true, "9": true, "@": true},
 	English: {
 		"a": true, "A:": true, "E": true, "I": true, "i": true, "i:": true,
 		"U": true, "u": true, "u:": true, "V": true, "@": true, "O": true,
@@ -497,6 +570,9 @@ func IPAToMnemonics(language Language, ipa string) (string, bool) {
 	var pieces []string // mnemonics and explicit " " separators, joined empty
 	stress := false     // pending ˈ/ˌ → ' before the next vowel mnemonic
 	text := strings.Join(strings.Fields(StripPronunciationDelimiters(ipa)), " ")
+	if language == French {
+		text = norm.NFD.String(text)
+	}
 	for i := 0; i < len(text); {
 		r, size := utf8.DecodeRuneInString(text[i:])
 		switch {

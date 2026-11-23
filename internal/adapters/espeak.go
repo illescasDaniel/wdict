@@ -67,7 +67,7 @@ func (e *EspeakVoices) SpeakText(ctx context.Context, voice, text string) ([]byt
 
 // espeakMnemonicCharset matches exactly the characters core.IPAToMnemonics can
 // emit (defense in depth: the subprocess input is whitelisted at the edge).
-var espeakMnemonicCharset = regexp.MustCompile(`^[A-Za-z0-9:'@^#\[\] ]+$`)
+var espeakMnemonicCharset = regexp.MustCompile(`^[A-Za-z0-9:'@^#~\[\] ]+$`)
 
 // SpeakPhonemes speaks eSpeak mnemonic phonemes (C5, revision 3) and returns
 // the WAV bytes. The input is passed as raw text wrapped in [[…]] — without

@@ -85,7 +85,15 @@ func (d *OfflineDictionary) Find(ctx context.Context, query string, language cor
 		}
 		for payload, data := range word.Data {
 			if data.Type == dict.HTMLType {
-				if language == core.Spanish {
+				if language == core.French {
+					document, parseErr := html.Parse(strings.NewReader(string(data.Data)))
+					if parseErr != nil {
+						return nil, false, parseErr
+					}
+					extracted, pronunciations, _, _ := frenchContent(document, true)
+					meanings = append(meanings, extracted...)
+					rawPronunciations = append(rawPronunciations, pronunciations...)
+				} else if language == core.Spanish {
 					document, parseErr := html.Parse(strings.NewReader(string(data.Data)))
 					if parseErr != nil {
 						return nil, false, parseErr
@@ -108,8 +116,11 @@ func (d *OfflineDictionary) Find(ctx context.Context, query string, language cor
 		}
 		if len(meanings) > 0 {
 			source := d.Source
-			if source.ID == dictionaryID || source.ID == "wiktionary-es-20261018" {
+			if source.ID == dictionaryID || source.ID == "wiktionary-es-20261018" || source.ID == "wiktionary-fr-20261018" {
 				host := "https://en.wiktionary.org/wiki/"
+				if language == "fr" {
+					host = "https://fr.wiktionary.org/wiki/"
+				}
 				if language == "es" {
 					host = "https://es.wiktionary.org/wiki/"
 				}

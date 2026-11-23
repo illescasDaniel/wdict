@@ -25,8 +25,8 @@ func (f languageSource) Find(c context.Context, q string, l Language) ([]Entry, 
 }
 func TestGivenIndependentLanguagesWhenOneIsSlowThenOtherArrivesFirst(t *testing.T) {
 	release := make(chan struct{})
-	started := make(chan Language, 2)
-	outcomes := make(chan LanguageOutcome, 2)
+	started := make(chan Language, 3)
+	outcomes := make(chan LanguageOutcome, 3)
 	source := languageSource(func(ctx context.Context, q string, l Language) ([]Entry, bool, error) {
 		started <- l
 		if l == Spanish {
@@ -38,20 +38,25 @@ func TestGivenIndependentLanguagesWhenOneIsSlowThenOtherArrivesFirst(t *testing.
 		}
 		return []Entry{{Headword: q, Language: l, Meanings: []Meaning{{Definitions: []string{"definition"}}}}}, true, nil
 	})
-	svc := BilingualService{Sources: bilingualResolver{English: {Online: source, Provider: "en"}, Spanish: {Online: source, Provider: "es"}}, Clock: fakeClock{now: time.Now()}}
+	svc := BilingualService{Sources: bilingualResolver{English: {Online: source, Provider: "en"}, Spanish: {Online: source, Provider: "es"}, French: {Online: source, Provider: "fr"}}, Clock: fakeClock{now: time.Now()}}
 	done := make(chan error, 1)
 	go func() {
 		done <- svc.Lookup(context.Background(), BilingualRequest{ID: "1", Query: "casa"}, func(o LanguageOutcome) { outcomes <- o })
 	}()
 	<-started
 	<-started
-	select {
-	case o := <-outcomes:
-		if o.Language != English || o.Result.Status != Found {
-			t.Fatalf("unexpected: %+v", o)
+	<-started
+	seen := map[Language]bool{}
+	for len(seen) < 2 {
+		select {
+		case o := <-outcomes:
+			if o.Language == Spanish || o.Result.Status != Found {
+				t.Fatalf("unexpected: %+v", o)
+			}
+			seen[o.Language] = true
+		case <-time.After(time.Second):
+			t.Fatal("fast result blocked")
 		}
-	case <-time.After(time.Second):
-		t.Fatal("fast result blocked")
 	}
 	close(release)
 	<-done
@@ -71,7 +76,7 @@ func TestGivenInvalidQueryWhenSearchingThenNoSourceIsCalled(t *testing.T) {
 	svc := BilingualService{Sources: bilingualResolver{English: {Online: source}, Spanish: {Online: source}}, Clock: fakeClock{now: time.Now()}}
 	var got []LanguageOutcome
 	err := svc.Lookup(context.Background(), BilingualRequest{ID: "x", Query: " "}, func(o LanguageOutcome) { mu.Lock(); got = append(got, o); mu.Unlock() })
-	if err != nil || calls != 0 || len(got) != 2 || got[0].Result.Status != InvalidQuery || got[1].Result.Status != InvalidQuery {
+	if err != nil || calls != 0 || len(got) != 3 || got[0].Result.Status != InvalidQuery || got[1].Result.Status != InvalidQuery || got[2].Result.Status != InvalidQuery {
 		t.Fatalf("err=%v calls=%d outcomes=%+v", err, calls, got)
 	}
 }
@@ -182,11 +187,11 @@ func TestGivenUnsupportedLanguageWhenRetryingThenNoSourceOrOutcome(t *testing.T)
 		called = true
 		return nil, false, nil
 	})
-	service := BilingualService{Sources: bilingualResolver{Language("fr"): {Online: source}}}
+	service := BilingualService{Sources: bilingualResolver{Language("de"): {Online: source}}}
 	delivered := false
 
 	// When retrying the unsupported language.
-	err := service.RetryLanguage(context.Background(), BilingualRequest{Query: "word"}, Language("fr"), func(LanguageOutcome) {
+	err := service.RetryLanguage(context.Background(), BilingualRequest{Query: "word"}, Language("de"), func(LanguageOutcome) {
 		delivered = true
 	})
 
@@ -209,7 +214,7 @@ func TestGivenSurroundingWhitespaceWhenSearchingThenSourcesReceiveTrimmedQuery(t
 		mu.Unlock()
 		return []Entry{{Headword: q, Language: l, Meanings: []Meaning{{Definitions: []string{"definition"}}}}}, true, nil
 	})
-	svc := BilingualService{Sources: bilingualResolver{English: {Online: source, Provider: "en"}, Spanish: {Online: source, Provider: "es"}}, Clock: fakeClock{now: time.Now()}}
+	svc := BilingualService{Sources: bilingualResolver{English: {Online: source, Provider: "en"}, Spanish: {Online: source, Provider: "es"}, French: {Online: source, Provider: "fr"}}, Clock: fakeClock{now: time.Now()}}
 	var outcomes []LanguageOutcome
 	// when
 	err := svc.Lookup(context.Background(), BilingualRequest{ID: "1", Query: "\thello \n"}, func(o LanguageOutcome) {
@@ -218,7 +223,7 @@ func TestGivenSurroundingWhitespaceWhenSearchingThenSourcesReceiveTrimmedQuery(t
 		mu.Unlock()
 	})
 	// then
-	if err != nil || len(outcomes) != 2 || len(queries) != 2 {
+	if err != nil || len(outcomes) != 3 || len(queries) != 3 {
 		t.Fatalf("err=%v outcomes=%+v queries=%q", err, outcomes, queries)
 	}
 	for _, q := range queries {

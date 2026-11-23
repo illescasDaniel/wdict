@@ -97,7 +97,9 @@ func (s *PronunciationAudioService) resolve(ctx context.Context, request PlayReq
 	}
 	// eSpeak's mnemonic syntax cannot represent all IPA diacritics, so only
 	// this fallback strips marks before converting the transcription.
-	ipa = stripNonPhonemic(ipa)
+	if request.Language != French {
+		ipa = stripNonPhonemic(ipa)
+	}
 	// 2. Voice path.
 	if s.Voices == nil || !s.Voices.Available() {
 		return PlayResult{Message: CopyNoSource}, nil

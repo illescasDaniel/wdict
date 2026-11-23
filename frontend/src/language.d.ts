@@ -1,4 +1,4 @@
-export type InterfaceLanguage = 'en' | 'es';
+export type InterfaceLanguage = 'en' | 'es' | 'fr';
 
 export interface InterfaceLanguageController {
 	subscribe(run: (language: InterfaceLanguage) => void): () => void;

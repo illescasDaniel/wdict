@@ -80,4 +80,11 @@ var voiceCatalog = []voicePackEntry{
 		extraURL: voiceFileURL("es", "es_ES", "sharvard", "medium", "es_ES-sharvard-medium.onnx.json"), extraSHA: "1910940c6b480e0f7cbce5e0da45c8cbe2557ccbfd86a5d22cda141a3b65f521", extraSize: 5486,
 		source: core.Source{ID: "es_ES-sharvard-medium", Name: "Piper voice es_ES-sharvard-medium", URL: voiceFileURL("es", "es_ES", "sharvard", "medium", "es_ES-sharvard-medium.onnx"), Attribution: piperAttribution, LicenseURL: voiceModelCardURL("es", "es_ES", "sharvard", "medium")},
 	},
+	{
+		id: "fr_FR-siwis-medium", kind: core.VoicePackVoice, name: "fr_FR · siwis (medium)", short: "siwis",
+		language: core.French, size: 63221984, sha: "b1d946fd68d0347155fa59bce0a018924abbef3c1561181db45ca463d83963ef",
+		url:      "https://huggingface.co/rhasspy/piper-voices/resolve/0ca208afc2a2ee102b1e961e72e0a7e4907be3d0/fr/fr_FR/siwis/medium/fr_FR-siwis-medium.onnx",
+		extraURL: "https://huggingface.co/rhasspy/piper-voices/resolve/0ca208afc2a2ee102b1e961e72e0a7e4907be3d0/fr/fr_FR/siwis/medium/fr_FR-siwis-medium.onnx.json", extraSHA: "3b3efdbcdcae930c40d8255527170ec5c87bf05e510b67f53d75fd028df40f43", extraSize: 6369,
+		source: core.Source{ID: "fr_FR-siwis-medium", Name: "Piper voice fr_FR-siwis-medium", URL: "https://huggingface.co/rhasspy/piper-voices/blob/0ca208afc2a2ee102b1e961e72e0a7e4907be3d0/fr/fr_FR/siwis/medium/MODEL_CARD", Attribution: "Piper voices, SIWIS and Hi-Fi TTS datasets (CC BY 4.0)", LicenseURL: "https://creativecommons.org/licenses/by/4.0/", AdditionalURLs: []string{"https://datashare.ed.ac.uk/handle/10283/2353", "https://www.openslr.org/109/"}},
+	},
 }

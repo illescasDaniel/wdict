@@ -5,7 +5,9 @@ package adapters
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -98,5 +100,69 @@ func TestGivenRealIndexesWhenSearchingConcurrentlyThenAlternativesAreBounded(t *
 		if len(got.Spelling) > 5 {
 			t.Errorf("%s: too many suggestions: %s", c.language, strings.Join(got.Spelling, ", "))
 		}
+	}
+}
+
+// TestGivenRealFrenchIndexWhenSearchingThenAlternativesArriveWithinDeadline is an
+// opt-in measurement against the installed French index (about 545k headwords
+// plus 1.7M synonyms). Set WDICT_TEST_FR_IFO to the fr-fr.ifo path, or leave it
+// unset to use an installed copy under the default app data directory.
+func TestGivenRealFrenchIndexWhenSearchingThenAlternativesArriveWithinDeadline(t *testing.T) {
+	ifo := os.Getenv("WDICT_TEST_FR_IFO")
+	if ifo == "" {
+		if home, err := os.UserHomeDir(); err == nil {
+			matches, _ := filepath.Glob(filepath.Join(home, ".local", "share", "wdict", "dictionaries", "fr-*", "fr-fr.ifo"))
+			if len(matches) > 0 {
+				sort.Strings(matches)
+				ifo = matches[len(matches)-1]
+			}
+		}
+	}
+	if ifo == "" {
+		t.Skip("French dictionary not installed: set WDICT_TEST_FR_IFO to the installed fr-fr.ifo path")
+	}
+	if _, err := os.Stat(ifo); err != nil {
+		t.Skipf("French dictionary not available: %v", err)
+	}
+	cases := []struct {
+		name, query, expected string
+		base                  bool
+	}{
+		{"plural form", "chevaux", "cheval", true},
+		{"misspelling", "ecolle", "école", false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			svc := core.AlternativesService{Index: &StarDictHeadwordIndex{IFO: ifo, Language: core.French}}
+			started := time.Now()
+			got, err := svc.FindAlternatives(context.Background(), core.AlternativesRequest{Query: c.query, Language: core.French})
+			elapsed := time.Since(started)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Logf("query=%q elapsed=%s status=%s base_forms=%q spelling=%q", c.query, elapsed, got.Status, got.BaseForms, got.Spelling)
+			if got.Status != core.AlternativesReady {
+				t.Fatalf("status = %s, want %s", got.Status, core.AlternativesReady)
+			}
+			if elapsed > 2*time.Second {
+				t.Errorf("elapsed %s exceeds the 2s deadline", elapsed)
+			}
+			words := got.Spelling
+			if c.base {
+				words = got.BaseForms
+			}
+			found := false
+			for _, w := range words {
+				if w == c.expected {
+					found = true
+				}
+			}
+			if !found {
+				t.Errorf("expected %q in %q", c.expected, words)
+			}
+			if len(got.Spelling) > 5 {
+				t.Errorf("too many suggestions: %s", strings.Join(got.Spelling, ", "))
+			}
+		})
 	}
 }

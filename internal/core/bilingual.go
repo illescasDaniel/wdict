@@ -2,17 +2,18 @@ package core
 
 import "context"
 
-// Supported lookup languages. Both are searched for a new user query.
+// Supported lookup languages. All are searched for a new user query.
 const (
 	English Language = "en"
 	Spanish Language = "es"
+	French  Language = "fr"
 )
 
 // SearchID identifies one user search, including its per-language retries.
 // The caller assigns a new ID for every new query and ignores older outcomes.
 type SearchID string
 
-// BilingualRequest starts a search in both supported languages. A retry is a
+// BilingualRequest starts a search in all supported languages. A retry is a
 // separate RetryLanguage call and retains the original search ID and query.
 type BilingualRequest struct {
 	ID    SearchID
@@ -31,7 +32,7 @@ type LanguageOutcome struct {
 
 // BilingualLookup delivers outcomes independently, without waiting for the
 // other language. Callbacks may run concurrently and must be concurrency-safe.
-// Lookup waits for both attempts to finish; cancellation stops pending work.
+// Lookup waits for all attempts to finish; cancellation stops pending work.
 // An invalid query emits InvalidQuery outcomes without consulting any source.
 // RetryLanguage repeats only the requested supported language for the same
 // search, preserving the other outcome. Unsupported languages return an error.

@@ -53,15 +53,17 @@ function mockBackend(implementation) {
           Language: "en",
           Result: value,
         });
-        resultHandler?.({
-          SearchID: id,
-          Query: args[0],
-          Language: "es",
-          Result: {
-            Status:
-              value.Status === "invalid_query" ? "invalid_query" : "not_found",
-          },
-        });
+        for (const language of ["es", "fr"]) {
+          resultHandler?.({
+            SearchID: id,
+            Query: args[0],
+            Language: language,
+            Result: {
+              Status:
+                value.Status === "invalid_query" ? "invalid_query" : "not_found",
+            },
+          });
+        }
       });
       return id;
     }
@@ -307,6 +309,7 @@ describe("lookup and offline dictionary UI", () => {
       Language: "es",
       Result: { Status: "silent_unavailable" },
     });
+    resultHandler({ SearchID: "both-502", Language: "fr", Result: { Status: "silent_unavailable" } });
     await screen.findByText("No definitions available right now.");
     expect(screen.queryByText(/No entry found/)).toBeNull();
     expect(screen.queryByText(/online lookup unavailable/)).toBeNull();
@@ -423,6 +426,7 @@ describe("lookup and offline dictionary UI", () => {
       Language: "es",
       Result: { Status: "source_unavailable" },
     });
+    resultHandler({ SearchID: "missing", Language: "fr", Result: { Status: "not_found" } });
     await screen.findByText(/The dictionary is unavailable/);
     expect(screen.queryByText(/No entry found/)).toBeNull();
   });
@@ -516,6 +520,7 @@ describe("lookup and offline dictionary UI", () => {
       Language: "es",
       Result: { Status: "not_found" },
     });
+    resultHandler({ SearchID: "retry-fail", Language: "fr", Result: { Status: "not_found" } });
     await fireEvent.click(
       await screen.findByRole("button", { name: "Retry English" }),
     );

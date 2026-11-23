@@ -269,7 +269,7 @@ func TestGivenEnglishInstalledWhenSpanishInstallFailsAndRetriesThenBothSurviveRe
 		t.Fatal(err)
 	}
 	es := fixtureInstaller(t, dir, fixtureArchiveLanguage(t, "es-es", "casa"))
-	es.Spanish = true
+	es.Language = core.Spanish
 	bad := *es
 	metadata := *es.packageOverride
 	metadata.SHA = strings.Repeat("0", 64)
@@ -284,7 +284,7 @@ func TestGivenEnglishInstalledWhenSpanishInstallFailsAndRetriesThenBothSurviveRe
 		t.Fatal(err)
 	}
 	restartedEn := &Installer{Dir: dir}
-	restartedEs := &Installer{Dir: dir, Spanish: true}
+	restartedEs := &Installer{Dir: dir, Language: core.Spanish}
 	if err := restartedEn.Recover(); err != nil {
 		t.Fatal(err)
 	}
@@ -300,5 +300,70 @@ func TestGivenEnglishInstalledWhenSpanishInstallFailsAndRetriesThenBothSurviveRe
 	entries, found, err := spanish.Find(context.Background(), "casa", core.Spanish)
 	if err != nil || !found || len(entries) == 0 {
 		t.Fatalf("entries=%v found=%v err=%v", entries, found, err)
+	}
+}
+
+func TestGivenFrenchInstallFailureWhenRetriedThenOtherDictionariesSurvive(t *testing.T) {
+	dir := t.TempDir()
+	en := fixtureInstaller(t, dir, fixtureArchiveLanguage(t, "en-en", "hello"))
+	es := fixtureInstaller(t, dir, fixtureArchiveLanguage(t, "es-es", "casa"))
+	es.Language = core.Spanish
+	for _, installer := range []*Installer{en, es} {
+		if err := installer.Download(context.Background(), installer.id(), nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	frenchData := fixtureArchiveLanguage(t, "fr-fr", "bonjour")
+	fr := fixtureInstaller(t, dir, frenchData)
+	fr.Language = core.French
+	correctSHA := fr.packageOverride.SHA
+	fr.packageOverride.SHA = strings.Repeat("0", 64)
+	if err := fr.Download(context.Background(), fr.id(), nil); err == nil {
+		t.Fatal("expected checksum failure")
+	}
+	if _, err := os.Stat(fr.CurrentIFO()); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("partial French install: %v", err)
+	}
+	for _, old := range []*Installer{en, es} {
+		if err := old.validateInstalled(); err != nil {
+			t.Fatalf("existing %s damaged: %v", old.id(), err)
+		}
+	}
+	fr.packageOverride.SHA = correctSHA
+	if err := fr.Download(context.Background(), fr.id(), nil); err != nil {
+		t.Fatalf("retry: %v", err)
+	}
+	restarted := &Installer{Dir: dir, Language: core.French}
+	if err := restarted.validateInstalled(); err != nil {
+		t.Fatalf("restart: %v", err)
+	}
+	// A previous-version installer still opens its original files after upgrade.
+	for _, tc := range []struct {
+		i    *Installer
+		word string
+		lang core.Language
+	}{{&Installer{Dir: dir}, "hello", core.English}, {&Installer{Dir: dir, Language: core.Spanish}, "casa", core.Spanish}} {
+		_, found, err := (&OfflineDictionary{IFO: tc.i.CurrentIFO(), Language: tc.lang}).Find(context.Background(), tc.word, tc.lang)
+		if err != nil || !found {
+			t.Fatalf("rollback %s found=%v err=%v", tc.lang, found, err)
+		}
+	}
+}
+
+func TestGivenInterruptedFrenchReplacementWhenRecoveringThenLastWorkingDictionaryReturns(t *testing.T) {
+	dir := t.TempDir()
+	fr := fixtureInstaller(t, dir, fixtureArchiveLanguage(t, "fr-fr", "bonjour"))
+	fr.Language = core.French
+	if err := fr.Download(context.Background(), fr.id(), nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(filepath.Join(dir, fr.version()), filepath.Join(dir, ".old-"+fr.version())); err != nil {
+		t.Fatal(err)
+	}
+	if err := (&Installer{Dir: dir, Language: core.French}).Recover(); err != nil {
+		t.Fatal(err)
+	}
+	if err := fr.validateInstalled(); err != nil {
+		t.Fatalf("French dictionary not recovered: %v", err)
 	}
 }
