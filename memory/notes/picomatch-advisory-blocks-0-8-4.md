@@ -5,7 +5,7 @@ type: incident
 date: 2026-11-18
 status: superseded
 supersedes: 
-superseded_by: 
+superseded_by: release-0-9-0-published
 source: 
 ---
 CI `npm audit` fails (high, GHSA-fc5q-39xc-vjpf, picomatch <= 4.0.7 ReDoS, dev tooling only) and no patched version existed on
